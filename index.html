@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Backer Fee discount calculator">
-  <title>Backer Fee Calculator</title>
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Backer Fee Assistant for calculating discounted fees and generating customer notes">
+  <title>Backer Fee Assistant</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,57 +13,101 @@
 </head>
 <body>
   <main class="page-shell">
-    <section class="calculator-card">
-      <div class="card-header">
-        <span class="eyebrow">FEE CALCULATOR</span>
-        <h1>Backer Fee</h1>
-        <p>Calculate the discounted backer fee and generate a ready-to-copy note.</p>
-      </div>
+    <section class="calculator-card" aria-labelledby="pageTitle">
+      <header class="card-header">
+        <div class="header-row">
+          <div>
+            <span class="eyebrow">FEE ASSISTANT</span>
+            <h1 id="pageTitle">Backer Fee</h1>
+            <p>Calculate a discounted fee and prepare a customer-ready note.</p>
+          </div>
+          <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to dark mode" title="Toggle theme">
+            <span id="themeIcon" aria-hidden="true">☾</span>
+          </button>
+        </div>
+      </header>
 
       <form id="calculatorForm" novalidate>
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">CALCULATOR</span>
+            <h2>Enter fee details</h2>
+          </div>
+          <button class="link-btn" id="resetBtn" type="button">Reset</button>
+        </div>
+
         <div class="field-grid">
-          <label class="field">
+          <label class="field" for="backer">
             <span>Original Price of Backer</span>
             <div class="input-wrap">
-              <span class="prefix">$</span>
-              <input type="number" id="backer" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
+              <span class="prefix" aria-hidden="true">$</span>
+              <input type="number" id="backer" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-describedby="backerError">
             </div>
+            <small class="error" id="backerError" role="alert"></small>
           </label>
 
-          <label class="field">
-            <span>Discount (%)</span>
+          <label class="field" for="discount">
+            <span>Discount</span>
             <div class="input-wrap">
-              <input type="number" id="discount" min="0" max="100" step="0.01" placeholder="0.00" inputmode="decimal">
-              <span class="suffix">%</span>
+              <input type="number" id="discount" min="0" max="100" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-describedby="discountError">
+              <span class="suffix" aria-hidden="true">%</span>
             </div>
+            <div class="preset-row" aria-label="Discount presets">
+              <button type="button" class="preset-btn" data-discount="10">10%</button>
+              <button type="button" class="preset-btn" data-discount="15">15%</button>
+              <button type="button" class="preset-btn" data-discount="20">20%</button>
+              <button type="button" class="preset-btn" data-discount="25">25%</button>
+              <button type="button" class="preset-btn" data-discount="30">30%</button>
+            </div>
+            <small class="error" id="discountError" role="alert"></small>
           </label>
         </div>
 
-        <button class="primary-btn" type="submit">Calculate</button>
+        <button class="primary-btn" type="submit">Calculate Fee</button>
 
-        <div class="results" aria-live="polite">
+        <section class="results" id="results" aria-live="polite" aria-label="Calculation results">
           <div class="result-box">
             <span>Discount Amount</span>
-            <strong id="result">—</strong>
+            <strong id="result">$0.00</strong>
           </div>
-          <div class="result-box">
-            <span>New Price with Discount</span>
-            <strong id="total">—</strong>
+          <div class="result-box highlighted">
+            <span>Final Backer Fee</span>
+            <strong id="total">$0.00</strong>
           </div>
-        </div>
+        </section>
 
-        <button class="secondary-btn" id="noteBtn" type="button">Generate Note</button>
+        <section class="note-panel" aria-labelledby="noteHeading">
+          <div class="note-heading-row">
+            <div>
+              <span class="note-label">CUSTOMER NOTE</span>
+              <h2 id="noteHeading">Generated note</h2>
+            </div>
+            <button class="secondary-btn compact" id="generateBtn" type="button">Generate Note</button>
+          </div>
+          <textarea id="noteText" rows="10" spellcheck="true" aria-label="Generated customer note" placeholder="Generate a note after calculating the fee."></textarea>
+          <div class="note-actions">
+            <button class="copy-btn" id="copyBtn" type="button">Copy Note</button>
+            <span class="copy-status" id="copyStatus" role="status" aria-live="polite"></span>
+          </div>
+        </section>
       </form>
-
-      <section class="note-panel" aria-live="polite">
-        <span class="note-label">GENERATED NOTE</span>
-        <p id="noteText">Backer Fee note will generate here</p>
-        <button class="copy-btn" id="copyBtn" type="button">Copy text</button>
-        <span class="copy-status" id="copyStatus" role="status"></span>
-      </section>
     </section>
 
-    <footer>Backer Fee Calculator</footer>
+    <section class="history-card" aria-labelledby="historyHeading">
+      <div class="history-heading-row">
+        <div>
+          <span class="section-kicker">RECENT</span>
+          <h2 id="historyHeading">Calculation history</h2>
+        </div>
+        <button class="link-btn" id="clearHistoryBtn" type="button">Clear history</button>
+      </div>
+      <div id="historyList" class="history-list" aria-live="polite"></div>
+    </section>
+
+    <footer>
+      <span>Backer Fee Assistant</span>
+      <span>Runs locally in your browser</span>
+    </footer>
   </main>
 
   <script src="script.js"></script>
