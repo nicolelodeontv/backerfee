@@ -7,6 +7,7 @@ const noteText = document.getElementById('noteText');
 const copyStatus = document.getElementById('copyStatus');
 
 let calculated = null;
+let generatedNote = '';
 
 const money = (value) => `$${Number(value).toLocaleString('en-US', {
   minimumFractionDigits: 2,
@@ -39,7 +40,8 @@ function generateNote() {
   if (!calculate()) return;
 
   const { discountedPrice, discount } = calculated;
-  noteText.textContent = `I noticed your interest in adding to the back of your card.\n\nI’d be happy to make this customization for you. Our back-of-card printing comes to an additional fee of ${money(discountedPrice)} for the quantity of cards you’ve purchased. This fee includes your ${discount}% discount.\n\nIf you’d like to continue with back-of-card printing, please request a change and leave a note approving the fee. If you’re happy with your card as-is and would no longer like printing on the back of your card, simply approve your design for print.`;
+  generatedNote = `I noticed your interest in adding to the back of your card.\n\nI’d be happy to make this customization for you. Our back-of-card printing comes to an additional fee of ${money(discountedPrice)} for the quantity of cards you’ve purchased. This fee includes your ${discount}% discount.\n\nIf you’d like to continue with back-of-card printing, please request a change and leave a note approving the fee. If you’re happy with your card as-is and would no longer like printing on the back of your card, simply approve your design for print.`;
+  noteText.textContent = generatedNote;
   copyStatus.textContent = '';
 }
 
@@ -51,8 +53,8 @@ form.addEventListener('submit', (event) => {
 document.getElementById('noteBtn').addEventListener('click', generateNote);
 
 document.getElementById('copyBtn').addEventListener('click', async () => {
-  const text = noteText.textContent.trim();
-  if (!text || text === 'Backer Fee note will generate here') return;
+  const text = generatedNote.trim();
+  if (!text) return;
 
   try {
     await navigator.clipboard.writeText(text);
