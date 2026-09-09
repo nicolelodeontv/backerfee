@@ -2,6 +2,7 @@ const form = document.getElementById('calculatorForm');
 const backerInput = document.getElementById('backer');
 const discountInput = document.getElementById('discount');
 const taxInput = document.getElementById('tax');
+const useTaxInput = document.getElementById('useTax');
 const result = document.getElementById('result');
 const total = document.getElementById('total');
 const totaltax = document.getElementById('totaltax');
@@ -18,7 +19,7 @@ const money = (value) => `$${Number(value).toLocaleString('en-US', {
 function calculate() {
   const backer = Number(backerInput.value);
   const discount = Number(discountInput.value);
-  const tax = Number(taxInput.value || 0);
+  const tax = useTaxInput.checked ? Number(taxInput.value || 0) : 0;
 
   if (!Number.isFinite(backer) || backer < 0) {
     backerInput.focus();
@@ -77,3 +78,11 @@ document.getElementById('copyBtn').addEventListener('click', async () => {
     if (calculated) calculate();
   });
 });
+
+useTaxInput.addEventListener('change', () => {
+  taxInput.disabled = !useTaxInput.checked;
+  if (calculated) calculate();
+});
+
+// Start with tax enabled, matching the reference form.
+taxInput.disabled = !useTaxInput.checked;
