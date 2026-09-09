@@ -1,11 +1,8 @@
 const form = document.getElementById('calculatorForm');
 const backerInput = document.getElementById('backer');
 const discountInput = document.getElementById('discount');
-const taxInput = document.getElementById('tax');
-const useTaxInput = document.getElementById('useTax');
 const result = document.getElementById('result');
 const total = document.getElementById('total');
-const totaltax = document.getElementById('totaltax');
 const noteText = document.getElementById('noteText');
 const copyStatus = document.getElementById('copyStatus');
 
@@ -19,7 +16,6 @@ const money = (value) => `$${Number(value).toLocaleString('en-US', {
 function calculate() {
   const backer = Number(backerInput.value);
   const discount = Number(discountInput.value);
-  const tax = useTaxInput.checked ? Number(taxInput.value || 0) : 0;
 
   if (!Number.isFinite(backer) || backer < 0) {
     backerInput.focus();
@@ -29,27 +25,21 @@ function calculate() {
     discountInput.focus();
     return false;
   }
-  if (!Number.isFinite(tax) || tax < 0) {
-    taxInput.focus();
-    return false;
-  }
 
   const discountAmount = backer * (discount / 100);
   const discountedPrice = backer - discountAmount;
-  const finalPrice = discountedPrice + tax;
 
-  calculated = { backer, discount, tax, discountAmount, discountedPrice, finalPrice };
+  calculated = { backer, discount, discountAmount, discountedPrice };
   result.textContent = money(discountAmount);
   total.textContent = money(discountedPrice);
-  totaltax.textContent = money(finalPrice);
   return true;
 }
 
 function generateNote() {
   if (!calculate()) return;
 
-  const { finalPrice, discount } = calculated;
-  noteText.textContent = `I noticed your interest in adding to the back of your card.\n\nI’d be happy to make this customization for you. Our back-of-card printing comes to an additional fee of ${money(finalPrice)} for the quantity of cards you’ve purchased. This fee includes your ${discount}% discount and any local taxes.\n\nIf you’d like to continue with back-of-card printing, please request a change and leave a note approving the fee. If you’re happy with your card as-is and would no longer like printing on the back of your card, simply approve your design for print.`;
+  const { discountedPrice, discount } = calculated;
+  noteText.textContent = `I noticed your interest in adding to the back of your card.\n\nI’d be happy to make this customization for you. Our back-of-card printing comes to an additional fee of ${money(discountedPrice)} for the quantity of cards you’ve purchased. This fee includes your ${discount}% discount.\n\nIf you’d like to continue with back-of-card printing, please request a change and leave a note approving the fee. If you’re happy with your card as-is and would no longer like printing on the back of your card, simply approve your design for print.`;
   copyStatus.textContent = '';
 }
 
@@ -73,16 +63,8 @@ document.getElementById('copyBtn').addEventListener('click', async () => {
   }
 });
 
-[backerInput, discountInput, taxInput].forEach((input) => {
+[backerInput, discountInput].forEach((input) => {
   input.addEventListener('input', () => {
     if (calculated) calculate();
   });
 });
-
-useTaxInput.addEventListener('change', () => {
-  taxInput.disabled = !useTaxInput.checked;
-  if (calculated) calculate();
-});
-
-// Start with tax enabled, matching the reference form.
-taxInput.disabled = !useTaxInput.checked;
