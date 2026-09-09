@@ -1,3 +1,5 @@
+import { buildCustomerNote, calculateFee, formatMoney } from './calculator-utils.js';
+
 const STORAGE_KEYS = {
   settings: 'backerfee-settings-v2',
   history: 'backerfee-history-v2'
@@ -18,12 +20,8 @@ const historyList = document.getElementById('historyList');
 const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
 let calculated = null;
-let noteDirty = false;
 
-const money = (value) => `$${Number(value).toLocaleString('en-US', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2
-})}`;
+const money = formatMoney;
 
 function saveSettings() {
   try {
@@ -32,9 +30,7 @@ function saveSettings() {
       discount: discountInput.value,
       theme: document.documentElement.dataset.theme || 'light'
     }));
-  } catch (_) {
-    // Local persistence is optional.
-  }
+  } catch (_) {}
 }
 
 function loadSettings() {
@@ -96,30 +92,24 @@ function calculate({ record = true } = {}) {
   const values = validate();
   if (!values) return false;
 
-  const { backer, discount } = values;
-  const discountAmount = backer * (discount / 100);
-  const discountedPrice = backer - discountAmount;
+  try {
+    const data = calculateFee(values.backer, values.discount);
+    calculated = data;
+    result.textContent = money(data.discountAmount);
+    total.textContent = money(data.discountedPrice);
 
-  calculated = { backer, discount, discountAmount, discountedPrice };
-  result.textContent = money(discountAmount);
-  total.textContent = money(discountedPrice);
-
-  if (record) addHistory(calculated);
-  noteDirty = true;
-  saveSettings();
-  return true;
-}
-
-function createNote(data = calculated) {
-  if (!data) return '';
-  const { discountedPrice, discount } = data;
-  return `I noticed your interest in adding to the back of your card.\n\nI’d be happy to make this customization for you. Our back-of-card printing comes to an additional fee of ${money(discountedPrice)} for the quantity of cards you’ve purchased. This fee includes your ${discount}% discount.\n\nIf you’d like to continue with back-of-card printing, please request a change and leave a note approving the fee. If you’re happy with your card as-is and would no longer like printing on the back of your card, simply approve your design for print.`;
+    if (record) addHistory(data);
+    saveSettings();
+    return true;
+  } catch (error) {
+    setFieldError(backerInput, 'backerError', error instanceof RangeError ? error.message : 'Unable to calculate the fee.');
+    return false;
+  }
 }
 
 function generateNote() {
   if (!calculated && !calculate()) return;
-  noteText.value = createNote();
-  noteDirty = false;
+  noteText.value = buildCustomerNote(calculated);
   copyStatus.textContent = 'Ready to copy.';
 }
 
@@ -135,9 +125,7 @@ function getHistory() {
 function saveHistory(history) {
   try {
     localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(history.slice(0, 8)));
-  } catch (_) {
-    // Local persistence is optional.
-  }
+  } catch (_) {}
 }
 
 function addHistory(data) {
@@ -176,7 +164,6 @@ function renderHistory() {
 function resetCalculator() {
   form.reset();
   calculated = null;
-  noteDirty = false;
   result.textContent = '$0.00';
   total.textContent = '$0.00';
   noteText.value = '';
@@ -189,8 +176,8 @@ function resetCalculator() {
 }
 
 async function copyNote() {
-  const text = noteText.value.trim();
-  if (!text) {
+  const text = noteText.value;
+  if (!text.trim()) {
     copyStatus.textContent = 'Generate a note first.';
     return;
   }
@@ -217,7 +204,6 @@ themeBtn.addEventListener('click', () => {
   applyTheme(next);
   saveSettings();
 });
-
 document.getElementById('copyBtn').addEventListener('click', copyNote);
 clearHistoryBtn.addEventListener('click', () => {
   saveHistory([]);
@@ -264,23 +250,18 @@ document.querySelectorAll('.preset-btn').forEach((button) => {
     updatePresetState();
     saveSettings();
     const values = validate();
-    if (values) {
-      const discountAmount = values.backer * (values.discount / 100);
-      result.textContent = money(discountAmount);
-      total.textContent = money(values.backer - discountAmount);
-      calculated = {
-        backer: values.backer,
-        discount: values.discount,
-        discountAmount,
-        discountedPrice: values.backer - discountAmount
-      };
-      noteDirty = true;
-    }
+    if (!values) return;
+
+    try {
+      calculated = calculateFee(values.backer, values.discount);
+      result.textContent = money(calculated.discountAmount);
+      total.textContent = money(calculated.discountedPrice);
+      copyStatus.textContent = '';
+    } catch (_) {}
   });
 });
 
 noteText.addEventListener('input', () => {
-  noteDirty = true;
   copyStatus.textContent = '';
 });
 
@@ -292,9 +273,7 @@ loadSettings();
 updatePresetState();
 renderHistory();
 
-// Restore a valid saved calculation visually without adding it to history.
 if (backerInput.value && discountInput.value && validate()) {
   calculate({ record: false });
   noteText.value = '';
-  noteDirty = false;
 }
