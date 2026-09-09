@@ -10,7 +10,7 @@ const copyStatus = document.getElementById('copyStatus');
 
 let calculated = null;
 
-const money = (value) => `₱${Number(value).toLocaleString('en-PH', {
+const money = (value) => `$${Number(value).toLocaleString('en-US', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
 })}`;
