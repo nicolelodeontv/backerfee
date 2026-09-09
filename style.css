@@ -80,9 +80,37 @@ h1 { margin: 8px 0 7px; font-size: clamp(32px, 6vw, 48px); line-height: 1.05; le
 .input-wrap:has(.prefix) input { padding-left: 42px; }
 .input-wrap:has(.suffix) input { padding-right: 48px; }
 .input-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(141,112,168,.12); }
+.input-wrap input:disabled { background: #f6f4f7; color: #a6a1aa; cursor: not-allowed; }
 .prefix, .suffix { position: absolute; top: 50%; transform: translateY(-50%); color: #9b96a2; font-size: 13px; font-weight: 600; z-index: 1; }
 .prefix { left: 17px; }
 .suffix { right: 17px; }
+
+.tax-field { margin-top: 2px; }
+.tax-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5e5a65;
+}
+.tax-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  font-weight: 500;
+  color: #777481;
+}
+.tax-option input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 4px 0 22px;
+}
 
 button { border: 0; font: inherit; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
 button:active { transform: translateY(1px); }
@@ -113,5 +141,6 @@ footer { margin-top: 20px; color: rgba(61,59,69,.55); font-size: 11px; }
   .calculator-card { padding: 26px 18px; border-radius: 22px; }
   .field-grid, .results { grid-template-columns: 1fr; gap: 0; }
   .results { gap: 12px; margin: 18px 0; }
+  .tax-label { align-items: flex-start; flex-direction: column; gap: 6px; }
   .card-header { margin-bottom: 26px; }
 }
