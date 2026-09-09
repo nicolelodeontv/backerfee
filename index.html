@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Backer Fee discount calculator">
+  <title>Backer Fee Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page-shell">
+    <section class="calculator-card">
+      <div class="card-header">
+        <span class="eyebrow">FEE CALCULATOR</span>
+        <h1>Backer Fee</h1>
+        <p>Calculate the discounted backer fee and generate a ready-to-copy note.</p>
+      </div>
+
+      <form id="calculatorForm" novalidate>
+        <div class="field-grid">
+          <label class="field">
+            <span>Original Price of Backer</span>
+            <div class="input-wrap">
+              <span class="prefix">₱</span>
+              <input type="number" id="backer" min="0" step="0.01" placeholder="Enter original backer fee" inputmode="decimal">
+            </div>
+          </label>
+
+          <label class="field">
+            <span>Discount (%)</span>
+            <div class="input-wrap">
+              <input type="number" id="discount" min="0" max="100" step="0.01" placeholder="Enter discount" inputmode="decimal">
+              <span class="suffix">%</span>
+            </div>
+          </label>
+        </div>
+
+        <button class="primary-btn" type="submit">Calculate</button>
+
+        <div class="results" aria-live="polite">
+          <div class="result-box">
+            <span>Discount Amount</span>
+            <strong id="result">—</strong>
+          </div>
+          <div class="result-box">
+            <span>New Price with Discount</span>
+            <strong id="total">—</strong>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Backer Fee (plus tax as computed by the Leads)</span>
+          <div class="input-wrap">
+            <span class="prefix">₱</span>
+            <input type="number" id="tax" min="0" step="0.01" placeholder="Enter tax" inputmode="decimal">
+          </div>
+        </label>
+
+        <div class="result-box highlighted">
+          <span>New Discounted Price + Tax</span>
+          <strong id="totaltax">—</strong>
+        </div>
+
+        <button class="secondary-btn" id="noteBtn" type="button">Generate Note</button>
+      </form>
+
+      <section class="note-panel" aria-live="polite">
+        <span class="note-label">GENERATED NOTE</span>
+        <p id="noteText">Backer Fee note will generate here</p>
+        <button class="copy-btn" id="copyBtn" type="button">Copy text</button>
+        <span class="copy-status" id="copyStatus" role="status"></span>
+      </section>
+    </section>
+
+    <footer>Backer Fee Calculator</footer>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
