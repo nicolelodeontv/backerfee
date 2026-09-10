@@ -34,5 +34,5 @@ export function formatMoney(value) {
 }
 
 export function buildCustomerNote({ discountedPrice, discount }) {
-  return `I noticed your interest in adding to the back of your card.\n\nI’d be happy to make this customization for you. Our back-of-card printing comes to an additional fee of ${formatMoney(discountedPrice)}. This fee includes your ${discount}% discount.\n\nIf you’d like to continue with back-of-card printing, please request a change and leave a note approving the fee. If you’re happy with your card as-is and would no longer like printing on the back of your card, simply approve your design for print.`;
+  return `I noticed your interest in adding to the back of your card.\n\nI’d be happy to make this customization for you. Our back-of-card printing comes to an additional fee of ${formatMoney(discountedPrice)} for the quantity of cards you’ve purchased. This fee includes your ${discount}% discount and any local taxes.\n\nIf you’d like to continue with back-of-card printing, please request a change and leave a note approving the fee. If you’re happy with your card as-is and would no longer like printing on the back of your card, simply approve your design for print.`;
 }
