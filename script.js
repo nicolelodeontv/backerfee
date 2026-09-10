@@ -19,10 +19,17 @@ const themeBtn = document.getElementById('themeBtn');
 const themeIcon = document.getElementById('themeIcon');
 const historyList = document.getElementById('historyList');
 const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+const confirmModal = document.getElementById('confirmModal');
+const confirmTitle = document.getElementById('confirmTitle');
+const confirmMessage = document.getElementById('confirmMessage');
+const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+const confirmActionBtn = document.getElementById('confirmActionBtn');
 
 let calculated = null;
 let noteWasEdited = false;
 let lastRecordedKey = '';
+let confirmAction = null;
+let lastFocusedElement = null;
 
 const money = formatMoney;
 
@@ -291,21 +298,70 @@ async function copyNote() {
   }
 }
 
+function openConfirmModal({ title, message, actionLabel, onConfirm }) {
+  lastFocusedElement = document.activeElement;
+  confirmAction = onConfirm;
+  confirmTitle.textContent = title;
+  confirmMessage.textContent = message;
+  confirmActionBtn.textContent = actionLabel;
+  confirmModal.hidden = false;
+  document.body.classList.add('modal-open');
+  confirmCancelBtn.focus();
+}
+
+function closeConfirmModal() {
+  confirmModal.hidden = true;
+  document.body.classList.remove('modal-open');
+  confirmAction = null;
+  if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+    lastFocusedElement.focus();
+  }
+  lastFocusedElement = null;
+}
+
+function requestReset() {
+  openConfirmModal({
+    title: 'Reset calculator?',
+    message: 'This will clear the current price, discount, results, and note.',
+    actionLabel: 'Reset',
+    onConfirm: resetCalculator
+  });
+}
+
+function requestClearHistory() {
+  if (!getHistory().length) return;
+
+  openConfirmModal({
+    title: 'Clear calculation history?',
+    message: 'This will permanently remove all saved calculations from this browser.',
+    actionLabel: 'Clear history',
+    onConfirm: () => {
+      saveHistory([]);
+      lastRecordedKey = '';
+      renderHistory();
+    }
+  });
+}
+
 form.addEventListener('submit', (event) => event.preventDefault());
 
-resetBtn.addEventListener('click', resetCalculator);
+resetBtn.addEventListener('click', requestReset);
 themeBtn.addEventListener('click', () => {
   const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   applyTheme(next);
   saveSettings();
 });
 copyBtn.addEventListener('click', copyNote);
-clearHistoryBtn.addEventListener('click', () => {
-  if (getHistory().length && window.confirm('Clear all calculation history?')) {
-    saveHistory([]);
-    lastRecordedKey = '';
-    renderHistory();
-  }
+clearHistoryBtn.addEventListener('click', requestClearHistory);
+confirmCancelBtn.addEventListener('click', closeConfirmModal);
+confirmActionBtn.addEventListener('click', () => {
+  const action = confirmAction;
+  closeConfirmModal();
+  if (action) action();
+});
+
+confirmModal.addEventListener('click', (event) => {
+  if (event.target === confirmModal) closeConfirmModal();
 });
 
 historyList.addEventListener('click', (event) => {
@@ -370,7 +426,11 @@ noteText.addEventListener('input', () => {
 });
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') resetCalculator();
+  if (event.key === 'Escape' && !confirmModal.hidden) {
+    closeConfirmModal();
+    return;
+  }
+  if (event.key === 'Escape') requestReset();
 });
 
 loadSettings();
