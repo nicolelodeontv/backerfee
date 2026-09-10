@@ -5,6 +5,9 @@ const STORAGE_KEYS = {
   history: 'backerfee-history-v3'
 };
 
+const MAX_HISTORY = 8;
+const DECIMAL_PATTERN = /^\d+(?:\.\d{0,2})?$|^\.\d{1,2}$/;
+
 const form = document.getElementById('calculatorForm');
 const backerInput = document.getElementById('backer');
 const discountInput = document.getElementById('discount');
@@ -33,6 +36,12 @@ let lastFocusedElement = null;
 
 const money = formatMoney;
 
+function safeRemoveStorage(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch (_) {}
+}
+
 function saveSettings() {
   try {
     localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify({
@@ -45,13 +54,16 @@ function saveSettings() {
 
 function loadSettings() {
   try {
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings) || '{}');
+    const raw = localStorage.getItem(STORAGE_KEYS.settings);
+    const data = raw ? JSON.parse(raw) : {};
+    if (!data || typeof data !== 'object') throw new Error('Invalid settings');
     if (typeof data.backer === 'string') backerInput.value = data.backer;
     if (typeof data.discount === 'string') discountInput.value = data.discount;
     applyTheme(data.theme === 'dark' || data.theme === 'light'
       ? data.theme
       : (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
   } catch (_) {
+    safeRemoveStorage(STORAGE_KEYS.settings);
     applyTheme('light');
   }
 }
@@ -78,32 +90,43 @@ function readValues() {
   const backer = Number(backerRaw);
   const discount = Number(discountRaw);
 
+  const validDecimal = (raw) => Boolean(raw) && DECIMAL_PATTERN.test(raw);
+
   return {
     backerRaw,
     discountRaw,
     backer,
     discount,
-    validBacker: Boolean(backerRaw) && Number.isFinite(backer) && backer >= 0,
-    validDiscount: Boolean(discountRaw) && Number.isFinite(discount) && discount >= 0 && discount <= 100
+    validBacker: validDecimal(backerRaw) && Number.isFinite(backer) && backer >= 0,
+    validDiscount: validDecimal(discountRaw) && Number.isFinite(discount) && discount >= 0 && discount <= 100
   };
 }
 
 function validate({ showErrors = false } = {}) {
   const values = readValues();
 
-  if (showErrors || values.validBacker) {
-    setFieldError(backerInput, 'backerError', values.validBacker ? '' : 'Enter a valid price of $0 or more.');
+  const backerMessage = values.validBacker
+    ? ''
+    : 'Enter a valid price from $0.00 with up to 2 decimals.';
+  const discountMessage = values.validDiscount
+    ? ''
+    : 'Enter a discount from 0% to 100%, with up to 2 decimals.';
+
+  if (showErrors || values.backerRaw) {
+    setFieldError(backerInput, 'backerError', backerMessage);
   } else {
     setFieldError(backerInput, 'backerError', '');
   }
 
-  if (showErrors || values.validDiscount) {
-    setFieldError(discountInput, 'discountError', values.validDiscount ? '' : 'Enter a discount between 0% and 100%.');
+  if (showErrors || values.discountRaw) {
+    setFieldError(discountInput, 'discountError', discountMessage);
   } else {
     setFieldError(discountInput, 'discountError', '');
   }
 
-  return values.validBacker && values.validDiscount ? { backer: values.backer, discount: values.discount } : null;
+  return values.validBacker && values.validDiscount
+    ? { backer: values.backer, discount: values.discount }
+    : null;
 }
 
 function updateResults(data) {
@@ -153,38 +176,89 @@ function calculateLive() {
     calculated = null;
     clearResults();
     updateNote(null, { force: true });
-    setFieldError(backerInput, 'backerError', error instanceof RangeError ? error.message : 'Unable to calculate the fee.');
+    const message = error instanceof RangeError ? error.message : 'Unable to calculate the fee.';
+    setFieldError(backerInput, 'backerError', message);
     return false;
+  }
+}
+
+function normalizeHistoryItem(item) {
+  if (!item || typeof item !== 'object') return null;
+
+  const backer = Number(item.backer);
+  const discount = Number(item.discount);
+  const createdAt = typeof item.createdAt === 'string' ? item.createdAt : '';
+
+  if (!Number.isFinite(backer) || backer < 0) return null;
+  if (!Number.isFinite(discount) || discount < 0 || discount > 100) return null;
+  if (!createdAt || Number.isNaN(new Date(createdAt).getTime())) return null;
+
+  try {
+    const recalculated = calculateFee(backer, discount);
+    return {
+      ...recalculated,
+      id: typeof item.id === 'string' && item.id ? item.id : `${Date.now()}-${Math.random()}`,
+      createdAt
+    };
+  } catch (_) {
+    return null;
   }
 }
 
 function getHistory() {
   try {
-    const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.history) || '[]');
-    return Array.isArray(history) ? history : [];
+    const raw = localStorage.getItem(STORAGE_KEYS.history);
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('Invalid history');
+
+    const valid = [];
+    const seen = new Set();
+    for (const item of parsed) {
+      const normalized = normalizeHistoryItem(item);
+      if (!normalized) continue;
+      const key = `${normalized.backer}|${normalized.discount}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      valid.push(normalized);
+    }
+
+    if (valid.length !== parsed.length) saveHistory(valid);
+    return valid;
   } catch (_) {
+    safeRemoveStorage(STORAGE_KEYS.history);
     return [];
   }
 }
 
 function saveHistory(history) {
   try {
-    localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(history.slice(0, 8)));
+    localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(history.slice(0, MAX_HISTORY)));
   } catch (_) {}
 }
 
+function makeHistoryKey(data) {
+  return `${Number(data.backer).toFixed(2)}|${Number(data.discount).toFixed(2)}`;
+}
+
 function addHistory(data) {
-  const key = `${data.backer}|${data.discount}`;
-  if (key === lastRecordedKey) return;
+  if (!data) return;
+
+  const key = makeHistoryKey(data);
+  const current = getHistory();
+  const existing = current.find((item) => makeHistoryKey(item) === key);
+  const previousSameKey = lastRecordedKey === key;
+
+  if (previousSameKey && existing) return;
   lastRecordedKey = key;
 
-  const current = getHistory();
   const next = {
     ...data,
-    id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+    id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     createdAt: new Date().toISOString()
   };
-  const deduped = current.filter((item) => !(Number(item.backer) === data.backer && Number(item.discount) === data.discount));
+  const deduped = current.filter((item) => makeHistoryKey(item) !== key);
   saveHistory([next, ...deduped]);
   renderHistory();
 }
@@ -197,6 +271,18 @@ function createHistoryButton(label, action, id) {
   button.dataset.id = id;
   button.textContent = label;
   return button;
+}
+
+function formatHistoryDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(date);
 }
 
 function renderHistory() {
@@ -225,8 +311,7 @@ function renderHistory() {
     title.textContent = `${money(item.backer)} → ${money(item.discountedPrice)}`;
 
     const meta = document.createElement('span');
-    const date = new Date(item.createdAt);
-    const dateLabel = Number.isNaN(date.getTime()) ? '' : date.toLocaleString();
+    const dateLabel = formatHistoryDate(item.createdAt);
     const discountLabel = Number(item.discount) === 0 ? 'No discount' : `${item.discount}% discount`;
     meta.textContent = `${discountLabel}${dateLabel ? ` · ${dateLabel}` : ''}`;
 
@@ -234,6 +319,15 @@ function renderHistory() {
     row.append(summary, createHistoryButton('Reuse', 'reuse', item.id), createHistoryButton('Delete', 'delete', item.id));
     historyList.appendChild(row);
   });
+}
+
+function clearCalculatorStorage() {
+  try {
+    const theme = document.documentElement.dataset.theme || 'light';
+    localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify({ backer: '', discount: '', theme }));
+  } catch (_) {
+    safeRemoveStorage(STORAGE_KEYS.settings);
+  }
 }
 
 function resetCalculator() {
@@ -249,7 +343,7 @@ function resetCalculator() {
   setFieldError(backerInput, 'backerError', '');
   setFieldError(discountInput, 'discountError', '');
   updatePresetState();
-  saveSettings();
+  clearCalculatorStorage();
   backerInput.focus();
 }
 
@@ -257,6 +351,7 @@ function fallbackCopy(text) {
   const helper = document.createElement('textarea');
   helper.value = text;
   helper.setAttribute('readonly', '');
+  helper.setAttribute('aria-hidden', 'true');
   helper.style.position = 'fixed';
   helper.style.left = '-9999px';
   helper.style.top = '0';
@@ -283,6 +378,7 @@ async function copyNote() {
   }
 
   try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
     await navigator.clipboard.writeText(noteText.value);
     copyStatus.textContent = 'Copied ✓';
     if (calculated) addHistory(calculated);
@@ -293,7 +389,7 @@ async function copyNote() {
     } else {
       noteText.focus();
       noteText.select();
-      copyStatus.textContent = 'Clipboard blocked — note selected for copying.';
+      copyStatus.textContent = 'Clipboard unavailable — note selected. Press Ctrl+C or Cmd+C to copy.';
     }
   }
 }
@@ -313,9 +409,7 @@ function closeConfirmModal() {
   confirmModal.hidden = true;
   document.body.classList.remove('modal-open');
   confirmAction = null;
-  if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
-    lastFocusedElement.focus();
-  }
+  if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') lastFocusedElement.focus();
   lastFocusedElement = null;
 }
 
@@ -374,12 +468,13 @@ historyList.addEventListener('click', (event) => {
 
   if (button.dataset.action === 'delete') {
     saveHistory(history.filter((entry) => entry.id !== item.id));
+    lastRecordedKey = '';
     renderHistory();
     return;
   }
 
-  backerInput.value = item.backer;
-  discountInput.value = item.discount;
+  backerInput.value = Number(item.backer).toFixed(2);
+  discountInput.value = Number(item.discount).toFixed(2);
   noteWasEdited = false;
   updatePresetState();
   calculateLive();
@@ -403,7 +498,7 @@ document.querySelectorAll('.preset-btn').forEach((button) => {
   });
 });
 
-[backerInput, discountInput].forEach((input) => {
+[backerInput, discountInput].forEach((input, index) => {
   input.addEventListener('input', () => {
     noteWasEdited = false;
     updatePresetState();
@@ -414,6 +509,14 @@ document.querySelectorAll('.preset-btn').forEach((button) => {
   input.addEventListener('blur', () => {
     validate({ showErrors: true });
     if (calculateLive()) addHistory(calculated);
+  });
+
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (index === 0) discountInput.focus();
+      else if (calculated) copyNote();
+    }
   });
 });
 
@@ -430,7 +533,32 @@ document.addEventListener('keydown', (event) => {
     closeConfirmModal();
     return;
   }
-  if (event.key === 'Escape') requestReset();
+
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    requestReset();
+    return;
+  }
+
+  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+    event.preventDefault();
+    if (!confirmModal.hidden) return;
+    copyNote();
+  }
+
+  if (event.key === 'Tab' && !confirmModal.hidden) {
+    const focusable = confirmModal.querySelectorAll('button:not([disabled]), [href], input, textarea, select, [tabindex]:not([tabindex="-1"])');
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 });
 
 loadSettings();
