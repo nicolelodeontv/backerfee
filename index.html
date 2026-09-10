@@ -19,7 +19,7 @@
           <div>
             <span class="eyebrow">FEE ASSISTANT</span>
             <h1 id="pageTitle">Backer Fee</h1>
-            <p>Calculate a discounted fee and prepare a customer-ready note.</p>
+            <p>Enter the original backer price and discount. The fee and customer note update automatically.</p>
           </div>
           <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to dark mode" title="Toggle theme">
             <span id="themeIcon" aria-hidden="true">☾</span>
@@ -33,6 +33,7 @@
             <span class="section-kicker">CALCULATOR</span>
             <h2>Enter fee details</h2>
           </div>
+          <span class="live-badge" aria-label="Automatic calculation enabled"><span class="live-dot" aria-hidden="true"></span>Auto-calculating</span>
           <button class="secondary-btn compact" id="resetBtn" type="button">Reset</button>
         </div>
 
@@ -41,17 +42,19 @@
             <span>Original Price of Backer</span>
             <div class="input-wrap">
               <span class="prefix" aria-hidden="true">$</span>
-              <input type="number" id="backer" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-describedby="backerError">
+              <input type="number" id="backer" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-describedby="backerError backerHint">
             </div>
+            <small class="field-hint" id="backerHint">Enter the full price before the discount.</small>
             <small class="error" id="backerError" role="alert"></small>
           </label>
 
           <label class="field" for="discount">
             <span>Discount</span>
             <div class="input-wrap">
-              <input type="number" id="discount" min="0" max="100" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-describedby="discountError">
+              <input type="number" id="discount" min="0" max="100" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-describedby="discountError discountHint">
               <span class="suffix" aria-hidden="true">%</span>
             </div>
+            <small class="field-hint" id="discountHint">Choose a preset or enter any value from 0% to 100%.</small>
             <div class="preset-row" aria-label="Discount presets">
               <button type="button" class="preset-btn" data-discount="10">10%</button>
               <button type="button" class="preset-btn" data-discount="15">15%</button>
@@ -80,11 +83,11 @@
               <span class="note-label">CUSTOMER NOTE</span>
               <h2 id="noteHeading">Generated note</h2>
             </div>
-            <button class="secondary-btn compact" id="generateBtn" type="button">Generate Note</button>
+            <span class="note-state" id="noteState">Waiting for valid details</span>
           </div>
-          <textarea id="noteText" rows="10" spellcheck="true" aria-label="Generated customer note" placeholder="Generate a note after calculating the fee."></textarea>
+          <textarea id="noteText" rows="10" spellcheck="true" aria-label="Generated customer note" placeholder="Enter valid fee details to generate the customer note automatically."></textarea>
           <div class="note-actions">
-            <button class="copy-btn" id="copyBtn" type="button">Copy Note</button>
+            <button class="copy-btn" id="copyBtn" type="button" disabled>Copy Note</button>
             <span class="copy-status" id="copyStatus" role="status" aria-live="polite"></span>
           </div>
         </section>
@@ -97,7 +100,7 @@
           <span class="section-kicker">RECENT</span>
           <h2 id="historyHeading">Calculation history</h2>
         </div>
-        <button class="link-btn" id="clearHistoryBtn" type="button">Clear history</button>
+        <button class="secondary-btn compact" id="clearHistoryBtn" type="button">Clear history</button>
       </div>
       <div id="historyList" class="history-list" aria-live="polite"></div>
     </section>
