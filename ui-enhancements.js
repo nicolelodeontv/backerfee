@@ -1,4 +1,5 @@
 const toastRoot = document.getElementById('toastRoot');
+const copyStatus = document.getElementById('copyStatus');
 
 function showToast(message, type = 'success') {
   if (!toastRoot) return;
@@ -17,17 +18,17 @@ function showToast(message, type = 'success') {
   }, 2400);
 }
 
+if (copyStatus) {
+  const copyObserver = new MutationObserver(() => {
+    const status = copyStatus.textContent || '';
+    if (status.startsWith('Copied')) showToast('Customer note copied to clipboard.');
+  });
+  copyObserver.observe(copyStatus, { childList: true, characterData: true, subtree: true });
+}
+
 document.addEventListener('click', (event) => {
   const button = event.target.closest('button');
   if (!button || button.disabled) return;
-
-  if (button.id === 'copyBtn') {
-    window.setTimeout(() => {
-      const status = document.getElementById('copyStatus')?.textContent || '';
-      if (status.startsWith('Copied')) showToast('Customer note copied to clipboard.');
-    }, 50);
-    return;
-  }
 
   if (button.id === 'confirmActionBtn') {
     const action = button.textContent.trim().toLowerCase();
@@ -44,8 +45,4 @@ document.addEventListener('click', (event) => {
   } else if (button.dataset.action === 'delete') {
     window.setTimeout(() => showToast('Calculation removed from history.'), 30);
   }
-});
-
-window.addEventListener('error', (event) => {
-  if (event.error) console.error(event.error);
 });
