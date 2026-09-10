@@ -52,6 +52,8 @@ body::before {
   background: linear-gradient(rgba(255,255,255,.08), rgba(255,255,255,.08));
 }
 
+body.modal-open { overflow: hidden; }
+
 button, input, textarea { font: inherit; }
 button { border: 0; cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .48; transform: none !important; box-shadow: none !important; }
@@ -221,6 +223,47 @@ html[data-theme="dark"] .highlighted { background: linear-gradient(135deg, #3026
 .history-action { padding: 6px 8px; background: transparent; color: var(--accent-dark); font-size: 11px; font-weight: 700; }
 .history-action:hover { text-decoration: underline; }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(20, 16, 24, .58);
+  backdrop-filter: blur(5px);
+}
+.modal-backdrop[hidden] { display: none; }
+.confirm-modal {
+  width: min(430px, 100%);
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--paper);
+  box-shadow: 0 30px 90px rgba(0,0,0,.3);
+  animation: modal-in .16s ease-out;
+}
+.confirm-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  background: var(--soft);
+  color: var(--accent-dark);
+  font-size: 18px;
+  font-weight: 800;
+}
+.confirm-copy h2 { margin-top: 6px; font-size: 21px; }
+.confirm-copy p { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px; }
+.confirm-danger { min-height: 42px; }
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px 3px 0; color: var(--muted); font-size: 10px; }
 
 @media (max-width: 700px) {
@@ -236,9 +279,12 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   .history-action { grid-column: 2; }
   .history-summary { grid-column: 1; grid-row: 1 / span 2; }
   .note-state { max-width: 120px; }
+  .confirm-actions { flex-direction: column-reverse; }
+  .confirm-actions button { width: 100%; }
   footer { flex-direction: column; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+  .confirm-modal { animation: none; }
 }
