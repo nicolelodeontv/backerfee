@@ -126,7 +126,7 @@ function updateNote(data, { force = false } = {}) {
   copyBtn.disabled = !noteText.value.trim();
 }
 
-function calculateLive({ recordHistory = false } = {}) {
+function calculateLive() {
   const values = validate();
   if (!values) {
     calculated = null;
@@ -141,13 +141,11 @@ function calculateLive({ recordHistory = false } = {}) {
     updateResults(calculated);
     updateNote(calculated);
     saveSettings();
-
-    if (recordHistory) addHistory(calculated);
     return true;
   } catch (error) {
     calculated = null;
     clearResults();
-    updateNote(null);
+    updateNote(null, { force: true });
     setFieldError(backerInput, 'backerError', error instanceof RangeError ? error.message : 'Unable to calculate the fee.');
     return false;
   }
@@ -248,6 +246,28 @@ function resetCalculator() {
   backerInput.focus();
 }
 
+function fallbackCopy(text) {
+  const helper = document.createElement('textarea');
+  helper.value = text;
+  helper.setAttribute('readonly', '');
+  helper.style.position = 'fixed';
+  helper.style.left = '-9999px';
+  helper.style.top = '0';
+  document.body.appendChild(helper);
+  helper.focus();
+  helper.select();
+
+  let copied = false;
+  try {
+    copied = document.execCommand('copy');
+  } catch (_) {
+    copied = false;
+  }
+
+  helper.remove();
+  return copied;
+}
+
 async function copyNote() {
   const text = noteText.value.trim();
   if (!text) {
@@ -260,9 +280,14 @@ async function copyNote() {
     copyStatus.textContent = 'Copied ✓';
     if (calculated) addHistory(calculated);
   } catch (_) {
-    noteText.focus();
-    noteText.select();
-    copyStatus.textContent = 'Clipboard blocked — note selected for copying.';
+    if (fallbackCopy(noteText.value)) {
+      copyStatus.textContent = 'Copied ✓';
+      if (calculated) addHistory(calculated);
+    } else {
+      noteText.focus();
+      noteText.select();
+      copyStatus.textContent = 'Clipboard blocked — note selected for copying.';
+    }
   }
 }
 
@@ -316,23 +341,23 @@ document.querySelectorAll('.preset-btn').forEach((button) => {
     discountInput.value = button.dataset.discount;
     noteWasEdited = false;
     updatePresetState();
-    calculateLive({ recordHistory: true });
+    calculateLive();
+    addHistory(calculated);
     discountInput.focus();
   });
 });
 
 [backerInput, discountInput].forEach((input) => {
   input.addEventListener('input', () => {
+    noteWasEdited = false;
     updatePresetState();
-    saveSettings();
     calculateLive();
     copyStatus.textContent = '';
   });
 
   input.addEventListener('blur', () => {
     validate({ showErrors: true });
-    const values = validate();
-    if (values) addHistory(calculateFee(values.backer, values.discount));
+    if (calculateLive()) addHistory(calculated);
   });
 });
 
@@ -341,6 +366,7 @@ noteText.addEventListener('input', () => {
   noteState.textContent = 'Edited — ready to copy';
   copyBtn.disabled = !noteText.value.trim();
   copyStatus.textContent = '';
+  saveSettings();
 });
 
 document.addEventListener('keydown', (event) => {
