@@ -49,10 +49,11 @@ test('formats money as US dollars', () => {
   assert.equal(formatMoney(42.491499999), '$42.49');
 });
 
-test('builds the note with paragraph breaks and the correct fee wording', () => {
+test('builds the note with paragraph breaks and the requested fee wording', () => {
   const note = buildCustomerNote({ discountedPrice: 80, discount: 20 });
   assert.match(note, /\$80\.00/);
   assert.match(note, /20% discount/);
   assert.ok(note.includes('\n\n'));
-  assert.doesNotMatch(note, /quantity of cards/);
+  assert.match(note, /for the quantity of cards you’ve purchased/);
+  assert.match(note, /any local taxes/);
 });
