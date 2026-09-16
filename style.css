@@ -162,8 +162,17 @@ h2 { margin: 4px 0 0; font-size: 18px; letter-spacing: -.02em; }
   font-size: 15px; font-weight: 500;
   transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
+.input-wrap input[type="number"]::-webkit-outer-spin-button,
+.input-wrap input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.input-wrap input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
 .input-wrap:has(.prefix) input { padding-left: 42px; }
-.input-wrap:has(.suffix) input { padding-right: 48px; }
+.input-wrap:has(.suffix) input { padding-right: 42px; }
 .input-wrap input::placeholder { color: var(--muted); }
 .input-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(141,112,168,.12); }
 .prefix, .suffix { position: absolute; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; font-weight: 700; z-index: 1; }
