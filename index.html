@@ -22,7 +22,7 @@
             <p>Enter the original backer price and discount. The fee and customer note update automatically.</p>
           </div>
           <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to dark mode" title="Toggle theme">
-            <span id="themeIcon" aria-hidden="true">☾</span>
+            <span id="themeIcon" class="theme-icon" aria-hidden="true">☾</span>
           </button>
         </div>
       </header>
@@ -34,7 +34,10 @@
             <h2>Enter fee details</h2>
           </div>
           <span class="live-badge" aria-label="Automatic calculation enabled"><span class="live-dot" aria-hidden="true"></span>Auto-calculating</span>
-          <button class="secondary-btn compact" id="resetBtn" type="button">Reset</button>
+          <div class="reset-group">
+            <button class="secondary-btn compact" id="resetBtn" type="button">Reset</button>
+            <span class="shortcut-hint" aria-hidden="true"><kbd>Esc</kbd> reset</span>
+          </div>
         </div>
 
         <div class="field-grid">
@@ -42,9 +45,9 @@
             <span>Original Price of Backer</span>
             <div class="input-wrap">
               <span class="prefix" aria-hidden="true">$</span>
-              <input type="number" id="backer" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-describedby="backerError backerHint">
+              <input type="text" id="backer" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-describedby="backerError backerHint">
             </div>
-            <small class="field-hint" id="backerHint">Enter the full price before the discount.</small>
+            <small class="field-hint" id="backerHint">Enter the full price before the discount. Commas are added when you leave the field.</small>
             <small class="error" id="backerError" role="alert"></small>
           </label>
 
@@ -56,17 +59,17 @@
             </div>
             <small class="field-hint" id="discountHint">Choose a preset or enter any value from 0% to 100%.</small>
             <div class="preset-row" aria-label="Discount presets">
-              <button type="button" class="preset-btn" data-discount="10">10%</button>
-              <button type="button" class="preset-btn" data-discount="15">15%</button>
-              <button type="button" class="preset-btn" data-discount="20">20%</button>
-              <button type="button" class="preset-btn" data-discount="25">25%</button>
-              <button type="button" class="preset-btn" data-discount="30">30%</button>
+              <button type="button" class="preset-btn" data-discount="10" aria-pressed="false">10%</button>
+              <button type="button" class="preset-btn" data-discount="15" aria-pressed="false">15%</button>
+              <button type="button" class="preset-btn" data-discount="20" aria-pressed="false">20%</button>
+              <button type="button" class="preset-btn" data-discount="25" aria-pressed="false">25%</button>
+              <button type="button" class="preset-btn" data-discount="30" aria-pressed="false">30%</button>
             </div>
             <small class="error" id="discountError" role="alert"></small>
           </label>
         </div>
 
-        <section class="results" id="results" aria-live="polite" aria-label="Calculation results">
+        <section class="results" id="results" aria-live="polite" aria-busy="false" aria-label="Calculation results">
           <div class="result-box">
             <span>Discount Amount</span>
             <strong id="result">$0.00</strong>
@@ -74,6 +77,24 @@
           <div class="result-box highlighted">
             <span>Final Backer Fee</span>
             <strong id="total">$0.00</strong>
+          </div>
+        </section>
+
+        <section class="fee-breakdown" aria-labelledby="feeBreakdownHeading">
+          <div class="fee-breakdown-heading">
+            <div>
+              <span class="section-kicker">BREAKDOWN</span>
+              <h2 id="feeBreakdownHeading">Fee split</h2>
+            </div>
+            <span class="fee-breakdown-total" id="feeBreakdownTotal">$0.00 original</span>
+          </div>
+          <div class="fee-bar-track" id="feeBreakdownBar" role="img" aria-label="Fee breakdown unavailable until valid details are entered.">
+            <span class="fee-bar-segment fee-bar-discount" id="discountBar" aria-hidden="true"></span>
+            <span class="fee-bar-segment fee-bar-final" id="finalFeeBar" aria-hidden="true"></span>
+          </div>
+          <div class="fee-breakdown-legend" aria-hidden="true">
+            <span><i class="legend-dot legend-discount"></i>Discount <strong id="discountBreakdownValue">$0.00</strong></span>
+            <span><i class="legend-dot legend-final"></i>Final fee <strong id="finalBreakdownValue">$0.00</strong></span>
           </div>
         </section>
 
@@ -85,7 +106,14 @@
             </div>
             <span class="note-state" id="noteState">Waiting for valid details</span>
           </div>
-          <textarea id="noteText" rows="10" spellcheck="true" aria-label="Generated customer note" placeholder="Enter valid fee details to generate the customer note automatically."></textarea>
+          <div class="note-editor">
+            <textarea id="noteText" rows="10" spellcheck="true" aria-label="Generated customer note" placeholder=""></textarea>
+            <div class="empty-state note-empty" id="noteEmpty" aria-hidden="true">
+              <span class="empty-icon" aria-hidden="true">✦</span>
+              <strong>Your customer note will appear here</strong>
+              <span>Enter a price and discount to generate the copy-ready message.</span>
+            </div>
+          </div>
           <div class="note-actions">
             <button class="copy-btn" id="copyBtn" type="button" disabled>Copy Note</button>
             <span class="copy-status" id="copyStatus" role="status" aria-live="polite"></span>
