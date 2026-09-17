@@ -7,13 +7,25 @@ const STORAGE_KEYS = {
 
 const MAX_HISTORY = 8;
 const DECIMAL_PATTERN = /^\d+(?:\.\d{0,2})?$|^\.\d{1,2}$/;
+const priceFormatter = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
 
 const form = document.getElementById('calculatorForm');
 const backerInput = document.getElementById('backer');
 const discountInput = document.getElementById('discount');
 const result = document.getElementById('result');
 const total = document.getElementById('total');
+const resultsSection = document.getElementById('results');
+const feeBreakdownBar = document.getElementById('feeBreakdownBar');
+const discountBar = document.getElementById('discountBar');
+const finalFeeBar = document.getElementById('finalFeeBar');
+const feeBreakdownTotal = document.getElementById('feeBreakdownTotal');
+const discountBreakdownValue = document.getElementById('discountBreakdownValue');
+const finalBreakdownValue = document.getElementById('finalBreakdownValue');
 const noteText = document.getElementById('noteText');
+const noteEmpty = document.getElementById('noteEmpty');
 const noteState = document.getElementById('noteState');
 const copyBtn = document.getElementById('copyBtn');
 const copyStatus = document.getElementById('copyStatus');
@@ -33,8 +45,19 @@ let noteWasEdited = false;
 let lastRecordedKey = '';
 let confirmAction = null;
 let lastFocusedElement = null;
+let copyFeedbackTimer = null;
+let resultsAnimationTimer = null;
+const resultAnimationFrames = new Map();
+let displayedResults = {
+  discountAmount: 0,
+  discountedPrice: 0
+};
 
 const money = formatMoney;
+
+function prefersReducedMotion() {
+  return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+}
 
 function safeRemoveStorage(key) {
   try {
@@ -61,16 +84,23 @@ function loadSettings() {
     if (typeof data.discount === 'string') discountInput.value = data.discount;
     applyTheme(data.theme === 'dark' || data.theme === 'light'
       ? data.theme
-      : (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+      : (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'), { animate: false });
   } catch (_) {
     safeRemoveStorage(STORAGE_KEYS.settings);
-    applyTheme('light');
+    applyTheme('light', { animate: false });
   }
 }
 
-function applyTheme(theme) {
+function applyTheme(theme, { animate = false } = {}) {
   document.documentElement.dataset.theme = theme;
   const dark = theme === 'dark';
+
+  if (animate) {
+    themeIcon.classList.remove('is-switching');
+    void themeIcon.offsetWidth;
+    themeIcon.classList.add('is-switching');
+  }
+
   themeIcon.textContent = dark ? '☀' : '☾';
   themeBtn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
   themeBtn.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
@@ -87,7 +117,8 @@ function setFieldError(input, errorId, message) {
 function readValues() {
   const backerRaw = backerInput.value.trim();
   const discountRaw = discountInput.value.trim();
-  const backer = Number(backerRaw);
+  const normalizedBackerRaw = backerRaw.replace(/,/g, '');
+  const backer = Number(normalizedBackerRaw);
   const discount = Number(discountRaw);
 
   const validDecimal = (raw) => Boolean(raw) && DECIMAL_PATTERN.test(raw);
@@ -95,9 +126,10 @@ function readValues() {
   return {
     backerRaw,
     discountRaw,
+    normalizedBackerRaw,
     backer,
     discount,
-    validBacker: validDecimal(backerRaw) && Number.isFinite(backer) && backer >= 0,
+    validBacker: validDecimal(normalizedBackerRaw) && Number.isFinite(backer) && backer >= 0,
     validDiscount: validDecimal(discountRaw) && Number.isFinite(discount) && discount >= 0 && discount <= 100
   };
 }
@@ -129,14 +161,84 @@ function validate({ showErrors = false } = {}) {
     : null;
 }
 
+function animateMoney(element, from, to) {
+  const existingFrame = resultAnimationFrames.get(element);
+  if (existingFrame) cancelAnimationFrame(existingFrame);
+
+  if (prefersReducedMotion() || from === to) {
+    element.textContent = money(to);
+    resultAnimationFrames.delete(element);
+    return;
+  }
+
+  const startTime = performance.now();
+  const duration = 300;
+
+  const renderFrame = (now) => {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const value = from + ((to - from) * eased);
+    element.textContent = money(value);
+
+    if (progress < 1) {
+      resultAnimationFrames.set(element, requestAnimationFrame(renderFrame));
+    } else {
+      element.textContent = money(to);
+      resultAnimationFrames.delete(element);
+    }
+  };
+
+  resultAnimationFrames.set(element, requestAnimationFrame(renderFrame));
+}
+
 function updateResults(data) {
-  result.textContent = money(data.discountAmount);
-  total.textContent = money(data.discountedPrice);
+  resultsSection.setAttribute('aria-busy', 'true');
+  animateMoney(result, displayedResults.discountAmount, data.discountAmount);
+  animateMoney(total, displayedResults.discountedPrice, data.discountedPrice);
+  displayedResults = {
+    discountAmount: data.discountAmount,
+    discountedPrice: data.discountedPrice
+  };
+
+  if (resultsAnimationTimer) clearTimeout(resultsAnimationTimer);
+  resultsAnimationTimer = window.setTimeout(() => {
+    resultsSection.setAttribute('aria-busy', 'false');
+  }, prefersReducedMotion() ? 0 : 320);
+}
+
+function updateFeeBreakdown(data) {
+  if (!data) {
+    discountBar.style.width = '0%';
+    finalFeeBar.style.width = '0%';
+    feeBreakdownTotal.textContent = '$0.00 original';
+    discountBreakdownValue.textContent = '$0.00';
+    finalBreakdownValue.textContent = '$0.00';
+    feeBreakdownBar.setAttribute('aria-label', 'Fee breakdown unavailable until valid details are entered.');
+    return;
+  }
+
+  const original = Number(data.backer);
+  const discountAmount = Number(data.discountAmount);
+  const finalFee = Number(data.discountedPrice);
+  const discountWidth = original > 0
+    ? Math.min(100, Math.max(0, (discountAmount / original) * 100))
+    : 0;
+  const finalWidth = original > 0 ? Math.max(0, 100 - discountWidth) : 0;
+
+  discountBar.style.width = `${discountWidth}%`;
+  finalFeeBar.style.width = `${finalWidth}%`;
+  feeBreakdownTotal.textContent = `${money(original)} original`;
+  discountBreakdownValue.textContent = money(discountAmount);
+  finalBreakdownValue.textContent = money(finalFee);
+  feeBreakdownBar.setAttribute(
+    'aria-label',
+    `Fee breakdown: ${money(discountAmount)} discount and ${money(finalFee)} final fee.`
+  );
 }
 
 function clearResults() {
-  result.textContent = '$0.00';
-  total.textContent = '$0.00';
+  updateResults({ discountAmount: 0, discountedPrice: 0 });
+  updateFeeBreakdown(null);
 }
 
 function updateNote(data, { force = false } = {}) {
@@ -144,6 +246,7 @@ function updateNote(data, { force = false } = {}) {
     noteState.textContent = 'Waiting for valid details';
     copyBtn.disabled = true;
     if (force || !noteWasEdited) noteText.value = '';
+    noteEmpty?.setAttribute('aria-hidden', noteText.value.trim() ? 'true' : 'false');
     return;
   }
 
@@ -154,6 +257,7 @@ function updateNote(data, { force = false } = {}) {
   }
   noteState.textContent = noteWasEdited ? 'Edited — ready to copy' : 'Updated automatically';
   copyBtn.disabled = !noteText.value.trim();
+  noteEmpty?.setAttribute('aria-hidden', noteText.value.trim() ? 'true' : 'false');
 }
 
 function calculateLive() {
@@ -169,6 +273,7 @@ function calculateLive() {
   try {
     calculated = calculateFee(values.backer, values.discount);
     updateResults(calculated);
+    updateFeeBreakdown(calculated);
     updateNote(calculated);
     saveSettings();
     return true;
@@ -292,7 +397,7 @@ function renderHistory() {
   if (!history.length) {
     const empty = document.createElement('div');
     empty.className = 'history-empty';
-    empty.textContent = 'Your latest calculations will appear here.';
+    empty.textContent = 'Saved calculations will appear here for quick reuse.';
     historyList.appendChild(empty);
     clearHistoryBtn.disabled = true;
     return;
@@ -337,9 +442,11 @@ function resetCalculator() {
   lastRecordedKey = '';
   clearResults();
   noteText.value = '';
+  noteEmpty?.setAttribute('aria-hidden', 'false');
   noteState.textContent = 'Waiting for valid details';
   copyBtn.disabled = true;
   copyStatus.textContent = '';
+  restoreCopyButton();
   setFieldError(backerInput, 'backerError', '');
   setFieldError(discountInput, 'discountError', '');
   updatePresetState();
@@ -370,6 +477,22 @@ function fallbackCopy(text) {
   return copied;
 }
 
+function restoreCopyButton() {
+  if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
+  copyFeedbackTimer = null;
+  copyBtn.textContent = 'Copy Note';
+  copyBtn.classList.remove('is-copied');
+}
+
+function showCopyFeedback() {
+  restoreCopyButton();
+  copyBtn.textContent = '✓ Copied';
+  copyBtn.classList.add('is-copied');
+  copyFeedbackTimer = window.setTimeout(() => {
+    restoreCopyButton();
+  }, 1500);
+}
+
 async function copyNote() {
   const text = noteText.value.trim();
   if (!text) {
@@ -381,10 +504,12 @@ async function copyNote() {
     if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
     await navigator.clipboard.writeText(noteText.value);
     copyStatus.textContent = 'Copied ✓';
+    showCopyFeedback();
     if (calculated) addHistory(calculated);
   } catch (_) {
     if (fallbackCopy(noteText.value)) {
       copyStatus.textContent = 'Copied ✓';
+      showCopyFeedback();
       if (calculated) addHistory(calculated);
     } else {
       noteText.focus();
@@ -437,12 +562,31 @@ function requestClearHistory() {
   });
 }
 
+function formatBackerInput() {
+  const raw = backerInput.value.trim().replace(/,/g, '');
+  if (!raw || !DECIMAL_PATTERN.test(raw)) return;
+
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) return;
+  backerInput.value = priceFormatter.format(value);
+  saveSettings();
+}
+
+function updatePresetState() {
+  const current = Number(discountInput.value);
+  document.querySelectorAll('.preset-btn').forEach((button) => {
+    const selected = Number(button.dataset.discount) === current;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+}
+
 form.addEventListener('submit', (event) => event.preventDefault());
 
 resetBtn.addEventListener('click', requestReset);
 themeBtn.addEventListener('click', () => {
   const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-  applyTheme(next);
+  applyTheme(next, { animate: true });
   saveSettings();
 });
 copyBtn.addEventListener('click', copyNote);
@@ -481,12 +625,6 @@ historyList.addEventListener('click', (event) => {
   backerInput.focus();
 });
 
-function updatePresetState() {
-  document.querySelectorAll('.preset-btn').forEach((button) => {
-    button.classList.toggle('active', Number(button.dataset.discount) === Number(discountInput.value));
-  });
-}
-
 document.querySelectorAll('.preset-btn').forEach((button) => {
   button.addEventListener('click', () => {
     discountInput.value = button.dataset.discount;
@@ -498,26 +636,50 @@ document.querySelectorAll('.preset-btn').forEach((button) => {
   });
 });
 
-[backerInput, discountInput].forEach((input, index) => {
-  input.addEventListener('input', () => {
-    noteWasEdited = false;
-    updatePresetState();
-    calculateLive();
-    copyStatus.textContent = '';
-  });
+backerInput.addEventListener('focus', () => {
+  if (backerInput.value.includes(',')) {
+    backerInput.value = backerInput.value.replace(/,/g, '');
+  }
+});
 
-  input.addEventListener('blur', () => {
-    validate({ showErrors: true });
-    if (calculateLive()) addHistory(calculated);
-  });
+backerInput.addEventListener('input', () => {
+  noteWasEdited = false;
+  calculateLive();
+  copyStatus.textContent = '';
+  restoreCopyButton();
+});
 
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      if (index === 0) discountInput.focus();
-      else if (calculated) copyNote();
-    }
-  });
+backerInput.addEventListener('blur', () => {
+  formatBackerInput();
+  validate({ showErrors: true });
+  if (calculateLive()) addHistory(calculated);
+});
+
+backerInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    discountInput.focus();
+  }
+});
+
+discountInput.addEventListener('input', () => {
+  noteWasEdited = false;
+  updatePresetState();
+  calculateLive();
+  copyStatus.textContent = '';
+  restoreCopyButton();
+});
+
+discountInput.addEventListener('blur', () => {
+  validate({ showErrors: true });
+  if (calculateLive()) addHistory(calculated);
+});
+
+discountInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    if (calculated) copyNote();
+  }
 });
 
 noteText.addEventListener('input', () => {
@@ -525,6 +687,8 @@ noteText.addEventListener('input', () => {
   noteState.textContent = 'Edited — ready to copy';
   copyBtn.disabled = !noteText.value.trim();
   copyStatus.textContent = '';
+  restoreCopyButton();
+  noteEmpty?.setAttribute('aria-hidden', noteText.value.trim() ? 'true' : 'false');
   saveSettings();
 });
 
@@ -563,6 +727,7 @@ document.addEventListener('keydown', (event) => {
 
 loadSettings();
 updatePresetState();
+updateFeeBreakdown(null);
 renderHistory();
 
 if (backerInput.value && discountInput.value) {
