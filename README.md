@@ -6,11 +6,11 @@ A responsive, browser-only calculator for discounted backer fees and customer-re
 
 - Live fee calculation while typing — no Calculate button required
 - Automatic customer-note generation from the current calculation
+- Read-only generated customer note that updates with the live calculation
 - US dollar formatting
 - Discount presets (10%, 15%, 20%, 25%, 30%)
 - Input validation with accessible error states
 - Reset with Escape-key support
-- Editable generated customer note
 - Exact-format clipboard copying
 - Live fee split breakdown with proportional discount/final-fee segments
 - Animated result count-up with reduced-motion fallback
