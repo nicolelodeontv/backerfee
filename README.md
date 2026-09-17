@@ -12,9 +12,14 @@ A responsive, browser-only calculator for discounted backer fees and customer-re
 - Reset with Escape-key support
 - Editable generated customer note
 - Exact-format clipboard copying
-- Light/dark theme with saved preference
+- Live fee split breakdown with proportional discount/final-fee segments
+- Animated result count-up with reduced-motion fallback
+- Active preset state with `aria-pressed`
+- Copy success feedback
+- Light/dark theme with saved preference and animated icon
 - Recent calculation history with reuse/delete controls
 - Clear-history confirmation
+- Friendlier empty states
 - Local persistence using `localStorage`
 - Reduced-motion support
 - Safe DOM-based history rendering
