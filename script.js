@@ -91,6 +91,33 @@ function loadSettings() {
   }
 }
 
+function applyUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  let applied = false;
+
+  const priceParam = params.get('price');
+  if (priceParam !== null) {
+    const normalizedPrice = priceParam.trim().replace(/,/g, '');
+    const price = Number(normalizedPrice);
+    if (DECIMAL_PATTERN.test(normalizedPrice) && Number.isFinite(price) && price >= 0) {
+      backerInput.value = normalizedPrice;
+      applied = true;
+    }
+  }
+
+  const discountParam = params.get('discount');
+  if (discountParam !== null) {
+    const normalizedDiscount = discountParam.trim();
+    const discount = Number(normalizedDiscount);
+    if (DECIMAL_PATTERN.test(normalizedDiscount) && Number.isFinite(discount) && discount >= 0 && discount <= 100) {
+      discountInput.value = normalizedDiscount;
+      applied = true;
+    }
+  }
+
+  return applied;
+}
+
 function applyTheme(theme, { animate = false } = {}) {
   document.documentElement.dataset.theme = theme;
   const dark = theme === 'dark';
@@ -726,6 +753,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 loadSettings();
+applyUrlParams();
 updatePresetState();
 updateFeeBreakdown(null);
 renderHistory();
