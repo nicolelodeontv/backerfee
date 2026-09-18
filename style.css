@@ -209,6 +209,36 @@ h2 { margin: 4px 0 0; font-size: 18px; letter-spacing: -.02em; }
 }
 .preset-btn.active { background: var(--accent); color: var(--button-text); box-shadow: 0 6px 14px rgba(112,84,138,.16); }
 
+.custom-preset-editor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+}
+.custom-preset-input-wrap {
+  position: relative;
+  width: min(190px, 100%);
+}
+.custom-preset-input-wrap input {
+  width: 100%;
+  height: 40px;
+  padding: 0 38px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--paper-2);
+  color: var(--ink);
+  outline: none;
+  font-size: 11px;
+  font-weight: 600;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.custom-preset-input-wrap input::placeholder { color: var(--muted); }
+.custom-preset-input-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(141,112,168,.12);
+}
+.custom-preset-hint { margin-top: 7px; }
+
 .error { display: block; min-height: 16px; margin-top: 5px; color: var(--danger); font-size: 11px; line-height: 1.4; }
 .invalid input { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(181,79,95,.1); }
 
