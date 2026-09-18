@@ -65,7 +65,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 }
 
 .page-shell {
-  width: min(920px, 100%);
+  width: min(1360px, 100%);
   min-height: 100vh;
   margin: 0 auto;
   padding: 34px 18px 22px;
@@ -494,6 +494,27 @@ html[data-theme="dark"] .highlighted { background: linear-gradient(135deg, #3026
 .toast-error { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
 
 footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px 3px 0; color: var(--muted); font-size: 10px; }
+
+
+@media (min-width: 901px) {
+  .calculator-card form {
+    display: grid;
+    grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
+    grid-template-areas:
+      "heading results"
+      "details results"
+      "details breakdown"
+      "details note";
+    gap: 0 24px;
+    align-items: start;
+  }
+
+  .calculator-card form > .section-heading { grid-area: heading; }
+  .calculator-card form > .field-grid { grid-area: details; display: grid; grid-template-columns: 1fr; gap: 0; }
+  .calculator-card form > .results { grid-area: results; margin: 0 0 14px; }
+  .calculator-card form > .fee-breakdown { grid-area: breakdown; margin: 0 0 26px; }
+  .calculator-card form > .note-panel { grid-area: note; margin-top: 0; }
+}
 
 @media (hover: none) {
   .history-action { opacity: 1; transform: none; pointer-events: auto; }
