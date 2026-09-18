@@ -497,6 +497,26 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
 
 
 @media (min-width: 901px) {
+  .page-shell {
+    display: grid;
+    grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr) minmax(0, .82fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .calculator-card {
+    grid-column: 1 / span 2;
+  }
+
+  .history-card {
+    grid-column: 3;
+    margin-top: 0;
+    min-width: 0;
+    align-self: start;
+    max-height: calc(100vh - 56px);
+    overflow: auto;
+  }
+
   .calculator-card form {
     display: grid;
     grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
@@ -514,10 +534,72 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   .calculator-card form > .results { grid-area: results; margin: 0 0 14px; }
   .calculator-card form > .fee-breakdown { grid-area: breakdown; margin: 0 0 26px; }
   .calculator-card form > .note-panel { grid-area: note; margin-top: 0; }
+
+  footer {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (hover: none) {
   .history-action { opacity: 1; transform: none; pointer-events: auto; }
+}
+
+@media (max-width: 900px) {
+  .page-shell {
+    display: block;
+  }
+
+  .calculator-card,
+  .history-card {
+    min-width: 0;
+  }
+
+  .preset-btn {
+    min-height: 40px;
+  }
+
+  .history-item {
+    min-width: 0;
+  }
+
+  .history-summary {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .history-summary strong,
+  .history-summary span {
+    overflow-wrap: anywhere;
+  }
+
+  .history-totals > div {
+    min-width: 0;
+  }
+
+  .history-totals span,
+  .history-totals strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .custom-preset-editor {
+    flex-wrap: wrap;
+  }
+
+  .custom-preset-input-wrap {
+    flex: 1 1 160px;
+    width: auto;
+    min-width: 0;
+  }
+
+  .custom-preset-editor .secondary-btn {
+    flex: 0 0 auto;
+  }
+
+  .history-action {
+    min-height: 36px;
+    padding: 6px 8px;
+  }
 }
 
 @media (max-width: 700px) {
