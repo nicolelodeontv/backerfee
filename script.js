@@ -37,6 +37,8 @@ const resetBtn = document.getElementById('resetBtn');
 const themeBtn = document.getElementById('themeBtn');
 const themeIcon = document.getElementById('themeIcon');
 const historyList = document.getElementById('historyList');
+const historyDiscountTotal = document.getElementById('historyDiscountTotal');
+const historyFinalTotal = document.getElementById('historyFinalTotal');
 const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 const confirmModal = document.getElementById('confirmModal');
 const confirmTitle = document.getElementById('confirmTitle');
@@ -466,6 +468,16 @@ function formatHistoryDate(value) {
 
 function renderHistory() {
   const history = getHistory();
+  const totals = history.reduce((sum, item) => ({
+    discountAmount: sum.discountAmount + Number(item.discountAmount),
+    discountedPrice: sum.discountedPrice + Number(item.discountedPrice)
+  }), {
+    discountAmount: 0,
+    discountedPrice: 0
+  });
+
+  historyDiscountTotal.textContent = money(totals.discountAmount);
+  historyFinalTotal.textContent = money(totals.discountedPrice);
   historyList.replaceChildren();
 
   if (!history.length) {
