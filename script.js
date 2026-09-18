@@ -15,6 +15,10 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
 const form = document.getElementById('calculatorForm');
 const backerInput = document.getElementById('backer');
 const discountInput = document.getElementById('discount');
+const customDiscountInput = document.getElementById('customDiscount');
+const saveCustomPresetBtn = document.getElementById('saveCustomPresetBtn');
+const customPresetBtn = document.getElementById('customPresetBtn');
+const customDiscountError = document.getElementById('customDiscountError');
 const result = document.getElementById('result');
 const total = document.getElementById('total');
 const resultsSection = document.getElementById('results');
@@ -41,6 +45,7 @@ const confirmCancelBtn = document.getElementById('confirmCancelBtn');
 const confirmActionBtn = document.getElementById('confirmActionBtn');
 
 let calculated = null;
+let customDiscountPreset = '';
 let noteWasEdited = false;
 let lastRecordedKey = '';
 let confirmAction = null;
@@ -70,6 +75,7 @@ function saveSettings() {
     localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify({
       backer: backerInput.value,
       discount: discountInput.value,
+      customDiscount: customDiscountPreset,
       theme: document.documentElement.dataset.theme || 'light'
     }));
   } catch (_) {}
@@ -82,6 +88,13 @@ function loadSettings() {
     if (!data || typeof data !== 'object') throw new Error('Invalid settings');
     if (typeof data.backer === 'string') backerInput.value = data.backer;
     if (typeof data.discount === 'string') discountInput.value = data.discount;
+    if (typeof data.customDiscount === 'string') {
+      const customDiscount = Number(data.customDiscount);
+      if (DECIMAL_PATTERN.test(data.customDiscount) && Number.isFinite(customDiscount) && customDiscount >= 0 && customDiscount <= 100) {
+        customDiscountPreset = data.customDiscount;
+      }
+    }
+    renderCustomPreset();
     applyTheme(data.theme === 'dark' || data.theme === 'light'
       ? data.theme
       : (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'), { animate: false });
@@ -89,6 +102,40 @@ function loadSettings() {
     safeRemoveStorage(STORAGE_KEYS.settings);
     applyTheme('light', { animate: false });
   }
+}
+
+function setCustomDiscountError(message) {
+  customDiscountInput.setAttribute('aria-invalid', message ? 'true' : 'false');
+  customDiscountError.textContent = message;
+}
+
+function renderCustomPreset() {
+  const hasCustomPreset = Boolean(customDiscountPreset);
+  customDiscountInput.value = customDiscountPreset;
+  customPresetBtn.hidden = !hasCustomPreset;
+  customPresetBtn.dataset.discount = customDiscountPreset;
+  customPresetBtn.textContent = hasCustomPreset ? 'Custom ' + Number(customDiscountPreset) + '%' : '';
+  customPresetBtn.setAttribute('aria-label', hasCustomPreset
+    ? 'Apply custom discount preset of ' + Number(customDiscountPreset) + '%'
+    : 'Custom discount preset');
+  setCustomDiscountError('');
+}
+
+function saveCustomPreset() {
+  const raw = customDiscountInput.value.trim();
+  const discount = Number(raw);
+
+  if (!raw || !DECIMAL_PATTERN.test(raw) || !Number.isFinite(discount) || discount < 0 || discount > 100) {
+    setCustomDiscountError('Enter a custom discount from 0% to 100%, with up to 2 decimals.');
+    customDiscountInput.focus();
+    return false;
+  }
+
+  customDiscountPreset = raw;
+  renderCustomPreset();
+  saveSettings();
+  updatePresetState();
+  return true;
 }
 
 function applyUrlParams() {
@@ -654,13 +701,29 @@ historyList.addEventListener('click', (event) => {
 
 document.querySelectorAll('.preset-btn').forEach((button) => {
   button.addEventListener('click', () => {
-    discountInput.value = button.dataset.discount;
+    const discount = button.dataset.discount;
+    if (!discount) return;
+
+    discountInput.value = discount;
     noteWasEdited = false;
     updatePresetState();
     calculateLive();
     addHistory(calculated);
     discountInput.focus();
   });
+});
+
+saveCustomPresetBtn.addEventListener('click', saveCustomPreset);
+
+customDiscountInput.addEventListener('input', () => {
+  setCustomDiscountError('');
+});
+
+customDiscountInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    saveCustomPreset();
+  }
 });
 
 backerInput.addEventListener('focus', () => {
@@ -754,6 +817,7 @@ document.addEventListener('keydown', (event) => {
 
 loadSettings();
 applyUrlParams();
+renderCustomPreset();
 updatePresetState();
 updateFeeBreakdown(null);
 renderHistory();
