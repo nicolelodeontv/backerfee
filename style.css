@@ -546,6 +546,52 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
     backdrop-filter: none;
   }
 
+  .history-heading-row h2 {
+    margin-top: 4px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+  }
+
+  .history-totals {
+    gap: 18px;
+    margin-top: 20px;
+  }
+
+  .history-totals > div {
+    align-items: flex-start;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0;
+    min-height: 96px;
+    padding: 18px 20px;
+    border-radius: 16px;
+  }
+
+  .history-totals span {
+    margin-bottom: 7px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .history-totals strong {
+    font-size: 27px;
+    letter-spacing: -.025em;
+  }
+
+  .history-list {
+    gap: 9px;
+    margin-top: 18px;
+  }
+
+  .history-summary strong {
+    font-size: 13px;
+  }
+
+  .history-summary span {
+    font-size: 10px;
+  }
+
   .calculator-card form {
     display: grid;
     grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
