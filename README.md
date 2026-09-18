@@ -39,3 +39,5 @@ npm test
 ## Deploy
 
 This is a static website and can be deployed directly to Netlify, Vercel, GitHub Pages, or another static host. No server or database is required.
+
+The project supports both Netlify and Vercel deployments using their respective config files: `netlify.toml` for Netlify and `vercel.json` for Vercel. Neither deployment requires a build step; the site is served directly from the repository root.
