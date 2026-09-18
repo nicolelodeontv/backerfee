@@ -258,7 +258,11 @@ html[data-theme="dark"] .highlighted { background: linear-gradient(135deg, #3026
   background: var(--paper-2);
 }
 .fee-breakdown-heading { gap: 12px; }
-.fee-breakdown-heading h2 { font-size: 14px; }
+.fee-breakdown-heading h2 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
 .fee-breakdown-total { color: var(--muted); font-size: 10px; font-weight: 600; white-space: nowrap; }
 .fee-bar-track {
   display: flex;
