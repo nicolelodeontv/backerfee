@@ -501,24 +501,11 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
 
 
 @media (min-width: 901px) {
-  html,
-  body {
-    overflow: hidden;
-  }
-
-  .page-shell {
-    display: grid;
-    grid-template-rows: minmax(0, 1fr) auto;
-    height: 100vh;
-    min-height: 0;
-  }
-
   .dashboard-card {
     display: grid;
     grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr) minmax(0, .82fr);
     column-gap: 24px;
-    align-items: stretch;
-    min-height: 0;
+    align-items: start;
     width: 100%;
     padding: 38px;
     background: var(--paper);
@@ -526,23 +513,17 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
     border-radius: 28px;
     box-shadow: var(--shadow);
     backdrop-filter: blur(12px);
-    overflow: hidden;
   }
 
   .calculator-card {
     grid-column: 1 / span 2;
     min-width: 0;
-    min-height: 0;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
     padding: 0;
     background: transparent;
     border: 0;
     border-radius: 0;
     box-shadow: none;
     backdrop-filter: none;
-    overflow: hidden;
   }
 
   .calculator-card > .card-header {
@@ -550,24 +531,17 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   }
 
   .calculator-card > form {
-    flex: 1 1 auto;
     min-width: 0;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 8px;
   }
 
   .dashboard-card > .history-card {
     grid-column: 3;
     min-width: 0;
-    min-height: 0;
     align-self: stretch;
+    max-height: calc(100vh - 76px);
     margin: 0;
     padding: 0 0 0 24px;
-    overflow: hidden;
-    display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
+    overflow: auto;
     background: transparent;
     border: 0;
     border-left: 1px solid var(--line);
@@ -610,12 +584,8 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   }
 
   .history-list {
-    min-height: 0;
     gap: 9px;
     margin-top: 18px;
-    padding-right: 6px;
-    overflow-y: auto;
-    overflow-x: hidden;
   }
 
   .history-summary strong {
@@ -643,12 +613,6 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   .calculator-card form > .results { grid-area: results; margin: 0 0 14px; }
   .calculator-card form > .fee-breakdown { grid-area: breakdown; margin: 0 0 26px; }
   .calculator-card form > .note-panel { grid-area: note; margin-top: 0; }
-
-  .note-panel textarea {
-    height: clamp(220px, 28vh, 300px);
-    max-height: 300px;
-    overflow-y: auto;
-  }
 }
 
 @media (hover: none) {
