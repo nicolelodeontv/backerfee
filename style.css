@@ -497,24 +497,36 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
 
 
 @media (min-width: 901px) {
-  .page-shell {
+  .calculator-card {
     display: grid;
     grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr) minmax(0, .82fr);
-    gap: 24px;
+    column-gap: 24px;
     align-items: start;
   }
 
-  .calculator-card {
-    grid-column: 1 / span 2;
+  .calculator-card > .card-header {
+    grid-column: 1 / -1;
   }
 
-  .history-card {
-    grid-column: 3;
-    margin-top: 0;
+  .calculator-card > form {
+    grid-column: 1 / span 2;
     min-width: 0;
-    align-self: start;
-    max-height: calc(100vh - 56px);
+  }
+
+  .calculator-card > .history-card {
+    grid-column: 3;
+    min-width: 0;
+    align-self: stretch;
+    max-height: calc(100vh - 72px);
+    margin: 0;
+    padding: 0 0 0 24px;
     overflow: auto;
+    background: transparent;
+    border: 0;
+    border-left: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .calculator-card form {
@@ -534,10 +546,6 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   .calculator-card form > .results { grid-area: results; margin: 0 0 14px; }
   .calculator-card form > .fee-breakdown { grid-area: breakdown; margin: 0 0 26px; }
   .calculator-card form > .note-panel { grid-area: note; margin-top: 0; }
-
-  footer {
-    grid-column: 1 / -1;
-  }
 }
 
 @media (hover: none) {
@@ -545,11 +553,15 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
 }
 
 @media (max-width: 900px) {
-  .page-shell {
+  .page-shell,
+  .calculator-card {
     display: block;
   }
 
-  .calculator-card,
+  .calculator-card {
+    min-width: 0;
+  }
+
   .history-card {
     min-width: 0;
   }
