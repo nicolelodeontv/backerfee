@@ -503,7 +503,12 @@ function renderHistory() {
 function clearCalculatorStorage() {
   try {
     const theme = document.documentElement.dataset.theme || 'light';
-    localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify({ backer: '', discount: '', theme }));
+    localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify({
+      backer: '',
+      discount: '',
+      customDiscount: customDiscountPreset,
+      theme
+    }));
   } catch (_) {
     safeRemoveStorage(STORAGE_KEYS.settings);
   }
