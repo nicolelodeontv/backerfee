@@ -72,7 +72,17 @@
               <button type="button" class="preset-btn" data-discount="20" aria-pressed="false">20%</button>
               <button type="button" class="preset-btn" data-discount="25" aria-pressed="false">25%</button>
               <button type="button" class="preset-btn" data-discount="30" aria-pressed="false">30%</button>
+              <button type="button" class="preset-btn custom-preset-btn" id="customPresetBtn" data-discount="" aria-pressed="false" hidden></button>
             </div>
+            <div class="custom-preset-editor">
+              <div class="custom-preset-input-wrap">
+                <input type="number" id="customDiscount" min="0" max="100" step="0.01" placeholder="Custom %" inputmode="decimal" autocomplete="off" aria-describedby="customDiscountHint customDiscountError">
+                <span class="suffix" aria-hidden="true">%</span>
+              </div>
+              <button type="button" class="secondary-btn compact" id="saveCustomPresetBtn">Save preset</button>
+            </div>
+            <small class="field-hint custom-preset-hint" id="customDiscountHint">Save one custom preset from 0% to 100%. Saving a new value replaces the current custom preset.</small>
+            <small class="error" id="customDiscountError" role="alert"></small>
             <small class="error" id="discountError" role="alert"></small>
           </label>
         </div>
