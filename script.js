@@ -695,10 +695,7 @@ function renderBatchRows(rows) {
     });
 
     priceInput.addEventListener('input', () => {
-      validateBatchRow(row, { showErrors: false });
-      batchResults = [];
-      batchStatus.textContent = '';
-      copyAllNotesBtn.disabled = true;
+      calculateBatch({ recordHistory: false });
     });
 
     priceInput.addEventListener('blur', () => {
@@ -715,7 +712,7 @@ function renderBatchRows(rows) {
 
     discountInputForRow.addEventListener('input', () => {
       const boundMessage = clampBatchDiscount(discountInputForRow);
-      validateBatchRow(row, { showErrors: true });
+      calculateBatch({ recordHistory: false });
       if (boundMessage) {
         setBatchFieldError(
           discountInputForRow,
@@ -723,9 +720,6 @@ function renderBatchRows(rows) {
           boundMessage
         );
       }
-      batchResults = [];
-      batchStatus.textContent = '';
-      copyAllNotesBtn.disabled = true;
     });
 
     discountInputForRow.addEventListener('blur', () => {
