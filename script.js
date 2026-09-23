@@ -37,8 +37,6 @@ const resetBtn = document.getElementById('resetBtn');
 const themeBtn = document.getElementById('themeBtn');
 const themeIcon = document.getElementById('themeIcon');
 const historyList = document.getElementById('historyList');
-const historyDiscountTotal = document.getElementById('historyDiscountTotal');
-const historyFinalTotal = document.getElementById('historyFinalTotal');
 const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 const confirmModal = document.getElementById('confirmModal');
 const confirmTitle = document.getElementById('confirmTitle');
@@ -1080,7 +1078,7 @@ function requestClearHistory() {
   if (!getHistory().length) return;
 
   openConfirmModal({
-    title: 'Clear calculation history?',
+    title: 'Clear all history?',
     message: 'This will permanently remove all saved calculations from this browser.',
     actionLabel: 'Clear history',
     onConfirm: () => {
