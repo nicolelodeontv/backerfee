@@ -30,6 +30,17 @@ test('keeps the existing single customer-note template path', () => {
   assert.match(script, /Copy Note/);
 });
 
+test('wires the Batch mode controls to their handlers and initializes rows', () => {
+  assert.match(script, /modeSingleBtn\.addEventListener\(['"]click['"]/);
+  assert.match(script, /modeBatchBtn\.addEventListener\(['"]click['"]/);
+  assert.match(script, /addBatchRowBtn\.addEventListener\(['"]click['"]/);
+  assert.match(script, /calculateBatchBtn\.addEventListener\(['"]click['"]/);
+  assert.match(script, /copyAllNotesBtn\.addEventListener\(['"]click['"]/);
+  assert.match(script, /batchRows\.addEventListener\(['"]click['"]/);
+  assert.match(script, /renderBatchRows\(\[createEmptyBatchRow\(\), createEmptyBatchRow\(\)\]\)/);
+  assert.match(script, /setMode\(['"]single['"]\)/);
+});
+
 test('keeps history and settings local to the browser', () => {
   assert.match(script, /localStorage\.getItem\(STORAGE_KEYS\.history\)/);
   assert.match(script, /localStorage\.setItem\(STORAGE_KEYS\.history/);
