@@ -376,28 +376,38 @@ function calculateLive() {
   }
 }
 
+
 function normalizeHistoryItem(item) {
   if (!item || typeof item !== 'object') return null;
 
-  const backer = Number(item.backer);
-  const discount = Number(item.discount);
-  const createdAt = typeof item.createdAt === 'string' ? item.createdAt : '';
+  const originalPrice = Number(item.originalPrice ?? item.backer);
+  const discountPercent = Number(item.discountPercent ?? item.discount);
+  const timestamp = typeof item.timestamp === 'string'
+    ? item.timestamp
+    : (typeof item.createdAt === 'string' ? item.createdAt : '');
 
-  if (!Number.isFinite(backer) || backer < 0) return null;
-  if (!Number.isFinite(discount) || discount < 0 || discount > 100) return null;
-  if (!createdAt || Number.isNaN(new Date(createdAt).getTime())) return null;
+  if (!Number.isFinite(originalPrice) || originalPrice < 0) return null;
+  if (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent > 100) return null;
+  if (!timestamp || Number.isNaN(new Date(timestamp).getTime())) return null;
 
   try {
-    const recalculated = calculateFee(backer, discount);
+    const recalculated = calculateFee(originalPrice, discountPercent);
     return {
-      ...recalculated,
-      id: typeof item.id === 'string' && item.id ? item.id : `${Date.now()}-${Math.random()}`,
-      createdAt
+      id: typeof item.id === 'string' && item.id
+        ? item.id
+        : Date.now() + '-' + Math.random().toString(36).slice(2),
+      originalPrice: recalculated.backer,
+      discountPercent: recalculated.discount,
+      discountAmount: recalculated.discountAmount,
+      finalFee: recalculated.discountedPrice,
+      timestamp
     };
   } catch (_) {
     return null;
   }
 }
+
+
 
 function getHistory() {
   try {
@@ -408,23 +418,22 @@ function getHistory() {
     if (!Array.isArray(parsed)) throw new Error('Invalid history');
 
     const valid = [];
-    const seen = new Set();
     for (const item of parsed) {
       const normalized = normalizeHistoryItem(item);
-      if (!normalized) continue;
-      const key = `${normalized.backer}|${normalized.discount}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      valid.push(normalized);
+      if (normalized) valid.push(normalized);
     }
 
-    if (valid.length !== parsed.length) saveHistory(valid);
-    return valid;
+    const trimmed = valid.slice(0, MAX_HISTORY);
+    if (trimmed.length !== parsed.length || JSON.stringify(trimmed) !== JSON.stringify(parsed)) {
+      saveHistory(trimmed);
+    }
+    return trimmed;
   } catch (_) {
     safeRemoveStorage(STORAGE_KEYS.history);
     return [];
   }
 }
+
 
 function saveHistory(history) {
   try {
@@ -432,30 +441,31 @@ function saveHistory(history) {
   } catch (_) {}
 }
 
+
 function makeHistoryKey(data) {
-  return `${Number(data.backer).toFixed(2)}|${Number(data.discount).toFixed(2)}`;
+  return Number(data.backer).toFixed(2) + '|' + Number(data.discount).toFixed(2);
 }
 
 function addHistory(data) {
   if (!data) return;
 
   const key = makeHistoryKey(data);
-  const current = getHistory();
-  const existing = current.find((item) => makeHistoryKey(item) === key);
-  const previousSameKey = lastRecordedKey === key;
-
-  if (previousSameKey && existing) return;
+  if (lastRecordedKey === key) return;
   lastRecordedKey = key;
 
   const next = {
-    ...data,
-    id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    createdAt: new Date().toISOString()
+    id: globalThis.crypto?.randomUUID?.() || Date.now() + '-' + Math.random().toString(36).slice(2),
+    originalPrice: Number(data.backer),
+    discountPercent: Number(data.discount),
+    discountAmount: Number(data.discountAmount),
+    finalFee: Number(data.discountedPrice),
+    timestamp: new Date().toISOString()
   };
-  const deduped = current.filter((item) => makeHistoryKey(item) !== key);
-  saveHistory([next, ...deduped]);
+
+  saveHistory([next, ...getHistory()]);
   renderHistory();
 }
+
 
 function createHistoryButton(label, action, id) {
   const button = document.createElement('button');
@@ -479,18 +489,9 @@ function formatHistoryDate(value) {
   }).format(date);
 }
 
+
 function renderHistory() {
   const history = getHistory();
-  const totals = history.reduce((sum, item) => ({
-    discountAmount: sum.discountAmount + Number(item.discountAmount),
-    discountedPrice: sum.discountedPrice + Number(item.discountedPrice)
-  }), {
-    discountAmount: 0,
-    discountedPrice: 0
-  });
-
-  historyDiscountTotal.textContent = money(totals.discountAmount);
-  historyFinalTotal.textContent = money(totals.discountedPrice);
   historyList.replaceChildren();
 
   if (!history.length) {
@@ -499,31 +500,56 @@ function renderHistory() {
     empty.textContent = 'Saved calculations will appear here for quick reuse.';
     historyList.appendChild(empty);
     clearHistoryBtn.disabled = true;
+    exportHistoryBtn.disabled = true;
     return;
   }
 
   clearHistoryBtn.disabled = false;
+  exportHistoryBtn.disabled = false;
 
   history.forEach((item) => {
     const row = document.createElement('div');
-    row.className = 'history-item';
+    row.className = 'history-row';
+
+    const reuseBtn = document.createElement('button');
+    reuseBtn.type = 'button';
+    reuseBtn.className = 'history-item';
+    reuseBtn.dataset.action = 'reuse';
+    reuseBtn.dataset.id = item.id;
+    reuseBtn.setAttribute(
+      'aria-label',
+      'Reuse calculation for ' + money(item.originalPrice) + ' at ' + Number(item.discountPercent) + '% discount'
+    );
 
     const summary = document.createElement('div');
     summary.className = 'history-summary';
 
     const title = document.createElement('strong');
-    title.textContent = `${money(item.backer)} → ${money(item.discountedPrice)}`;
+    title.textContent = money(item.originalPrice) + ' → ' + money(item.finalFee);
 
-    const meta = document.createElement('span');
-    const dateLabel = formatHistoryDate(item.createdAt);
-    const discountLabel = Number(item.discount) === 0 ? 'No discount' : `${item.discount}% discount`;
-    meta.textContent = `${discountLabel}${dateLabel ? ` · ${dateLabel}` : ''}`;
+    const detail = document.createElement('span');
+    detail.textContent = Number(item.discountPercent) + '% discount · ' +
+      money(item.discountAmount) + ' off · ' + money(item.finalFee) + ' final';
 
-    summary.append(title, meta);
-    row.append(summary, createHistoryButton('Reuse', 'reuse', item.id), createHistoryButton('Delete', 'delete', item.id));
+    const meta = document.createElement('small');
+    const dateLabel = formatHistoryDate(item.timestamp);
+    meta.textContent = dateLabel || 'Saved calculation';
+
+    summary.append(title, detail, meta);
+    reuseBtn.appendChild(summary);
+
+    const deleteBtn = createHistoryButton('Delete', 'delete', item.id);
+    deleteBtn.classList.add('history-delete');
+    deleteBtn.setAttribute(
+      'aria-label',
+      'Delete calculation for ' + money(item.originalPrice) + ' at ' + Number(item.discountPercent) + '% discount'
+    );
+
+    row.append(reuseBtn, deleteBtn);
     historyList.appendChild(row);
   });
 }
+
 
 function clearCalculatorStorage() {
   try {
