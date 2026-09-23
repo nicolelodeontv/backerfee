@@ -5,7 +5,7 @@ const STORAGE_KEYS = {
   history: 'backerfee-history-v3'
 };
 
-const MAX_HISTORY = 8;
+const MAX_HISTORY = 20;
 const DECIMAL_PATTERN = /^\d+(?:\.\d{0,2})?$|^\.\d{1,2}$/;
 const priceFormatter = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 2,
@@ -45,6 +45,15 @@ const confirmTitle = document.getElementById('confirmTitle');
 const confirmMessage = document.getElementById('confirmMessage');
 const confirmCancelBtn = document.getElementById('confirmCancelBtn');
 const confirmActionBtn = document.getElementById('confirmActionBtn');
+const exportHistoryBtn = document.getElementById('exportHistoryBtn');
+const modeSingleBtn = document.getElementById('modeSingleBtn');
+const modeBatchBtn = document.getElementById('modeBatchBtn');
+const batchPanel = document.getElementById('batchPanel');
+const batchRows = document.getElementById('batchRows');
+const addBatchRowBtn = document.getElementById('addBatchRowBtn');
+const calculateBatchBtn = document.getElementById('calculateBatchBtn');
+const copyAllNotesBtn = document.getElementById('copyAllNotesBtn');
+const batchStatus = document.getElementById('batchStatus');
 
 let calculated = null;
 let customDiscountPreset = '';
@@ -53,6 +62,10 @@ let lastRecordedKey = '';
 let confirmAction = null;
 let lastFocusedElement = null;
 let copyFeedbackTimer = null;
+let currentMode = 'single';
+let batchRowId = 0;
+let batchResults = [];
+let lastResetSnapshot = null;
 let resultsAnimationTimer = null;
 const resultAnimationFrames = new Map();
 let displayedResults = {
