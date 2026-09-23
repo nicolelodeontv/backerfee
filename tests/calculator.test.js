@@ -32,7 +32,9 @@ test('allows zero discount and full discount', () => {
 
 test('handles very small and very large valid prices', () => {
   assert.equal(calculateFee(0.01, 10).discountedPrice, 0.01);
+  assert.equal(calculateFee(0.01, 100).discountedPrice, 0);
   assert.equal(calculateFee(999999999.99, 10).discountedPrice, 899999999.99);
+  assert.equal(calculateFee(999999999.99, 100).discountedPrice, 0);
 });
 
 test('rejects invalid prices and discounts', () => {

@@ -5,7 +5,7 @@ const STORAGE_KEYS = {
   history: 'backerfee-history-v3'
 };
 
-const MAX_HISTORY = 8;
+const MAX_HISTORY = 20;
 const DECIMAL_PATTERN = /^\d+(?:\.\d{0,2})?$|^\.\d{1,2}$/;
 const priceFormatter = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 2,
@@ -37,14 +37,21 @@ const resetBtn = document.getElementById('resetBtn');
 const themeBtn = document.getElementById('themeBtn');
 const themeIcon = document.getElementById('themeIcon');
 const historyList = document.getElementById('historyList');
-const historyDiscountTotal = document.getElementById('historyDiscountTotal');
-const historyFinalTotal = document.getElementById('historyFinalTotal');
 const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 const confirmModal = document.getElementById('confirmModal');
 const confirmTitle = document.getElementById('confirmTitle');
 const confirmMessage = document.getElementById('confirmMessage');
 const confirmCancelBtn = document.getElementById('confirmCancelBtn');
 const confirmActionBtn = document.getElementById('confirmActionBtn');
+const exportHistoryBtn = document.getElementById('exportHistoryBtn');
+const modeSingleBtn = document.getElementById('modeSingleBtn');
+const modeBatchBtn = document.getElementById('modeBatchBtn');
+const batchPanel = document.getElementById('batchPanel');
+const batchRows = document.getElementById('batchRows');
+const addBatchRowBtn = document.getElementById('addBatchRowBtn');
+const calculateBatchBtn = document.getElementById('calculateBatchBtn');
+const copyAllNotesBtn = document.getElementById('copyAllNotesBtn');
+const batchStatus = document.getElementById('batchStatus');
 
 let calculated = null;
 let customDiscountPreset = '';
@@ -53,6 +60,10 @@ let lastRecordedKey = '';
 let confirmAction = null;
 let lastFocusedElement = null;
 let copyFeedbackTimer = null;
+let currentMode = 'single';
+let batchRowId = 0;
+let batchResults = [];
+let lastResetSnapshot = null;
 let resultsAnimationTimer = null;
 const resultAnimationFrames = new Map();
 let displayedResults = {
@@ -363,28 +374,38 @@ function calculateLive() {
   }
 }
 
+
 function normalizeHistoryItem(item) {
   if (!item || typeof item !== 'object') return null;
 
-  const backer = Number(item.backer);
-  const discount = Number(item.discount);
-  const createdAt = typeof item.createdAt === 'string' ? item.createdAt : '';
+  const originalPrice = Number(item.originalPrice ?? item.backer);
+  const discountPercent = Number(item.discountPercent ?? item.discount);
+  const timestamp = typeof item.timestamp === 'string'
+    ? item.timestamp
+    : (typeof item.createdAt === 'string' ? item.createdAt : '');
 
-  if (!Number.isFinite(backer) || backer < 0) return null;
-  if (!Number.isFinite(discount) || discount < 0 || discount > 100) return null;
-  if (!createdAt || Number.isNaN(new Date(createdAt).getTime())) return null;
+  if (!Number.isFinite(originalPrice) || originalPrice < 0) return null;
+  if (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent > 100) return null;
+  if (!timestamp || Number.isNaN(new Date(timestamp).getTime())) return null;
 
   try {
-    const recalculated = calculateFee(backer, discount);
+    const recalculated = calculateFee(originalPrice, discountPercent);
     return {
-      ...recalculated,
-      id: typeof item.id === 'string' && item.id ? item.id : `${Date.now()}-${Math.random()}`,
-      createdAt
+      id: typeof item.id === 'string' && item.id
+        ? item.id
+        : Date.now() + '-' + Math.random().toString(36).slice(2),
+      originalPrice: recalculated.backer,
+      discountPercent: recalculated.discount,
+      discountAmount: recalculated.discountAmount,
+      finalFee: recalculated.discountedPrice,
+      timestamp
     };
   } catch (_) {
     return null;
   }
 }
+
+
 
 function getHistory() {
   try {
@@ -395,23 +416,22 @@ function getHistory() {
     if (!Array.isArray(parsed)) throw new Error('Invalid history');
 
     const valid = [];
-    const seen = new Set();
     for (const item of parsed) {
       const normalized = normalizeHistoryItem(item);
-      if (!normalized) continue;
-      const key = `${normalized.backer}|${normalized.discount}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      valid.push(normalized);
+      if (normalized) valid.push(normalized);
     }
 
-    if (valid.length !== parsed.length) saveHistory(valid);
-    return valid;
+    const trimmed = valid.slice(0, MAX_HISTORY);
+    if (trimmed.length !== parsed.length || JSON.stringify(trimmed) !== JSON.stringify(parsed)) {
+      saveHistory(trimmed);
+    }
+    return trimmed;
   } catch (_) {
     safeRemoveStorage(STORAGE_KEYS.history);
     return [];
   }
 }
+
 
 function saveHistory(history) {
   try {
@@ -419,30 +439,31 @@ function saveHistory(history) {
   } catch (_) {}
 }
 
+
 function makeHistoryKey(data) {
-  return `${Number(data.backer).toFixed(2)}|${Number(data.discount).toFixed(2)}`;
+  return Number(data.backer).toFixed(2) + '|' + Number(data.discount).toFixed(2);
 }
 
-function addHistory(data) {
+function addHistory(data, { force = false } = {}) {
   if (!data) return;
 
   const key = makeHistoryKey(data);
-  const current = getHistory();
-  const existing = current.find((item) => makeHistoryKey(item) === key);
-  const previousSameKey = lastRecordedKey === key;
-
-  if (previousSameKey && existing) return;
+  if (!force && lastRecordedKey === key) return;
   lastRecordedKey = key;
 
   const next = {
-    ...data,
-    id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    createdAt: new Date().toISOString()
+    id: globalThis.crypto?.randomUUID?.() || Date.now() + '-' + Math.random().toString(36).slice(2),
+    originalPrice: Number(data.backer),
+    discountPercent: Number(data.discount),
+    discountAmount: Number(data.discountAmount),
+    finalFee: Number(data.discountedPrice),
+    timestamp: new Date().toISOString()
   };
-  const deduped = current.filter((item) => makeHistoryKey(item) !== key);
-  saveHistory([next, ...deduped]);
+
+  saveHistory([next, ...getHistory()]);
   renderHistory();
 }
+
 
 function createHistoryButton(label, action, id) {
   const button = document.createElement('button');
@@ -466,18 +487,9 @@ function formatHistoryDate(value) {
   }).format(date);
 }
 
+
 function renderHistory() {
   const history = getHistory();
-  const totals = history.reduce((sum, item) => ({
-    discountAmount: sum.discountAmount + Number(item.discountAmount),
-    discountedPrice: sum.discountedPrice + Number(item.discountedPrice)
-  }), {
-    discountAmount: 0,
-    discountedPrice: 0
-  });
-
-  historyDiscountTotal.textContent = money(totals.discountAmount);
-  historyFinalTotal.textContent = money(totals.discountedPrice);
   historyList.replaceChildren();
 
   if (!history.length) {
@@ -486,31 +498,56 @@ function renderHistory() {
     empty.textContent = 'Saved calculations will appear here for quick reuse.';
     historyList.appendChild(empty);
     clearHistoryBtn.disabled = true;
+    exportHistoryBtn.disabled = true;
     return;
   }
 
   clearHistoryBtn.disabled = false;
+  exportHistoryBtn.disabled = false;
 
   history.forEach((item) => {
     const row = document.createElement('div');
-    row.className = 'history-item';
+    row.className = 'history-row';
+
+    const reuseBtn = document.createElement('button');
+    reuseBtn.type = 'button';
+    reuseBtn.className = 'history-item';
+    reuseBtn.dataset.action = 'reuse';
+    reuseBtn.dataset.id = item.id;
+    reuseBtn.setAttribute(
+      'aria-label',
+      'Reuse calculation for ' + money(item.originalPrice) + ' at ' + Number(item.discountPercent) + '% discount'
+    );
 
     const summary = document.createElement('div');
     summary.className = 'history-summary';
 
     const title = document.createElement('strong');
-    title.textContent = `${money(item.backer)} → ${money(item.discountedPrice)}`;
+    title.textContent = money(item.originalPrice) + ' → ' + money(item.finalFee);
 
-    const meta = document.createElement('span');
-    const dateLabel = formatHistoryDate(item.createdAt);
-    const discountLabel = Number(item.discount) === 0 ? 'No discount' : `${item.discount}% discount`;
-    meta.textContent = `${discountLabel}${dateLabel ? ` · ${dateLabel}` : ''}`;
+    const detail = document.createElement('span');
+    detail.textContent = Number(item.discountPercent) + '% discount · ' +
+      money(item.discountAmount) + ' off · ' + money(item.finalFee) + ' final';
 
-    summary.append(title, meta);
-    row.append(summary, createHistoryButton('Reuse', 'reuse', item.id), createHistoryButton('Delete', 'delete', item.id));
+    const meta = document.createElement('small');
+    const dateLabel = formatHistoryDate(item.timestamp);
+    meta.textContent = dateLabel || 'Saved calculation';
+
+    summary.append(title, detail, meta);
+    reuseBtn.appendChild(summary);
+
+    const deleteBtn = createHistoryButton('Delete', 'delete', item.id);
+    deleteBtn.classList.add('history-delete');
+    deleteBtn.setAttribute(
+      'aria-label',
+      'Delete calculation for ' + money(item.originalPrice) + ' at ' + Number(item.discountPercent) + '% discount'
+    );
+
+    row.append(reuseBtn, deleteBtn);
     historyList.appendChild(row);
   });
 }
+
 
 function clearCalculatorStorage() {
   try {
@@ -526,7 +563,26 @@ function clearCalculatorStorage() {
   }
 }
 
+
 function resetCalculator() {
+  if (currentMode === 'batch') {
+    lastResetSnapshot = { mode: 'batch', rows: batchRowsData() };
+    renderBatchRows([createEmptyBatchRow(), createEmptyBatchRow()]);
+    batchResults = [];
+    batchStatus.textContent = '';
+    copyAllNotesBtn.disabled = true;
+    saveSettings();
+    showResetUndoToast();
+    batchRows.querySelector('.batch-price')?.focus();
+    return;
+  }
+
+  lastResetSnapshot = {
+    mode: 'single',
+    backer: backerInput.value,
+    discount: discountInput.value
+  };
+
   form.reset();
   calculated = null;
   noteWasEdited = false;
@@ -542,7 +598,387 @@ function resetCalculator() {
   setFieldError(discountInput, 'discountError', '');
   updatePresetState();
   clearCalculatorStorage();
+  showResetUndoToast();
   backerInput.focus();
+}
+
+
+
+function createEmptyBatchRow() {
+  batchRowId += 1;
+  return { id: batchRowId, backer: '', discount: '' };
+}
+
+function batchRowsData() {
+  return Array.from(batchRows.querySelectorAll('.batch-row')).map((row) => ({
+    id: Number(row.dataset.id),
+    backer: row.querySelector('.batch-price')?.value ?? '',
+    discount: row.querySelector('.batch-discount')?.value ?? ''
+  }));
+}
+
+function getBatchInputValues(row) {
+  const priceInput = row.querySelector('.batch-price');
+  const discountInput = row.querySelector('.batch-discount');
+  const backerRaw = priceInput.value.trim();
+  const discountRaw = discountInput.value.trim();
+  const normalizedBackerRaw = backerRaw.replace(/,/g, '');
+  const backer = Number(normalizedBackerRaw);
+  const discount = Number(discountRaw);
+
+  return {
+    priceInput,
+    discountInput,
+    backer,
+    discount,
+    validBacker: Boolean(backerRaw) &&
+      DECIMAL_PATTERN.test(normalizedBackerRaw) &&
+      Number.isFinite(backer) &&
+      backer >= 0,
+    validDiscount: Boolean(discountRaw) &&
+      DECIMAL_PATTERN.test(discountRaw) &&
+      Number.isFinite(discount) &&
+      discount >= 0 &&
+      discount <= 100
+  };
+}
+
+function renderBatchRows(rows) {
+  batchRows.replaceChildren();
+
+  rows.forEach((rowData) => {
+    const row = document.createElement('div');
+    row.className = 'batch-row';
+    row.dataset.id = String(rowData.id ?? ++batchRowId);
+
+    const priceField = document.createElement('div');
+    priceField.className = 'batch-field';
+    priceField.innerHTML =
+      '<span class="input-wrap"><span class="prefix" aria-hidden="true">$</span>' +
+      '<input class="batch-price" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Original price"></span>' +
+      '<small class="error batch-error" role="alert"></small>';
+
+    const discountField = document.createElement('div');
+    discountField.className = 'batch-field';
+    discountField.innerHTML =
+      '<span class="input-wrap"><input class="batch-discount" type="number" min="0" max="100" step="0.01" ' +
+      'inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Discount percentage">' +
+      '<span class="suffix" aria-hidden="true">%</span></span>' +
+      '<small class="error batch-discount-error" role="alert"></small>';
+
+    const discountResult = document.createElement('div');
+    discountResult.className = 'batch-result';
+    discountResult.textContent = '$0.00';
+
+    const finalResult = document.createElement('div');
+    finalResult.className = 'batch-result batch-result-final';
+    finalResult.textContent = '$0.00';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'batch-remove';
+    removeBtn.dataset.action = 'remove-batch-row';
+    removeBtn.setAttribute('aria-label', 'Remove row');
+    removeBtn.title = 'Remove row';
+    removeBtn.textContent = '×';
+
+    row.append(priceField, discountField, discountResult, finalResult, removeBtn);
+    batchRows.appendChild(row);
+
+    const priceInput = row.querySelector('.batch-price');
+    const discountInputForRow = row.querySelector('.batch-discount');
+    priceInput.value = rowData.backer ?? '';
+    discountInputForRow.value = rowData.discount ?? '';
+
+    priceInput.addEventListener('focus', () => {
+      priceInput.value = priceInput.value.replace(/,/g, '');
+    });
+
+    priceInput.addEventListener('input', () => {
+      validateBatchRow(row, { showErrors: false });
+      batchResults = [];
+      batchStatus.textContent = '';
+      copyAllNotesBtn.disabled = true;
+    });
+
+    priceInput.addEventListener('blur', () => {
+      formatBatchPrice(priceInput);
+      validateBatchRow(row, { showErrors: true });
+    });
+
+    priceInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        discountInputForRow.focus();
+      }
+    });
+
+    discountInputForRow.addEventListener('input', () => {
+      const boundMessage = clampBatchDiscount(discountInputForRow);
+      validateBatchRow(row, { showErrors: true });
+      if (boundMessage) {
+        setBatchFieldError(
+          discountInputForRow,
+          row.querySelector('.batch-discount-error'),
+          boundMessage
+        );
+      }
+      batchResults = [];
+      batchStatus.textContent = '';
+      copyAllNotesBtn.disabled = true;
+    });
+
+    discountInputForRow.addEventListener('blur', () => {
+      validateBatchRow(row, { showErrors: true });
+    });
+
+    discountInputForRow.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const next = row.nextElementSibling?.querySelector('.batch-price');
+        if (next) next.focus();
+        else calculateBatch();
+      }
+    });
+  });
+}
+
+function formatBatchPrice(input) {
+  const raw = input.value.trim().replace(/,/g, '');
+  if (!raw || !DECIMAL_PATTERN.test(raw)) return;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) return;
+  input.value = priceFormatter.format(value);
+}
+
+function setBatchFieldError(input, errorElement, message) {
+  input.setAttribute('aria-invalid', message ? 'true' : 'false');
+  errorElement.textContent = message;
+  input.closest('.batch-field')?.classList.toggle('invalid', Boolean(message));
+}
+
+function clampBatchDiscount(input) {
+  const raw = input.value.trim();
+  const value = Number(raw);
+  if (!raw || !Number.isFinite(value)) return '';
+  if (value > 100) {
+    input.value = '100';
+    return 'Discount capped at 100%.';
+  }
+  if (value < 0) {
+    input.value = '0';
+    return 'Discount raised to 0%.';
+  }
+  return '';
+}
+
+function validateBatchRow(row, { showErrors = false } = {}) {
+  const values = getBatchInputValues(row);
+  const priceError = values.validBacker
+    ? ''
+    : 'Enter a valid price from $0.00 with up to 2 decimals.';
+  const discountError = values.validDiscount
+    ? ''
+    : 'Enter a discount from 0% to 100%, with up to 2 decimals.';
+  const priceErrorElement = row.querySelector('.batch-error');
+  const discountErrorElement = row.querySelector('.batch-discount-error');
+
+  setBatchFieldError(
+    values.priceInput,
+    priceErrorElement,
+    showErrors || values.priceInput.value ? priceError : ''
+  );
+  setBatchFieldError(
+    values.discountInput,
+    discountErrorElement,
+    showErrors || values.discountInput.value ? discountError : ''
+  );
+
+  return values.validBacker && values.validDiscount ? values : null;
+}
+
+function calculateBatch({ recordHistory = true } = {}) {
+  const rows = Array.from(batchRows.querySelectorAll('.batch-row'));
+  const results = [];
+  let invalidCount = 0;
+
+  rows.forEach((row) => {
+    const priceInput = row.querySelector('.batch-price');
+    const discountInput = row.querySelector('.batch-discount');
+    const resultBoxes = row.querySelectorAll('.batch-result');
+    const discountBox = resultBoxes[0];
+    const finalBox = resultBoxes[1];
+    const hasAnyInput = Boolean(priceInput.value.trim() || discountInput.value.trim());
+
+    if (!hasAnyInput) {
+      setBatchFieldError(priceInput, row.querySelector('.batch-error'), '');
+      setBatchFieldError(discountInput, row.querySelector('.batch-discount-error'), '');
+      discountBox.textContent = '$0.00';
+      finalBox.textContent = '$0.00';
+      return;
+    }
+
+    const values = validateBatchRow(row, { showErrors: true });
+
+    if (!values) {
+      invalidCount += 1;
+      discountBox.textContent = '$0.00';
+      finalBox.textContent = '$0.00';
+      return;
+    }
+
+    try {
+      const resultData = calculateFee(values.backer, values.discount);
+      discountBox.textContent = money(resultData.discountAmount);
+      finalBox.textContent = money(resultData.discountedPrice);
+      results.push({ rowId: Number(row.dataset.id), data: resultData });
+      if (recordHistory) addHistory(resultData, { force: true });
+    } catch (_) {
+      invalidCount += 1;
+    }
+  });
+
+  batchResults = results;
+  copyAllNotesBtn.disabled = results.length === 0;
+  batchStatus.textContent = invalidCount
+    ? results.length + ' calculated · ' + invalidCount + ' row' + (invalidCount === 1 ? '' : 's') + ' need attention.'
+    : (results.length
+      ? results.length + ' row' + (results.length === 1 ? '' : 's') + ' calculated.'
+      : 'Enter details in at least one row.');
+
+  return results;
+}
+
+async function copyAllNotes() {
+  const results = batchResults;
+  if (!results.length) return;
+
+  const notes = results.map(({ data }) => buildCustomerNote({
+    discountedPrice: data.discountedPrice,
+    discount: data.discount
+  })).join('\n\n');
+
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+    await navigator.clipboard.writeText(notes);
+  } catch (_) {
+    if (!fallbackCopy(notes)) {
+      copyAllNotesBtn.focus();
+      batchStatus.textContent = 'Clipboard unavailable — notes were not copied.';
+      return;
+    }
+  }
+
+  copyAllNotesBtn.textContent = '✓ Copied';
+  copyAllNotesBtn.classList.add('is-copied');
+  window.setTimeout(() => {
+    copyAllNotesBtn.textContent = 'Copy All Notes';
+    copyAllNotesBtn.classList.remove('is-copied');
+  }, 1500);
+  batchStatus.textContent = results.length + ' customer note' +
+    (results.length === 1 ? '' : 's') + ' copied.';
+}
+
+function removeBatchRow(row) {
+  row.remove();
+  if (!batchRows.querySelector('.batch-row')) {
+    renderBatchRows([createEmptyBatchRow()]);
+  }
+  batchResults = [];
+  copyAllNotesBtn.disabled = true;
+  batchStatus.textContent = '';
+}
+
+function setMode(mode) {
+  currentMode = mode === 'batch' ? 'batch' : 'single';
+  const isBatch = currentMode === 'batch';
+
+  modeSingleBtn.setAttribute('aria-selected', isBatch ? 'false' : 'true');
+  modeBatchBtn.setAttribute('aria-selected', isBatch ? 'true' : 'false');
+
+  document.querySelectorAll('.single-only').forEach((element) => {
+    element.hidden = isBatch;
+  });
+  batchPanel.hidden = !isBatch;
+  form.classList.toggle('batch-mode', isBatch);
+
+  if (isBatch && !batchRows.querySelector('.batch-row')) {
+    renderBatchRows([createEmptyBatchRow(), createEmptyBatchRow()]);
+  }
+  if (!isBatch) {
+    batchStatus.textContent = '';
+    copyAllNotesBtn.disabled = true;
+  }
+}
+
+function showResetUndoToast() {
+  const snapshot = lastResetSnapshot;
+  if (typeof window.backerFeeShowUndoToast !== 'function') return;
+
+  window.backerFeeShowUndoToast('Reset complete.', 'Undo', () => {
+    if (!snapshot) return;
+
+    if (snapshot.mode === 'batch') {
+      renderBatchRows(snapshot.rows.map((row) => ({
+        id: row.id,
+        backer: row.backer,
+        discount: row.discount
+      })));
+      batchResults = [];
+      batchStatus.textContent = 'Reset undone.';
+      copyAllNotesBtn.disabled = true;
+      batchRows.querySelector('.batch-price')?.focus();
+      return;
+    }
+
+    backerInput.value = snapshot.backer;
+    discountInput.value = snapshot.discount;
+    noteWasEdited = false;
+    updatePresetState();
+    calculateLive();
+    backerInput.focus();
+  });
+}
+
+function exportHistory() {
+  const history = getHistory();
+  if (!history.length) return;
+
+  const headers = [
+    'timestamp',
+    'original price',
+    'discount %',
+    'discount amount',
+    'final fee'
+  ];
+
+  const rows = history.map((item) => [
+    item.timestamp,
+    Number(item.originalPrice).toFixed(2),
+    Number(item.discountPercent).toFixed(2),
+    Number(item.discountAmount).toFixed(2),
+    Number(item.finalFee).toFixed(2)
+  ]);
+
+  const escapeCsv = (value) => {
+    const text = String(value);
+    return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+  };
+
+  const csv = [headers, ...rows]
+    .map((row) => row.map(escapeCsv).join(','))
+    .join('\r\n') + '\r\n';
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  link.href = url;
+  link.download = 'backerfee-history-' + date + '.csv';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function fallbackCopy(text) {
@@ -642,7 +1078,7 @@ function requestClearHistory() {
   if (!getHistory().length) return;
 
   openConfirmModal({
-    title: 'Clear calculation history?',
+    title: 'Clear all history?',
     message: 'This will permanently remove all saved calculations from this browser.',
     actionLabel: 'Clear history',
     onConfirm: () => {
