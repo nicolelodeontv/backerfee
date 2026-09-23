@@ -805,11 +805,22 @@ function calculateBatch({ recordHistory = true } = {}) {
   let invalidCount = 0;
 
   rows.forEach((row) => {
-    const values = validateBatchRow(row, { showErrors: true });
-    const discountResult = row.querySelector('.batch-result:nth-of-type(1)');
+    const priceInput = row.querySelector('.batch-price');
+    const discountInput = row.querySelector('.batch-discount');
     const resultBoxes = row.querySelectorAll('.batch-result');
     const discountBox = resultBoxes[0];
     const finalBox = resultBoxes[1];
+    const hasAnyInput = Boolean(priceInput.value.trim() || discountInput.value.trim());
+
+    if (!hasAnyInput) {
+      setBatchFieldError(priceInput, row.querySelector('.batch-error'), '');
+      setBatchFieldError(discountInput, row.querySelector('.batch-discount-error'), '');
+      discountBox.textContent = '$0.00';
+      finalBox.textContent = '$0.00';
+      return;
+    }
+
+    const values = validateBatchRow(row, { showErrors: true });
 
     if (!values) {
       invalidCount += 1;
@@ -841,7 +852,7 @@ function calculateBatch({ recordHistory = true } = {}) {
 }
 
 async function copyAllNotes() {
-  const results = calculateBatch({ recordHistory: true });
+  const results = batchResults;
   if (!results.length) return;
 
   const notes = results.map(({ data }) => buildCustomerNote({
