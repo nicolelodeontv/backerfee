@@ -18,6 +18,46 @@ function showToast(message, type = 'success') {
   }, 2400);
 }
 
+function showUndoToast(message, actionLabel, onAction) {
+  if (!toastRoot) return;
+
+  const previous = toastRoot.querySelector('.toast-undo');
+  previous?.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-undo toast-success';
+  toast.setAttribute('role', 'status');
+
+  const messageNode = document.createElement('span');
+  messageNode.className = 'toast-message';
+  messageNode.textContent = message;
+
+  const actionButton = document.createElement('button');
+  actionButton.type = 'button';
+  actionButton.className = 'toast-action';
+  actionButton.textContent = actionLabel;
+
+  let timer;
+  const dismiss = () => {
+    window.clearTimeout(timer);
+    toast.classList.remove('is-visible');
+    window.setTimeout(() => toast.remove(), 180);
+  };
+
+  actionButton.addEventListener('click', () => {
+    dismiss();
+    onAction?.();
+  });
+
+  toast.append(messageNode, actionButton);
+  toastRoot.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('is-visible'));
+  timer = window.setTimeout(dismiss, 4500);
+}
+
+window.backerFeeShowToast = showToast;
+window.backerFeeShowUndoToast = showUndoToast;
+
 if (copyStatus) {
   const copyObserver = new MutationObserver(() => {
     const status = copyStatus.textContent || '';
@@ -32,9 +72,7 @@ document.addEventListener('click', (event) => {
 
   if (button.id === 'confirmActionBtn') {
     const action = button.textContent.trim().toLowerCase();
-    if (action === 'reset') {
-      window.setTimeout(() => showToast('Calculator reset.'), 30);
-    } else if (action === 'clear history') {
+    if (action === 'clear history') {
       window.setTimeout(() => showToast('Calculation history cleared.'), 30);
     }
     return;
