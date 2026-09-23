@@ -41,6 +41,12 @@ test('wires the Batch mode controls to their handlers and initializes rows', () 
   assert.match(script, /setMode\(['"]single['"]\)/);
 });
 
+test('recalculates batch inputs live without writing history', () => {
+  assert.match(script, /priceInput\.addEventListener\(['"]input['"][\s\S]*calculateBatch\(\{ recordHistory: false \}\)/);
+  assert.match(script, /discountInputForRow\.addEventListener\(['"]input['"][\s\S]*calculateBatch\(\{ recordHistory: false \}\)/);
+  assert.match(script, /calculateBatchBtn\.addEventListener\(['"]click['"][\s\S]*calculateBatch\(\)/);
+});
+
 test('keeps history and settings local to the browser', () => {
   assert.match(script, /localStorage\.getItem\(STORAGE_KEYS\.history\)/);
   assert.match(script, /localStorage\.setItem\(STORAGE_KEYS\.history/);
