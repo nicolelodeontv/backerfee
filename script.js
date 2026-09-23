@@ -1118,6 +1118,21 @@ themeBtn.addEventListener('click', () => {
 });
 copyBtn.addEventListener('click', copyNote);
 clearHistoryBtn.addEventListener('click', requestClearHistory);
+exportHistoryBtn.addEventListener('click', exportHistory);
+modeSingleBtn.addEventListener('click', () => setMode('single'));
+modeBatchBtn.addEventListener('click', () => setMode('batch'));
+addBatchRowBtn.addEventListener('click', () => {
+  renderBatchRows([...batchRowsData(), createEmptyBatchRow()]);
+  batchRows.lastElementChild?.querySelector('.batch-price')?.focus();
+});
+calculateBatchBtn.addEventListener('click', () => calculateBatch());
+copyAllNotesBtn.addEventListener('click', copyAllNotes);
+batchRows.addEventListener('click', (event) => {
+  const removeBtn = event.target.closest('button[data-action="remove-batch-row"]');
+  if (!removeBtn) return;
+  const row = removeBtn.closest('.batch-row');
+  if (row) removeBatchRow(row);
+});
 confirmCancelBtn.addEventListener('click', closeConfirmModal);
 confirmActionBtn.addEventListener('click', () => {
   const action = confirmAction;
@@ -1144,8 +1159,9 @@ historyList.addEventListener('click', (event) => {
     return;
   }
 
-  backerInput.value = Number(item.backer).toFixed(2);
-  discountInput.value = Number(item.discount).toFixed(2);
+  setMode('single');
+  backerInput.value = Number(item.originalPrice ?? item.backer).toFixed(2);
+  discountInput.value = Number(item.discountPercent ?? item.discount).toFixed(2);
   noteWasEdited = false;
   updatePresetState();
   calculateLive();
@@ -1274,6 +1290,8 @@ renderCustomPreset();
 updatePresetState();
 updateFeeBreakdown(null);
 renderHistory();
+renderBatchRows([createEmptyBatchRow(), createEmptyBatchRow()]);
+setMode('single');
 
 if (backerInput.value && discountInput.value) {
   noteWasEdited = false;
