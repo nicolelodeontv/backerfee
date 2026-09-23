@@ -47,11 +47,20 @@
               <span class="section-kicker">CALCULATOR</span>
               <h2>Enter fee details</h2>
             </div>
+            <div class="mode-switch" role="tablist" aria-label="Calculation mode">
+              <button class="mode-tab active" id="modeSingleBtn" type="button" role="tab" aria-selected="true">Single</button>
+              <button class="mode-tab" id="modeBatchBtn" type="button" role="tab" aria-selected="false">Batch</button>
+            </div>
             <span class="live-badge" aria-label="Automatic calculation enabled"><span class="live-dot" aria-hidden="true"></span>Auto-calculating</span>
             <div class="reset-group">
               <button class="secondary-btn compact" id="resetBtn" type="button">Reset</button>
               <span class="shortcut-hint" aria-hidden="true"><kbd>Esc</kbd> reset</span>
             </div>
+          </div>
+
+          <div class="local-trust" role="note">
+            <span class="local-trust-icon" aria-hidden="true">✓</span>
+            <span><strong>Runs locally in your browser.</strong> Pricing data and calculation history stay on this device.</span>
           </div>
 
           <div class="field-grid">
@@ -93,7 +102,7 @@
             </label>
           </div>
 
-          <section class="results" id="results" aria-live="polite" aria-busy="false" aria-label="Calculation results">
+          <section class="results single-only" id="results" aria-live="polite" aria-busy="false" aria-label="Calculation results">
             <div class="result-box">
               <span>Discount Amount</span>
               <strong id="result">$0.00</strong>
@@ -104,7 +113,39 @@
             </div>
           </section>
 
-          <section class="fee-breakdown" aria-labelledby="feeBreakdownHeading">
+          <section class="batch-panel" id="batchPanel" aria-labelledby="batchHeading" hidden>
+            <div class="batch-heading">
+              <div>
+                <span class="section-kicker">BATCH</span>
+                <h2 id="batchHeading">Calculate multiple backer fees</h2>
+              </div>
+              <button class="secondary-btn compact" id="addBatchRowBtn" type="button">+ Add row</button>
+            </div>
+
+            <div class="local-trust batch-trust" role="note">
+              <span class="local-trust-icon" aria-hidden="true">✓</span>
+              <span>Runs locally in your browser. Batch values and history are stored only on this device.</span>
+            </div>
+
+            <div class="batch-grid batch-grid-header" aria-hidden="true">
+              <span>Original Price</span>
+              <span>Discount</span>
+              <span>Discount Amount</span>
+              <span>Final Fee</span>
+              <span></span>
+            </div>
+            <div id="batchRows" class="batch-rows"></div>
+
+            <div class="batch-actions">
+              <span class="batch-status" id="batchStatus" role="status" aria-live="polite"></span>
+              <div class="batch-action-buttons">
+                <button class="secondary-btn" id="calculateBatchBtn" type="button">Calculate all</button>
+                <button class="copy-btn" id="copyAllNotesBtn" type="button" disabled>Copy All Notes</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="fee-breakdown single-only" aria-labelledby="feeBreakdownHeading">
             <div class="fee-breakdown-heading">
               <div>
                 <span class="section-kicker">BREAKDOWN</span>
@@ -122,7 +163,7 @@
             </div>
           </section>
 
-          <section class="note-panel" aria-labelledby="noteHeading">
+          <section class="note-panel single-only" aria-labelledby="noteHeading">
             <div class="note-heading-row">
               <div>
                 <span class="note-label">CUSTOMER NOTE</span>
@@ -151,16 +192,9 @@
             <span class="section-kicker">RECENT</span>
             <h2 id="historyHeading">Calculation history</h2>
           </div>
-          <button class="secondary-btn compact" id="clearHistoryBtn" type="button">Clear history</button>
-        </div>
-        <div class="history-totals" aria-label="History totals">
-          <div>
-            <span>Total discounts</span>
-            <strong id="historyDiscountTotal">$0.00</strong>
-          </div>
-          <div>
-            <span>Total final fees</span>
-            <strong id="historyFinalTotal">$0.00</strong>
+          <div class="history-actions">
+            <button class="secondary-btn compact" id="exportHistoryBtn" type="button" disabled>Export history</button>
+            <button class="secondary-btn compact" id="clearHistoryBtn" type="button" disabled>Clear history</button>
           </div>
         </div>
         <div id="historyList" class="history-list" aria-live="polite"></div>
