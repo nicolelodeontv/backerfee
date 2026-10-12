@@ -66,21 +66,3 @@ if (copyStatus) {
   copyObserver.observe(copyStatus, { childList: true, characterData: true, subtree: true });
 }
 
-document.addEventListener('click', (event) => {
-  const button = event.target.closest('button');
-  if (!button || button.disabled) return;
-
-  if (button.id === 'confirmActionBtn') {
-    const action = button.textContent.trim().toLowerCase();
-    if (action === 'clear history') {
-      window.setTimeout(() => showToast('Calculation history cleared.'), 30);
-    }
-    return;
-  }
-
-  if (button.dataset.action === 'reuse') {
-    window.setTimeout(() => showToast('Calculation reused.'), 30);
-  } else if (button.dataset.action === 'delete') {
-    window.setTimeout(() => showToast('Calculation removed from history.'), 30);
-  }
-});
