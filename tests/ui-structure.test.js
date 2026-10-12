@@ -22,8 +22,13 @@ test('exposes the complete single and batch workflow controls', () => {
     'adjAmount',
     'adjTax',
     'adjSubtotal',
+    'adjShipOut',
     'adjTotal',
-    'adjCopy'
+    'adjTaxOverride',
+    'adjShip',
+    'adjUseTax',
+    'adjCopy',
+    'adjCopyTotal'
   ]) {
     assert.match(html, new RegExp('id="' + id + '"'));
   }
@@ -31,12 +36,18 @@ test('exposes the complete single and batch workflow controls', () => {
   assert.doesNotMatch(html, /history-totals/);
 });
 
-test('keeps the existing single customer-note template path', () => {
+test('keeps customer-note behavior and wires Minted Amount, tax, and shipping', () => {
   assert.match(script, /buildCustomerNote\(data\)/);
   assert.match(script, /adjRateInput\.addEventListener\(['"]input['"]/);
-  assert.match(script, /updateAdjustment\(finalFee\)/);
-  assert.match(script, /calculateAdjustment\(finalFee, rate\)/);
-  assert.match(script, /copyAdjustmentAmount/);
+  assert.match(script, /function readAdjustmentField/);
+  assert.match(script, /function updateAdjustment\(finalFee\)/);
+  assert.match(script, /const amountCents = Math\.round\(Number\(finalFee\) \* 100\)/);
+  assert.match(script, /Math\.round\(\(amountCents \* rate\.value\) \/ 100\)/);
+  assert.match(script, /const totalCents = subtotalCents \+ shipCents/);
+  assert.match(script, /adjTaxOverrideInput/);
+  assert.match(script, /adjUseTaxInput\.checked/);
+  assert.match(script, /copyAdjustmentValue\(currentAdjustment\?\.amountCents/);
+  assert.match(script, /copyAdjustmentValue\(currentAdjustment\?\.totalCents/);
   assert.match(script, /buildCustomerNote\(\{\s*discountedPrice:/);
   assert.match(script, /Copy Note/);
 });
@@ -63,4 +74,11 @@ test('keeps history and settings local to the browser', () => {
   assert.match(script, /localStorage\.setItem\(STORAGE_KEYS\.history/);
   assert.match(script, /localStorage\.setItem\(STORAGE_KEYS\.settings/);
   assert.match(script, /const MAX_HISTORY = 20/);
+});
+
+test('persists the Minted tax, shipping, and include-tax controls locally', () => {
+  assert.match(script, /taxOverride: adjTaxOverrideInput\.value/);
+  assert.match(script, /shippingAdjustment: adjShipInput\.value/);
+  assert.match(script, /useTax: adjUseTaxInput\.checked/);
+  assert.match(script, /\[adjTaxOverrideInput, adjShipInput, adjUseTaxInput\]\.forEach/);
 });
