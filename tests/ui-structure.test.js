@@ -70,7 +70,7 @@ test('keeps customer notes tied to Total Adjustment when available', () => {
   assert.match(script, /function noteFee\(data\)/);
   assert.match(script, /function refreshAdjustment\(\)/);
   assert.match(script, /buildCustomerNote\(\{ \.\.\.data, discountedPrice: noteFee\(data\) \}\)/);
-  assert.match(script, /typeof currentAdjustment\\?\\.totalCents === 'number'/);
+  assert.match(script, /typeof currentAdjustment\?\.totalCents === 'number'/);
   assert.match(script, /function updateAdjustment\(finalFee\)/);
   assert.match(script, /adjAmount\.value = calculated \? \(Math\.round\(Number\(finalFee\) \* 100\) \/ 100\)\.toFixed\(2\) : ''/);
   assert.match(script, /copyAdjustmentValue\(Math\.round\(Number\(raw\) \* 100\), 'Enter this in Minted’s Amount field\.'\)/);
