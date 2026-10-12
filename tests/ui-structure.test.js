@@ -37,7 +37,10 @@ test('exposes the complete single and batch workflow controls', () => {
 });
 
 test('keeps customer-note behavior and wires Minted Amount, tax, and shipping', () => {
-  assert.match(script, /buildCustomerNote\(data\)/);
+  assert.match(script, /function noteFee\(data\)/);
+  assert.match(script, /function refreshAdjustment\(\)/);
+  assert.match(script, /buildCustomerNote\(\{ \.\.\.data, discountedPrice: noteFee\(data\) \}\)/);
+  assert.match(script, /typeof currentAdjustment\?\.totalCents !== 'number'/);
   assert.match(script, /adjRateInput\.addEventListener\(['"]input['"]/);
   assert.match(script, /function readAdjustmentField/);
   assert.match(script, /function updateAdjustment\(finalFee\)/);
@@ -50,6 +53,14 @@ test('keeps customer-note behavior and wires Minted Amount, tax, and shipping', 
   assert.match(script, /copyAdjustmentValue\(currentAdjustment\?\.totalCents/);
   assert.match(script, /buildCustomerNote\(\{\s*discountedPrice:/);
   assert.match(script, /Copy Note/);
+});
+
+test('refreshes the customer note when the Minted total changes', () => {
+  assert.match(script, /function refreshAdjustment\(\)[\s\S]*updateAdjustment\(calculated\?\.discountedPrice \?\? 0\);[\s\S]*updateNote\(calculated\)/);
+  assert.match(script, /adjRateInput\.addEventListener\(['"]input['"][\s\S]*refreshAdjustment\(\)/);
+  assert.match(script, /\[adjTaxOverrideInput, adjShipInput, adjUseTaxInput\]\.forEach[\s\S]*refreshAdjustment\(\)/);
+  assert.match(script, /noteState\.textContent = typeof currentAdjustment\?\.totalCents !== 'number'[\s\S]*Add the tax rate to include tax in the fee/);
+  assert.match(script, /noteWasEdited \? 'Edited — ready to copy' : 'Updated automatically'/);
 });
 
 test('wires the Batch mode controls to their handlers and initializes rows', () => {
