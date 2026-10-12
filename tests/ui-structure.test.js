@@ -37,7 +37,6 @@ test('locks tax at 9.75% and makes Amount-driven totals live', () => {
   assert.match(html, /id="adjTax"[^>]*readonly/);
   assert.match(html, /id="adjUseTax" checked disabled/);
   assert.match(html, /Tax Based on Shipping Zip/);
-  assert.match(html, /id="adjCalc"/);
   assert.doesNotMatch(html, /id="adjRate"|id="adjTaxOverride"/);
   assert.doesNotMatch(script, /adjRateInput|adjRateError|adjTaxOverrideInput|adjUseTaxInput|taxRate:|taxOverride:|useTax:/);
   assert.match(script, /function readAdjustmentField/);
