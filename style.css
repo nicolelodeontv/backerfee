@@ -1131,3 +1131,91 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
 @media (max-width: 640px) {
   .adjustment-inputs { grid-template-columns: 1fr; }
 }
+
+
+/* Fixed-rate Minted adjustment inputs */
+.adjustment-row-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.adjustment-value-input {
+  flex: 0 1 160px;
+  width: 160px;
+  min-width: 0;
+}
+.adjustment-value-input input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 11px 0 33px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  outline: none;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.adjustment-value-input input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(141,112,168,.12);
+}
+.adjustment-value-input input[readonly] {
+  background: var(--paper-2);
+  cursor: default;
+}
+.adjustment-value-input input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.adjustment-value-input .prefix {
+  left: 12px;
+  font-size: 11px;
+}
+.adjustment-row-valuegroup {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 13px;
+  min-width: 0;
+}
+.adj-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.adj-check input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.adj-check input:disabled {
+  cursor: not-allowed;
+  opacity: .75;
+}
+.adjustment-row.total .adjustment-value-input input {
+  color: var(--accent-dark);
+  font-size: 17px;
+  font-weight: 800;
+}
+.adjustment-row.total .adjustment-row-label {
+  color: var(--ink);
+  font-weight: 800;
+}
+#adjCalc { min-height: 40px; }
+@media (max-width: 520px) {
+  .adjustment-row { align-items: flex-start; gap: 10px; }
+  .adjustment-row-label { padding-top: 12px; }
+  .adjustment-value-input { flex-basis: 135px; width: 135px; }
+  .adjustment-row-valuegroup { align-items: flex-end; flex-direction: column; gap: 7px; }
+  .adjustment-row.tax .adjustment-row-label { max-width: 120px; }
+}

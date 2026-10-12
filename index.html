@@ -169,53 +169,54 @@
       <span class="section-kicker">FINANCIAL ADJUSTMENT</span>
       <h2 id="adjustmentHeading">Minted entry</h2>
     </div>
-    <span class="adjustment-target-label">Amount = Final Backer Fee</span>
-  </div>
-
-  <div class="adjustment-inputs">
-    <label class="adjustment-rate-field" for="adjRate">
-      <span>Tax rate (from shipping ZIP)</span>
-      <div class="input-wrap adjustment-rate-input">
-        <input type="number" id="adjRate" min="0" max="100" step="0.01" placeholder="e.g. 9.77" inputmode="decimal" autocomplete="off" aria-describedby="adjRateHint adjRateError">
-        <span class="suffix" aria-hidden="true">%</span>
-      </div>
-      <small class="field-hint" id="adjRateHint">Minted adds tax on top of the Amount.</small>
-      <small class="error" id="adjRateError" role="alert"></small>
-    </label>
-
-    <label class="adjustment-rate-field" for="adjTaxOverride">
-      <span>Tax $ from Minted (optional)</span>
-      <div class="input-wrap adjustment-rate-input">
-        <span class="prefix" aria-hidden="true">$</span>
-        <input type="number" id="adjTaxOverride" min="0" step="0.01" placeholder="e.g. 1.88" inputmode="decimal" autocomplete="off">
-      </div>
-      <small class="field-hint">Overrides the rate. Use the tax Minted shows after Calculate.</small>
-    </label>
-
-    <label class="adjustment-rate-field" for="adjShip">
-      <span>Shipping adjustment</span>
-      <div class="input-wrap adjustment-rate-input">
-        <span class="prefix" aria-hidden="true">$</span>
-        <input type="number" id="adjShip" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off">
-      </div>
-    </label>
-
-    <label class="adjustment-check" for="adjUseTax">
-      <input type="checkbox" id="adjUseTax" checked> Include tax
-    </label>
+    <span class="adjustment-target-label">Fixed tax: 9.75%</span>
   </div>
 
   <div class="adjustment-rows" aria-live="polite" aria-atomic="true">
-    <div class="adjustment-row"><span>Amount (enter in Minted)</span><strong id="adjAmount">—</strong></div>
-    <div class="adjustment-row"><span>Tax</span><strong id="adjTax">—</strong></div>
-    <div class="adjustment-row"><span>Subtotal</span><strong id="adjSubtotal">—</strong></div>
-    <div class="adjustment-row"><span>Shipping adjustment</span><strong id="adjShipOut">—</strong></div>
-    <div class="adjustment-row total"><span>Total Adjustment</span><strong id="adjTotal">—</strong></div>
+    <div class="adjustment-row">
+      <label class="adjustment-row-label" for="adjAmount">Amount (enter in Minted)</label>
+      <div class="input-wrap adjustment-value-input">
+        <span class="prefix" aria-hidden="true">$</span>
+        <input type="number" id="adjAmount" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-describedby="adjStatus">
+      </div>
+    </div>
+    <div class="adjustment-row tax">
+      <label class="adjustment-row-label" for="adjTax">Tax Based on Shipping Zip</label>
+      <div class="adjustment-row-valuegroup">
+        <div class="input-wrap adjustment-value-input">
+          <span class="prefix" aria-hidden="true">$</span>
+          <input type="number" id="adjTax" min="0" step="0.01" placeholder="0.00" readonly aria-label="Tax based on fixed 9.75% rate">
+        </div>
+        <label class="adj-check" for="adjUseTax">Include Tax: <input type="checkbox" id="adjUseTax" checked disabled></label>
+      </div>
+    </div>
+    <div class="adjustment-row">
+      <label class="adjustment-row-label" for="adjSubtotal">Subtotal</label>
+      <div class="input-wrap adjustment-value-input">
+        <span class="prefix" aria-hidden="true">$</span>
+        <input type="number" id="adjSubtotal" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated subtotal">
+      </div>
+    </div>
+    <div class="adjustment-row">
+      <label class="adjustment-row-label" for="adjShip">Shipping Adjustment</label>
+      <div class="input-wrap adjustment-value-input">
+        <span class="prefix" aria-hidden="true">$</span>
+        <input type="number" id="adjShip" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Shipping adjustment">
+      </div>
+    </div>
+    <div class="adjustment-row total">
+      <label class="adjustment-row-label" for="adjTotal">Total Adjustment</label>
+      <div class="input-wrap adjustment-value-input">
+        <span class="prefix" aria-hidden="true">$</span>
+        <input type="number" id="adjTotal" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated total adjustment">
+      </div>
+    </div>
   </div>
 
   <p class="adjustment-status" id="adjStatus" role="status" aria-live="polite">Enter a price and discount to see the Minted adjustment.</p>
-  <p class="adjustment-note">Tax is estimated with cent rounding. If Minted's tax differs by a cent, paste its tax in the optional field.</p>
+  <p class="adjustment-note">Tax uses a fixed 9.75% rate and is rounded to the cent. Adjust Shipping Adjustment when needed.</p>
   <div class="adjustment-actions">
+    <button class="secondary-btn" id="adjCalc" type="button">Calculate</button>
     <button class="copy-btn" id="adjCopy" type="button" disabled>Copy Amount</button>
     <button class="secondary-btn" id="adjCopyTotal" type="button" disabled>Copy Total</button>
     <span class="copy-status" id="adjCopyStatus" role="status" aria-live="polite"></span>
