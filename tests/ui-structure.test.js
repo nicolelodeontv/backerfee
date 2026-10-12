@@ -43,6 +43,7 @@ test('locks tax at 9.75% and makes Amount-driven totals live', () => {
   assert.match(script, /function computeAdjustment\(\)[\s\S]*Math\.round\(\(amountCents \* TAX_RATE\) \/ 100\)/);
   assert.match(script, /const subtotalCents = amountCents \+ taxCents/);
   assert.match(script, /const totalCents = subtotalCents \+ shipCents/);
+  assert.match(script, /function clearResults\(\)[\s\S]*updateAdjustment\(0\)/);
   assert.doesNotMatch(script, /adjCopy|adjCalc|copyAdjustmentValue/);
   assert.match(script, /\[adjAmount, adjShipInput\]\.forEach\(\(el\) => \{[\s\S]*?el\.addEventListener\(['"]input['"][\s\S]*?computeAdjustment\(\)/);
   assert.match(script, /\[adjAmount, adjShipInput\]\.forEach\(\(el\) => \{[\s\S]*?el\.addEventListener\(['"]keydown['"][\s\S]*?event\.key === 'Enter'[\s\S]*?computeAdjustment\(\)/);
@@ -87,6 +88,8 @@ test('wires Batch mode controls to their handlers and initializes rows', () => {
 });
 
 test('recalculates batch inputs live without writing history', () => {
+  assert.match(script, /priceInput\.addEventListener\(['"]input['"][\s\S]*calculateBatch\(\)/);
+  assert.match(script, /discountInputForRow\.addEventListener\(['"]input['"][\s\S]*calculateBatch\(\)/);
   assert.match(script, /calculateBatchBtn\.addEventListener\(['"]click['"][\s\S]*calculateBatch\(\)/);
 });
 
