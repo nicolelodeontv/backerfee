@@ -1107,3 +1107,27 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   .adjustment-heading { align-items: flex-start; }
   .adjustment-target-label { max-width: 105px; }
 }
+
+
+.adjustment-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
+  margin-bottom: 14px;
+}
+.adjustment-inputs .adjustment-rate-field { margin: 0; }
+.adjustment-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: .85rem;
+}
+.adjustment-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+@media (max-width: 640px) {
+  .adjustment-inputs { grid-template-columns: 1fr; }
+}
