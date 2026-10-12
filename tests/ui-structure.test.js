@@ -24,14 +24,12 @@ test('exposes the complete single and batch workflow controls', () => {
     'adjShip',
     'adjTotal',
     'adjUseTax',
-    'adjCalc',
-    'adjCopy',
-    'adjCopyTotal'
   ]) {
     assert.match(html, new RegExp('id="' + id + '"'));
   }
   assert.match(html, /Runs locally in your browser/);
   assert.doesNotMatch(html, /history-totals/);
+  assert.doesNotMatch(html, /adjustment-actions|adjCalc|adjCopy/);
 });
 
 test('locks tax at 9.75% and makes Amount-driven totals live', () => {
@@ -47,7 +45,9 @@ test('locks tax at 9.75% and makes Amount-driven totals live', () => {
   assert.match(script, /function computeAdjustment\(\)[\s\S]*Math\.round\(\(amountCents \* TAX_RATE\) \/ 100\)/);
   assert.match(script, /const subtotalCents = amountCents \+ taxCents/);
   assert.match(script, /const totalCents = subtotalCents \+ shipCents/);
-  assert.match(script, /adjCalcBtn\.addEventListener\(['"]click['"], computeAdjustment\)/);
+  assert.doesNotMatch(script, /adjCopy|adjCalc|copyAdjustmentValue/);
+  assert.match(script, /\[adjAmount, adjShipInput\]\.forEach\(\(el\) => \{[\s\S]*?el\.addEventListener\(['"]input['"][\s\S]*?computeAdjustment\(\)/);
+  assert.match(script, /\[adjAmount, adjShipInput\]\.forEach\(\(el\) => \{[\s\S]*?el\.addEventListener\(['"]keydown['"][\s\S]*?event\.key === 'Enter'[\s\S]*?computeAdjustment\(\)/);
   assert.match(script, /noteState\.textContent = noteWasEdited \? 'Edited — ready to copy' : 'Updated automatically'/);
 });
 
@@ -73,8 +73,6 @@ test('keeps customer notes tied to Total Adjustment when available', () => {
   assert.match(script, /typeof currentAdjustment\?\.totalCents === 'number'/);
   assert.match(script, /function updateAdjustment\(finalFee\)/);
   assert.match(script, /adjAmount\.value = calculated \? \(Math\.round\(Number\(finalFee\) \* 100\) \/ 100\)\.toFixed\(2\) : ''/);
-  assert.match(script, /copyAdjustmentValue\(Math\.round\(Number\(raw\) \* 100\), 'Enter this in Minted’s Amount field\.'\)/);
-  assert.match(script, /copyAdjustmentValue\(currentAdjustment\?\.totalCents, 'This is the Total Adjustment\.'\)/);
   assert.match(script, /noteWasEdited \? 'Edited — ready to copy' : 'Updated automatically'/);
   assert.match(html, /Copy Note/);
 });
