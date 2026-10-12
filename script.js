@@ -37,7 +37,11 @@ const adjTotal = document.getElementById('adjTotal');
 const adjStatus = document.getElementById('adjStatus');
 const adjCopyBtn = document.getElementById('adjCopy');
 const adjCopyStatus = document.getElementById('adjCopyStatus');
-const adjustmentCard = document.getElementById('adjustmentCard');
+const adjUseTaxInput = document.getElementById('adjUseTax');
+const adjTaxOverrideInput = document.getElementById('adjTaxOverride');
+const adjShipInput = document.getElementById('adjShip');
+const adjShipOut = document.getElementById('adjShipOut');
+const adjCopyTotalBtn = document.getElementById('adjCopyTotal');
 const noteText = document.getElementById('noteText');
 const noteEmpty = document.getElementById('noteEmpty');
 const noteState = document.getElementById('noteState');
@@ -100,6 +104,9 @@ function saveSettings() {
       backer: backerInput.value,
       discount: discountInput.value,
       taxRate: adjRateInput.value,
+      taxOverride: adjTaxOverrideInput.value,
+      shippingAdjustment: adjShipInput.value,
+      useTax: adjUseTaxInput.checked,
       customDiscount: customDiscountPreset,
       theme: document.documentElement.dataset.theme || 'light'
     }));
@@ -114,6 +121,9 @@ function loadSettings() {
     if (typeof data.backer === 'string') backerInput.value = data.backer;
     if (typeof data.discount === 'string') discountInput.value = data.discount;
     if (typeof data.taxRate === 'string' && data.taxRate.length <= 8) adjRateInput.value = data.taxRate;
+    if (typeof data.taxOverride === 'string' && data.taxOverride.length <= 12) adjTaxOverrideInput.value = data.taxOverride;
+    if (typeof data.shippingAdjustment === 'string' && data.shippingAdjustment.length <= 12) adjShipInput.value = data.shippingAdjustment;
+    if (typeof data.useTax === 'boolean') adjUseTaxInput.checked = data.useTax;
     if (typeof data.customDiscount === 'string') {
       const customDiscount = Number(data.customDiscount);
       if (DECIMAL_PATTERN.test(data.customDiscount) && Number.isFinite(customDiscount) && customDiscount >= 0 && customDiscount <= 100) {
@@ -338,70 +348,88 @@ function updateFeeBreakdown(data) {
   updateAdjustment(finalFee);
 }
 
+function readAdjustmentField(input, max = Infinity) {
+  const raw = input.value.trim();
+  if (!raw) return { empty: true, ok: true, value: 0 };
+  const value = Number(raw);
+  const ok = DECIMAL_PATTERN.test(raw) && Number.isFinite(value) && value >= 0 && value <= max;
+  return { empty: false, ok, value };
+}
+
 function updateAdjustment(finalFee) {
   currentAdjustment = null;
-  adjustmentCard.dataset.exactMatch = 'false';
   adjCopyBtn.disabled = true;
+  adjCopyTotalBtn.disabled = true;
   adjCopyStatus.textContent = '';
   adjRateError.textContent = '';
-  adjRateInput.setAttribute('aria-invalid', 'false');
+  adjStatus.classList.remove('is-success', 'is-warning');
 
-  const setBlankResults = () => {
-    adjAmount.textContent = '—';
-    adjTax.textContent = '—';
-    adjSubtotal.textContent = '—';
-    adjTotal.textContent = '—';
+  const setOutputs = (amount, tax, subtotal, ship, totalValue) => {
+    adjAmount.textContent = amount;
+    adjTax.textContent = tax;
+    adjSubtotal.textContent = subtotal;
+    adjShipOut.textContent = ship;
+    adjTotal.textContent = totalValue;
   };
-  const rateRaw = adjRateInput.value.trim();
-  const rate = Number(rateRaw);
 
-  if (rateRaw && (!DECIMAL_PATTERN.test(rateRaw) || !Number.isFinite(rate) || rate < 0 || rate > 100)) {
-    setBlankResults();
-    adjRateError.textContent = 'Enter a tax rate from 0% to 100%, with up to 2 decimals.';
-    adjRateInput.setAttribute('aria-invalid', 'true');
-    adjStatus.textContent = 'Correct the shipping ZIP tax rate to calculate the adjustment.';
-    adjStatus.classList.remove('is-success');
+  const rate = readAdjustmentField(adjRateInput, 100);
+  const taxOverride = readAdjustmentField(adjTaxOverrideInput);
+  const ship = readAdjustmentField(adjShipInput);
+
+  adjRateInput.setAttribute('aria-invalid', rate.ok ? 'false' : 'true');
+  adjTaxOverrideInput.setAttribute('aria-invalid', taxOverride.ok ? 'false' : 'true');
+  adjShipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
+
+  if (!rate.ok || !taxOverride.ok || !ship.ok) {
+    setOutputs('—', '—', '—', '—', '—');
+    if (!rate.ok) adjRateError.textContent = 'Enter a tax rate from 0% to 100%, with up to 2 decimals.';
+    adjStatus.textContent = 'Fix the highlighted values (up to 2 decimals) to calculate the adjustment.';
     adjStatus.classList.add('is-warning');
     return;
   }
 
   if (!calculated) {
-    setBlankResults();
-    adjStatus.textContent = rateRaw
-      ? 'Enter a valid original price and discount to calculate the Minted Amount.'
-      : 'Enter the tax rate from the shipping ZIP to calculate the pre-tax Minted Amount.';
-    adjStatus.classList.remove('is-success', 'is-warning');
+    setOutputs('—', '—', '—', '—', '—');
+    adjStatus.textContent = 'Enter a valid original price and discount to see the Minted adjustment.';
     return;
   }
 
-  if (!rateRaw) {
-    setBlankResults();
-    adjStatus.textContent = 'Enter the tax rate from the shipping ZIP to calculate the pre-tax Minted Amount.';
-    adjStatus.classList.remove('is-success', 'is-warning');
+  const amountCents = Math.round(Number(finalFee) * 100);
+  const shipCents = Math.round(ship.value * 100);
+  const useTax = adjUseTaxInput.checked;
+
+  let taxCents = 0;
+  let taxKnown = true;
+  if (useTax) {
+    if (!taxOverride.empty) taxCents = Math.round(taxOverride.value * 100);
+    else if (!rate.empty) taxCents = Math.round((amountCents * rate.value) / 100);
+    else taxKnown = false;
+  }
+
+  adjCopyBtn.disabled = false;
+
+  if (!taxKnown) {
+    setOutputs(money(amountCents / 100), '—', '—', money(shipCents / 100), '—');
+    currentAdjustment = { amountCents };
+    adjStatus.textContent = 'Enter the shipping ZIP tax rate (or Minted’s tax) to see the Total Adjustment.';
     return;
   }
 
-  const adjustment = calculateAdjustment(finalFee, rate);
-  currentAdjustment = adjustment;
-  adjAmount.textContent = money(adjustment.amountCents / 100);
-  adjTax.textContent = money(adjustment.taxCents / 100);
-  adjSubtotal.textContent = money(adjustment.subtotalCents / 100);
-  adjTotal.textContent = money(adjustment.subtotalCents / 100);
-  adjRateInput.setAttribute('aria-invalid', 'false');
+  const subtotalCents = amountCents + taxCents;
+  const totalCents = subtotalCents + shipCents;
+  currentAdjustment = { amountCents, taxCents, subtotalCents, shipCents, totalCents };
 
-  if (adjustment.exactMatch) {
-    adjustmentCard.dataset.exactMatch = 'true';
-    adjCopyBtn.disabled = false;
-    adjStatus.textContent = 'Exact match: Amount + tax = ' + money(adjustment.subtotalCents / 100) + '.';
-    adjStatus.classList.remove('is-warning');
-    adjStatus.classList.add('is-success');
-  } else {
-    adjStatus.textContent = 'No exact cent-rounded match for ' + money(finalFee) +
-      ' at this rate. The closest subtotal is ' + money(adjustment.subtotalCents / 100) +
-      '. Verify Minted’s tax rate and rounding before entering an amount.';
-    adjStatus.classList.remove('is-success');
-    adjStatus.classList.add('is-warning');
-  }
+  setOutputs(
+    money(amountCents / 100),
+    money(taxCents / 100),
+    money(subtotalCents / 100),
+    money(shipCents / 100),
+    money(totalCents / 100)
+  );
+  adjCopyTotalBtn.disabled = false;
+  adjStatus.textContent = 'Enter ' + money(amountCents / 100) + ' as the Amount. Minted should show a Total Adjustment of ' +
+    money(totalCents / 100) + '.';
+  adjStatus.classList.add('is-success');
 }
 
 function clearResults() {
@@ -637,6 +665,9 @@ function clearCalculatorStorage() {
       backer: '',
       discount: '',
       taxRate: '',
+      taxOverride: '',
+      shippingAdjustment: '',
+      useTax: true,
       customDiscount: customDiscountPreset,
       theme
     }));
@@ -1096,21 +1127,21 @@ function showCopyFeedback() {
   }, 1500);
 }
 
-async function copyAdjustmentAmount() {
-  if (!currentAdjustment?.exactMatch) return;
+async function copyAdjustmentValue(cents, hint) {
+  if (typeof cents !== 'number') return;
 
-  const amount = (currentAdjustment.amountCents / 100).toFixed(2);
+  const text = (cents / 100).toFixed(2);
   try {
     if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
-    await navigator.clipboard.writeText(amount);
+    await navigator.clipboard.writeText(text);
   } catch (_) {
-    if (!fallbackCopy(amount)) {
-      adjCopyStatus.textContent = 'Clipboard unavailable. Copy the displayed Amount manually.';
+    if (!fallbackCopy(text)) {
+      adjCopyStatus.textContent = 'Clipboard unavailable. Copy the displayed value manually.';
       return;
     }
   }
 
-  adjCopyStatus.textContent = 'Copied $' + amount + '. Enter this in Minted’s Amount field.';
+  adjCopyStatus.textContent = 'Copied $' + text + '. ' + hint;
 }
 
 async function copyNote() {
@@ -1208,7 +1239,16 @@ adjRateInput.addEventListener('input', () => {
   updateAdjustment(calculated?.discountedPrice ?? 0);
   saveSettings();
 });
-adjCopyBtn.addEventListener('click', copyAdjustmentAmount);
+[adjTaxOverrideInput, adjShipInput, adjUseTaxInput].forEach((el) => {
+  el.addEventListener('input', () => {
+    updateAdjustment(calculated?.discountedPrice ?? 0);
+    saveSettings();
+  });
+});
+adjCopyBtn.addEventListener('click', () =>
+  copyAdjustmentValue(currentAdjustment?.amountCents, 'Enter this in Minted’s Amount field.'));
+adjCopyTotalBtn.addEventListener('click', () =>
+  copyAdjustmentValue(currentAdjustment?.totalCents, 'This is the Total Adjustment.'));
 themeBtn.addEventListener('click', () => {
   const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   applyTheme(next, { animate: true });
