@@ -26,6 +26,51 @@ export function calculateFee(backer, discount) {
   };
 }
 
+export function calculateAdjustment(finalFee, taxRatePercent) {
+  const target = Number(finalFee);
+  const taxPercent = Number(taxRatePercent);
+  if (!Number.isFinite(target) || target < 0) {
+    throw new RangeError('Final fee must be a non-negative number.');
+  }
+  if (!Number.isFinite(taxPercent) || taxPercent < 0 || taxPercent > 100) {
+    throw new RangeError('Tax rate must be between 0 and 100.');
+  }
+
+  const targetCents = Math.round(roundMoney(target) * CENT);
+  const rate = taxPercent / 100;
+  const estimate = Math.round(targetCents / (1 + rate));
+  const candidates = [...new Set([estimate, estimate - 1, estimate + 1, estimate - 2, estimate + 2])]
+    .filter((amountCents) => amountCents >= 0)
+    .map((amountCents) => {
+      const taxCents = Math.round((amountCents * rate) + Number.EPSILON);
+      const subtotalCents = amountCents + taxCents;
+      return {
+        amountCents,
+        taxCents,
+        subtotalCents,
+        differenceCents: subtotalCents - targetCents
+      };
+    });
+
+  const exact = candidates.find((candidate) => candidate.subtotalCents === targetCents);
+  const selected = exact ?? candidates.reduce((best, candidate) => {
+    const candidateDistance = Math.abs(candidate.differenceCents);
+    const bestDistance = Math.abs(best.differenceCents);
+    if (candidateDistance < bestDistance) return candidate;
+    if (candidateDistance === bestDistance &&
+        Math.abs(candidate.amountCents - estimate) < Math.abs(best.amountCents - estimate)) {
+      return candidate;
+    }
+    return best;
+  });
+
+  return {
+    targetCents,
+    ...selected,
+    exactMatch: Boolean(exact)
+  };
+}
+
 export function formatMoney(value) {
   return `$${roundMoney(value).toLocaleString('en-US', {
     minimumFractionDigits: 2,
