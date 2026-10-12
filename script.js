@@ -1,4 +1,4 @@
-import { buildCustomerNote, calculateFee, formatMoney } from './calculator-utils.js';
+import { buildCustomerNote, calculateAdjustment, calculateFee, formatMoney } from './calculator-utils.js';
 
 const STORAGE_KEYS = {
   settings: 'backerfee-settings-v3',
@@ -28,6 +28,16 @@ const finalFeeBar = document.getElementById('finalFeeBar');
 const feeBreakdownTotal = document.getElementById('feeBreakdownTotal');
 const discountBreakdownValue = document.getElementById('discountBreakdownValue');
 const finalBreakdownValue = document.getElementById('finalBreakdownValue');
+const adjRateInput = document.getElementById('adjRate');
+const adjRateError = document.getElementById('adjRateError');
+const adjAmount = document.getElementById('adjAmount');
+const adjTax = document.getElementById('adjTax');
+const adjSubtotal = document.getElementById('adjSubtotal');
+const adjTotal = document.getElementById('adjTotal');
+const adjStatus = document.getElementById('adjStatus');
+const adjCopyBtn = document.getElementById('adjCopy');
+const adjCopyStatus = document.getElementById('adjCopyStatus');
+const adjustmentCard = document.getElementById('adjustmentCard');
 const noteText = document.getElementById('noteText');
 const noteEmpty = document.getElementById('noteEmpty');
 const noteState = document.getElementById('noteState');
@@ -54,6 +64,7 @@ const copyAllNotesBtn = document.getElementById('copyAllNotesBtn');
 const batchStatus = document.getElementById('batchStatus');
 
 let calculated = null;
+let currentAdjustment = null;
 let customDiscountPreset = '';
 let noteWasEdited = false;
 let lastRecordedKey = '';
@@ -88,6 +99,7 @@ function saveSettings() {
     localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify({
       backer: backerInput.value,
       discount: discountInput.value,
+      taxRate: adjRateInput.value,
       customDiscount: customDiscountPreset,
       theme: document.documentElement.dataset.theme || 'light'
     }));
@@ -101,6 +113,7 @@ function loadSettings() {
     if (!data || typeof data !== 'object') throw new Error('Invalid settings');
     if (typeof data.backer === 'string') backerInput.value = data.backer;
     if (typeof data.discount === 'string') discountInput.value = data.discount;
+    if (typeof data.taxRate === 'string' && data.taxRate.length <= 8) adjRateInput.value = data.taxRate;
     if (typeof data.customDiscount === 'string') {
       const customDiscount = Number(data.customDiscount);
       if (DECIMAL_PATTERN.test(data.customDiscount) && Number.isFinite(customDiscount) && customDiscount >= 0 && customDiscount <= 100) {
@@ -301,6 +314,7 @@ function updateFeeBreakdown(data) {
     discountBreakdownValue.textContent = '$0.00';
     finalBreakdownValue.textContent = '$0.00';
     feeBreakdownBar.setAttribute('aria-label', 'Fee breakdown unavailable until valid details are entered.');
+    updateAdjustment(0);
     return;
   }
 
@@ -321,6 +335,73 @@ function updateFeeBreakdown(data) {
     'aria-label',
     `Fee breakdown: ${money(discountAmount)} discount and ${money(finalFee)} final fee.`
   );
+  updateAdjustment(finalFee);
+}
+
+function updateAdjustment(finalFee) {
+  currentAdjustment = null;
+  adjustmentCard.dataset.exactMatch = 'false';
+  adjCopyBtn.disabled = true;
+  adjCopyStatus.textContent = '';
+  adjRateError.textContent = '';
+  adjRateInput.setAttribute('aria-invalid', 'false');
+
+  const setBlankResults = () => {
+    adjAmount.textContent = '—';
+    adjTax.textContent = '—';
+    adjSubtotal.textContent = '—';
+    adjTotal.textContent = '—';
+  };
+  const rateRaw = adjRateInput.value.trim();
+  const rate = Number(rateRaw);
+
+  if (rateRaw && (!DECIMAL_PATTERN.test(rateRaw) || !Number.isFinite(rate) || rate < 0 || rate > 100)) {
+    setBlankResults();
+    adjRateError.textContent = 'Enter a tax rate from 0% to 100%, with up to 2 decimals.';
+    adjRateInput.setAttribute('aria-invalid', 'true');
+    adjStatus.textContent = 'Correct the shipping ZIP tax rate to calculate the adjustment.';
+    adjStatus.classList.remove('is-success');
+    adjStatus.classList.add('is-warning');
+    return;
+  }
+
+  if (!calculated) {
+    setBlankResults();
+    adjStatus.textContent = rateRaw
+      ? 'Enter a valid original price and discount to calculate the Minted Amount.'
+      : 'Enter the tax rate from the shipping ZIP to calculate the pre-tax Minted Amount.';
+    adjStatus.classList.remove('is-success', 'is-warning');
+    return;
+  }
+
+  if (!rateRaw) {
+    setBlankResults();
+    adjStatus.textContent = 'Enter the tax rate from the shipping ZIP to calculate the pre-tax Minted Amount.';
+    adjStatus.classList.remove('is-success', 'is-warning');
+    return;
+  }
+
+  const adjustment = calculateAdjustment(finalFee, rate);
+  currentAdjustment = adjustment;
+  adjAmount.textContent = money(adjustment.amountCents / 100);
+  adjTax.textContent = money(adjustment.taxCents / 100);
+  adjSubtotal.textContent = money(adjustment.subtotalCents / 100);
+  adjTotal.textContent = money(adjustment.subtotalCents / 100);
+  adjRateInput.setAttribute('aria-invalid', 'false');
+
+  if (adjustment.exactMatch) {
+    adjustmentCard.dataset.exactMatch = 'true';
+    adjCopyBtn.disabled = false;
+    adjStatus.textContent = 'Exact match: Amount + tax = ' + money(adjustment.subtotalCents / 100) + '.';
+    adjStatus.classList.remove('is-warning');
+    adjStatus.classList.add('is-success');
+  } else {
+    adjStatus.textContent = 'No exact cent-rounded match for ' + money(finalFee) +
+      ' at this rate. The closest subtotal is ' + money(adjustment.subtotalCents / 100) +
+      '. Verify Minted’s tax rate and rounding before entering an amount.';
+    adjStatus.classList.remove('is-success');
+    adjStatus.classList.add('is-warning');
+  }
 }
 
 function clearResults() {
@@ -555,6 +636,7 @@ function clearCalculatorStorage() {
     localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify({
       backer: '',
       discount: '',
+      taxRate: '',
       customDiscount: customDiscountPreset,
       theme
     }));
@@ -1014,7 +1096,305 @@ function showCopyFeedback() {
   }, 1500);
 }
 
-async function copyNote() {
+async async function copyAdjustmentAmount() {
+  if (!currentAdjustment?.exactMatch) return;
+
+  const amount = (currentAdjustment.amountCents / 100).toFixed(2);
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+    await navigator.clipboard.writeText(amount);
+  } catch (_) {
+    if (!fallbackCopy(amount)) {
+      adjCopyStatus.textContent = 'Clipboard unavailable. Copy the displayed Amount manually.';
+      return;
+    }
+  }
+
+  adjCopyStatus.textContent = 'Copied 
+  if (!text) {
+    copyStatus.textContent = 'Enter valid details to generate a note.';
+    return;
+  }
+
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+    await navigator.clipboard.writeText(noteText.value);
+    copyStatus.textContent = 'Copied ✓';
+    showCopyFeedback();
+    if (calculated) addHistory(calculated);
+  } catch (_) {
+    if (fallbackCopy(noteText.value)) {
+      copyStatus.textContent = 'Copied ✓';
+      showCopyFeedback();
+      if (calculated) addHistory(calculated);
+    } else {
+      noteText.focus();
+      noteText.select();
+      copyStatus.textContent = 'Clipboard unavailable — note selected. Press Ctrl+C or Cmd+C to copy.';
+    }
+  }
+}
+
+function openConfirmModal({ title, message, actionLabel, onConfirm }) {
+  lastFocusedElement = document.activeElement;
+  confirmAction = onConfirm;
+  confirmTitle.textContent = title;
+  confirmMessage.textContent = message;
+  confirmActionBtn.textContent = actionLabel;
+  confirmModal.hidden = false;
+  document.body.classList.add('modal-open');
+  confirmCancelBtn.focus();
+}
+
+function closeConfirmModal() {
+  confirmModal.hidden = true;
+  document.body.classList.remove('modal-open');
+  confirmAction = null;
+  if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') lastFocusedElement.focus();
+  lastFocusedElement = null;
+}
+
+function requestReset() {
+  openConfirmModal({
+    title: 'Reset calculator?',
+    message: 'This will clear the current price, discount, results, and note.',
+    actionLabel: 'Reset',
+    onConfirm: resetCalculator
+  });
+}
+
+function requestClearHistory() {
+  if (!getHistory().length) return;
+
+  openConfirmModal({
+    title: 'Clear all history?',
+    message: 'This will permanently remove all saved calculations from this browser.',
+    actionLabel: 'Clear history',
+    onConfirm: () => {
+      saveHistory([]);
+      lastRecordedKey = '';
+      renderHistory();
+    }
+  });
+}
+
+function formatBackerInput() {
+  const raw = backerInput.value.trim().replace(/,/g, '');
+  if (!raw || !DECIMAL_PATTERN.test(raw)) return;
+
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) return;
+  backerInput.value = priceFormatter.format(value);
+  saveSettings();
+}
+
+function updatePresetState() {
+  const current = Number(discountInput.value);
+  document.querySelectorAll('.preset-btn').forEach((button) => {
+    const selected = Number(button.dataset.discount) === current;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+}
+
+form.addEventListener('submit', (event) => event.preventDefault());
+
+resetBtn.addEventListener('click', requestReset);
+adjRateInput.addEventListener('input', () => {
+  updateAdjustment(calculated?.discountedPrice ?? 0);
+  saveSettings();
+});
+adjCopyBtn.addEventListener('click', copyAdjustmentAmount);
+themeBtn.addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(next, { animate: true });
+  saveSettings();
+});
+copyBtn.addEventListener('click', copyNote);
+clearHistoryBtn.addEventListener('click', requestClearHistory);
+exportHistoryBtn.addEventListener('click', exportHistory);
+modeSingleBtn.addEventListener('click', () => setMode('single'));
+modeBatchBtn.addEventListener('click', () => setMode('batch'));
+addBatchRowBtn.addEventListener('click', () => {
+  renderBatchRows([...batchRowsData(), createEmptyBatchRow()]);
+  batchRows.lastElementChild?.querySelector('.batch-price')?.focus();
+});
+calculateBatchBtn.addEventListener('click', () => calculateBatch());
+copyAllNotesBtn.addEventListener('click', copyAllNotes);
+batchRows.addEventListener('click', (event) => {
+  const removeBtn = event.target.closest('button[data-action="remove-batch-row"]');
+  if (!removeBtn) return;
+  const row = removeBtn.closest('.batch-row');
+  if (row) removeBatchRow(row);
+});
+confirmCancelBtn.addEventListener('click', closeConfirmModal);
+confirmActionBtn.addEventListener('click', () => {
+  const action = confirmAction;
+  closeConfirmModal();
+  if (action) action();
+});
+
+confirmModal.addEventListener('click', (event) => {
+  if (event.target === confirmModal) closeConfirmModal();
+});
+
+historyList.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-action]');
+  if (!button) return;
+
+  const history = getHistory();
+  const item = history.find((entry) => entry.id === button.dataset.id);
+  if (!item) return;
+
+  if (button.dataset.action === 'delete') {
+    saveHistory(history.filter((entry) => entry.id !== item.id));
+    lastRecordedKey = '';
+    renderHistory();
+    return;
+  }
+
+  setMode('single');
+  backerInput.value = Number(item.originalPrice ?? item.backer).toFixed(2);
+  discountInput.value = Number(item.discountPercent ?? item.discount).toFixed(2);
+  noteWasEdited = false;
+  updatePresetState();
+  calculateLive();
+  backerInput.focus();
+});
+
+document.querySelectorAll('.preset-btn').forEach((button) => {
+  button.addEventListener('click', () => {
+    const discount = button.dataset.discount;
+    if (!discount) return;
+
+    discountInput.value = discount;
+    noteWasEdited = false;
+    updatePresetState();
+    calculateLive();
+    addHistory(calculated);
+    discountInput.focus();
+  });
+});
+
+saveCustomPresetBtn.addEventListener('click', saveCustomPreset);
+
+customDiscountInput.addEventListener('input', () => {
+  setCustomDiscountError('');
+});
+
+customDiscountInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    saveCustomPreset();
+  }
+});
+
+backerInput.addEventListener('focus', () => {
+  if (backerInput.value.includes(',')) {
+    backerInput.value = backerInput.value.replace(/,/g, '');
+  }
+});
+
+backerInput.addEventListener('input', () => {
+  noteWasEdited = false;
+  calculateLive();
+  copyStatus.textContent = '';
+  restoreCopyButton();
+});
+
+backerInput.addEventListener('blur', () => {
+  formatBackerInput();
+  validate({ showErrors: true });
+  if (calculateLive()) addHistory(calculated);
+});
+
+backerInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    discountInput.focus();
+  }
+});
+
+discountInput.addEventListener('input', () => {
+  noteWasEdited = false;
+  updatePresetState();
+  calculateLive();
+  copyStatus.textContent = '';
+  restoreCopyButton();
+});
+
+discountInput.addEventListener('blur', () => {
+  validate({ showErrors: true });
+  if (calculateLive()) addHistory(calculated);
+});
+
+discountInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    if (calculated) copyNote();
+  }
+});
+
+noteText.addEventListener('input', () => {
+  noteWasEdited = true;
+  noteState.textContent = 'Edited — ready to copy';
+  copyBtn.disabled = !noteText.value.trim();
+  copyStatus.textContent = '';
+  restoreCopyButton();
+  noteEmpty?.setAttribute('aria-hidden', noteText.value.trim() ? 'true' : 'false');
+  saveSettings();
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !confirmModal.hidden) {
+    closeConfirmModal();
+    return;
+  }
+
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    requestReset();
+    return;
+  }
+
+  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+    event.preventDefault();
+    if (!confirmModal.hidden) return;
+    copyNote();
+  }
+
+  if (event.key === 'Tab' && !confirmModal.hidden) {
+    const focusable = confirmModal.querySelectorAll('button:not([disabled]), [href], input, textarea, select, [tabindex]:not([tabindex="-1"])');
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+});
+
+loadSettings();
+applyUrlParams();
+renderCustomPreset();
+updatePresetState();
+updateFeeBreakdown(null);
+renderHistory();
+renderBatchRows([createEmptyBatchRow(), createEmptyBatchRow()]);
+setMode('single');
+
+if (backerInput.value && discountInput.value) {
+  noteWasEdited = false;
+  calculateLive();
+}
+ + amount + '. Enter this in Minted’s Amount field.';
+}
+
+function copyNote() {
   const text = noteText.value.trim();
   if (!text) {
     copyStatus.textContent = 'Enter valid details to generate a note.';
