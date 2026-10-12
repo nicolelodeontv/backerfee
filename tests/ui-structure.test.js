@@ -14,8 +14,6 @@ test('exposes the complete single and batch workflow controls', () => {
     'addBatchRowBtn',
     'calculateBatchBtn',
     'copyAllNotesBtn',
-    'exportHistoryBtn',
-    'clearHistoryBtn',
     'toastRoot',
     'adjustmentCard',
     'adjAmount',
@@ -28,8 +26,9 @@ test('exposes the complete single and batch workflow controls', () => {
     assert.match(html, new RegExp('id="' + id + '"'));
   }
   assert.match(html, /Runs locally in your browser/);
-  assert.doesNotMatch(html, /history-totals/);
-  assert.doesNotMatch(html, /adjustment-actions|adjCalc|adjCopy/);
+  assert.doesNotMatch(html, /adjustment-actions|adjCalc|adjCopy|fee-breakdown|history-heading-row|historyList|clearHistoryBtn|exportHistoryBtn/);
+  assert.match(html, /<aside class="history-card single-only" aria-label="Customer note">/);
+  assert.match(html, /class="note-panel single-only"/);
 });
 
 test('locks tax at 9.75% and makes Amount-driven totals live', () => {
@@ -44,6 +43,7 @@ test('locks tax at 9.75% and makes Amount-driven totals live', () => {
   assert.match(script, /function computeAdjustment\(\)[\s\S]*Math\.round\(\(amountCents \* TAX_RATE\) \/ 100\)/);
   assert.match(script, /const subtotalCents = amountCents \+ taxCents/);
   assert.match(script, /const totalCents = subtotalCents \+ shipCents/);
+  assert.match(script, /function clearResults\(\)[\s\S]*updateAdjustment\(0\)/);
   assert.doesNotMatch(script, /adjCopy|adjCalc|copyAdjustmentValue/);
   assert.match(script, /\[adjAmount, adjShipInput\]\.forEach\(\(el\) => \{[\s\S]*?el\.addEventListener\(['"]input['"][\s\S]*?computeAdjustment\(\)/);
   assert.match(script, /\[adjAmount, adjShipInput\]\.forEach\(\(el\) => \{[\s\S]*?el\.addEventListener\(['"]keydown['"][\s\S]*?event\.key === 'Enter'[\s\S]*?computeAdjustment\(\)/);
@@ -88,16 +88,14 @@ test('wires Batch mode controls to their handlers and initializes rows', () => {
 });
 
 test('recalculates batch inputs live without writing history', () => {
-  assert.match(script, /priceInput\.addEventListener\(['"]input['"][\s\S]*calculateBatch\(\{ recordHistory: false \}\)/);
-  assert.match(script, /discountInputForRow\.addEventListener\(['"]input['"][\s\S]*calculateBatch\(\{ recordHistory: false \}\)/);
+  assert.match(script, /priceInput\.addEventListener\(['"]input['"][\s\S]*calculateBatch\(\)/);
+  assert.match(script, /discountInputForRow\.addEventListener\(['"]input['"][\s\S]*calculateBatch\(\)/);
   assert.match(script, /calculateBatchBtn\.addEventListener\(['"]click['"][\s\S]*calculateBatch\(\)/);
 });
 
-test('keeps history and settings local to the browser', () => {
-  assert.match(script, /localStorage\.getItem\(STORAGE_KEYS\.history\)/);
-  assert.match(script, /localStorage\.setItem\(STORAGE_KEYS\.history/);
+test('keeps settings local to the browser without a History feature', () => {
   assert.match(script, /localStorage\.setItem\(STORAGE_KEYS\.settings/);
-  assert.match(script, /const MAX_HISTORY = 20/);
+  assert.doesNotMatch(script, /historyList|clearHistoryBtn|exportHistoryBtn|STORAGE_KEYS\.history|function addHistory/);
 });
 
 test('persists shipping adjustment locally without a stored tax rate or override', () => {
