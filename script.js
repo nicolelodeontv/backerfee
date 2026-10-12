@@ -349,6 +349,7 @@ function updateAdjustment(finalFee) {
 
 function clearResults() {
   updateResults({ discountAmount: 0, discountedPrice: 0 });
+  updateAdjustment(0);
 }
 
 function noteFee(data) {
