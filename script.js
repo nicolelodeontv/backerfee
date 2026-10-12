@@ -2,10 +2,8 @@ import { buildCustomerNote, calculateAdjustment, calculateFee, formatMoney } fro
 
 const STORAGE_KEYS = {
   settings: 'backerfee-settings-v3',
-  history: 'backerfee-history-v3'
 };
 
-const MAX_HISTORY = 20;
 const TAX_RATE = 9.75; // % fixed, matches Minted's shipping ZIP tax
 const DECIMAL_PATTERN = /^\d+(?:\.\d{0,2})?$|^\.\d{1,2}$/;
 const priceFormatter = new Intl.NumberFormat('en-US', {
@@ -23,12 +21,6 @@ const customDiscountError = document.getElementById('customDiscountError');
 const result = document.getElementById('result');
 const total = document.getElementById('total');
 const resultsSection = document.getElementById('results');
-const feeBreakdownBar = document.getElementById('feeBreakdownBar');
-const discountBar = document.getElementById('discountBar');
-const finalFeeBar = document.getElementById('finalFeeBar');
-const feeBreakdownTotal = document.getElementById('feeBreakdownTotal');
-const discountBreakdownValue = document.getElementById('discountBreakdownValue');
-const finalBreakdownValue = document.getElementById('finalBreakdownValue');
 const adjAmount = document.getElementById('adjAmount');
 const adjTax = document.getElementById('adjTax');
 const adjSubtotal = document.getElementById('adjSubtotal');
@@ -43,14 +35,11 @@ const copyStatus = document.getElementById('copyStatus');
 const resetBtn = document.getElementById('resetBtn');
 const themeBtn = document.getElementById('themeBtn');
 const themeIcon = document.getElementById('themeIcon');
-const historyList = document.getElementById('historyList');
-const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 const confirmModal = document.getElementById('confirmModal');
 const confirmTitle = document.getElementById('confirmTitle');
 const confirmMessage = document.getElementById('confirmMessage');
 const confirmCancelBtn = document.getElementById('confirmCancelBtn');
 const confirmActionBtn = document.getElementById('confirmActionBtn');
-const exportHistoryBtn = document.getElementById('exportHistoryBtn');
 const modeSingleBtn = document.getElementById('modeSingleBtn');
 const modeBatchBtn = document.getElementById('modeBatchBtn');
 const batchPanel = document.getElementById('batchPanel');
@@ -64,7 +53,6 @@ let calculated = null;
 let currentAdjustment = null;
 let customDiscountPreset = '';
 let noteWasEdited = false;
-let lastRecordedKey = '';
 let confirmAction = null;
 let lastFocusedElement = null;
 let copyFeedbackTimer = null;
@@ -303,38 +291,6 @@ function updateResults(data) {
   }, prefersReducedMotion() ? 0 : 320);
 }
 
-function updateFeeBreakdown(data) {
-  if (!data) {
-    discountBar.style.width = '0%';
-    finalFeeBar.style.width = '0%';
-    feeBreakdownTotal.textContent = '$0.00 original';
-    discountBreakdownValue.textContent = '$0.00';
-    finalBreakdownValue.textContent = '$0.00';
-    feeBreakdownBar.setAttribute('aria-label', 'Fee breakdown unavailable until valid details are entered.');
-    updateAdjustment(0);
-    return;
-  }
-
-  const original = Number(data.backer);
-  const discountAmount = Number(data.discountAmount);
-  const finalFee = Number(data.discountedPrice);
-  const discountWidth = original > 0
-    ? Math.min(100, Math.max(0, (discountAmount / original) * 100))
-    : 0;
-  const finalWidth = original > 0 ? Math.max(0, 100 - discountWidth) : 0;
-
-  discountBar.style.width = `${discountWidth}%`;
-  finalFeeBar.style.width = `${finalWidth}%`;
-  feeBreakdownTotal.textContent = `${money(original)} original`;
-  discountBreakdownValue.textContent = money(discountAmount);
-  finalBreakdownValue.textContent = money(finalFee);
-  feeBreakdownBar.setAttribute(
-    'aria-label',
-    `Fee breakdown: ${money(discountAmount)} discount and ${money(finalFee)} final fee.`
-  );
-  updateAdjustment(finalFee);
-}
-
 function readAdjustmentField(input, max = Infinity) {
   const raw = input.value.trim();
   if (!raw) return { empty: true, ok: true, value: 0 };
@@ -393,7 +349,6 @@ function updateAdjustment(finalFee) {
 
 function clearResults() {
   updateResults({ discountAmount: 0, discountedPrice: 0 });
-  updateFeeBreakdown(null);
 }
 
 function noteFee(data) {
@@ -439,7 +394,7 @@ function calculateLive() {
   try {
     calculated = calculateFee(values.backer, values.discount);
     updateResults(calculated);
-    updateFeeBreakdown(calculated);
+    updateAdjustment(calculated.discountedPrice);
     updateNote(calculated);
     saveSettings();
     return true;
@@ -451,180 +406,6 @@ function calculateLive() {
     setFieldError(backerInput, 'backerError', message);
     return false;
   }
-}
-
-
-function normalizeHistoryItem(item) {
-  if (!item || typeof item !== 'object') return null;
-
-  const originalPrice = Number(item.originalPrice ?? item.backer);
-  const discountPercent = Number(item.discountPercent ?? item.discount);
-  const timestamp = typeof item.timestamp === 'string'
-    ? item.timestamp
-    : (typeof item.createdAt === 'string' ? item.createdAt : '');
-
-  if (!Number.isFinite(originalPrice) || originalPrice < 0) return null;
-  if (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent > 100) return null;
-  if (!timestamp || Number.isNaN(new Date(timestamp).getTime())) return null;
-
-  try {
-    const recalculated = calculateFee(originalPrice, discountPercent);
-    return {
-      id: typeof item.id === 'string' && item.id
-        ? item.id
-        : Date.now() + '-' + Math.random().toString(36).slice(2),
-      originalPrice: recalculated.backer,
-      discountPercent: recalculated.discount,
-      discountAmount: recalculated.discountAmount,
-      finalFee: recalculated.discountedPrice,
-      timestamp
-    };
-  } catch (_) {
-    return null;
-  }
-}
-
-
-
-function getHistory() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.history);
-    if (!raw) return [];
-
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) throw new Error('Invalid history');
-
-    const valid = [];
-    for (const item of parsed) {
-      const normalized = normalizeHistoryItem(item);
-      if (normalized) valid.push(normalized);
-    }
-
-    const trimmed = valid.slice(0, MAX_HISTORY);
-    if (trimmed.length !== parsed.length || JSON.stringify(trimmed) !== JSON.stringify(parsed)) {
-      saveHistory(trimmed);
-    }
-    return trimmed;
-  } catch (_) {
-    safeRemoveStorage(STORAGE_KEYS.history);
-    return [];
-  }
-}
-
-
-function saveHistory(history) {
-  try {
-    localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(history.slice(0, MAX_HISTORY)));
-  } catch (_) {}
-}
-
-
-function makeHistoryKey(data) {
-  return Number(data.backer).toFixed(2) + '|' + Number(data.discount).toFixed(2);
-}
-
-function addHistory(data, { force = false } = {}) {
-  if (!data) return;
-
-  const key = makeHistoryKey(data);
-  if (!force && lastRecordedKey === key) return;
-  lastRecordedKey = key;
-
-  const next = {
-    id: globalThis.crypto?.randomUUID?.() || Date.now() + '-' + Math.random().toString(36).slice(2),
-    originalPrice: Number(data.backer),
-    discountPercent: Number(data.discount),
-    discountAmount: Number(data.discountAmount),
-    finalFee: Number(data.discountedPrice),
-    timestamp: new Date().toISOString()
-  };
-
-  saveHistory([next, ...getHistory()]);
-  renderHistory();
-}
-
-
-function createHistoryButton(label, action, id) {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'history-action';
-  button.dataset.action = action;
-  button.dataset.id = id;
-  button.textContent = label;
-  return button;
-}
-
-function formatHistoryDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit'
-  }).format(date);
-}
-
-
-function renderHistory() {
-  const history = getHistory();
-  historyList.replaceChildren();
-
-  if (!history.length) {
-    const empty = document.createElement('div');
-    empty.className = 'history-empty';
-    empty.textContent = 'Saved calculations will appear here for quick reuse.';
-    historyList.appendChild(empty);
-    clearHistoryBtn.disabled = true;
-    exportHistoryBtn.disabled = true;
-    return;
-  }
-
-  clearHistoryBtn.disabled = false;
-  exportHistoryBtn.disabled = false;
-
-  history.forEach((item) => {
-    const row = document.createElement('div');
-    row.className = 'history-row';
-
-    const reuseBtn = document.createElement('button');
-    reuseBtn.type = 'button';
-    reuseBtn.className = 'history-item';
-    reuseBtn.dataset.action = 'reuse';
-    reuseBtn.dataset.id = item.id;
-    reuseBtn.setAttribute(
-      'aria-label',
-      'Reuse calculation for ' + money(item.originalPrice) + ' at ' + Number(item.discountPercent) + '% discount'
-    );
-
-    const summary = document.createElement('div');
-    summary.className = 'history-summary';
-
-    const title = document.createElement('strong');
-    title.textContent = money(item.originalPrice) + ' → ' + money(item.finalFee);
-
-    const detail = document.createElement('span');
-    detail.textContent = Number(item.discountPercent) + '% discount · ' +
-      money(item.discountAmount) + ' off · ' + money(item.finalFee) + ' final';
-
-    const meta = document.createElement('small');
-    const dateLabel = formatHistoryDate(item.timestamp);
-    meta.textContent = dateLabel || 'Saved calculation';
-
-    summary.append(title, detail, meta);
-    reuseBtn.appendChild(summary);
-
-    const deleteBtn = createHistoryButton('Delete', 'delete', item.id);
-    deleteBtn.classList.add('history-delete');
-    deleteBtn.setAttribute(
-      'aria-label',
-      'Delete calculation for ' + money(item.originalPrice) + ' at ' + Number(item.discountPercent) + '% discount'
-    );
-
-    row.append(reuseBtn, deleteBtn);
-    historyList.appendChild(row);
-  });
 }
 
 
@@ -666,7 +447,6 @@ function resetCalculator() {
   form.reset();
   calculated = null;
   noteWasEdited = false;
-  lastRecordedKey = '';
   clearResults();
   noteText.value = '';
   noteEmpty?.setAttribute('aria-hidden', 'false');
@@ -775,7 +555,7 @@ function renderBatchRows(rows) {
     });
 
     priceInput.addEventListener('input', () => {
-      calculateBatch({ recordHistory: false });
+      calculateBatch();
     });
 
     priceInput.addEventListener('blur', () => {
@@ -792,7 +572,7 @@ function renderBatchRows(rows) {
 
     discountInputForRow.addEventListener('input', () => {
       const boundMessage = clampBatchDiscount(discountInputForRow);
-      calculateBatch({ recordHistory: false });
+      calculateBatch();
       if (boundMessage) {
         setBatchFieldError(
           discountInputForRow,
@@ -871,7 +651,7 @@ function validateBatchRow(row, { showErrors = false } = {}) {
   return values.validBacker && values.validDiscount ? values : null;
 }
 
-function calculateBatch({ recordHistory = true } = {}) {
+function calculateBatch() {
   const rows = Array.from(batchRows.querySelectorAll('.batch-row'));
   const results = [];
   let invalidCount = 0;
@@ -906,7 +686,6 @@ function calculateBatch({ recordHistory = true } = {}) {
       discountBox.textContent = money(resultData.discountAmount);
       finalBox.textContent = money(resultData.discountedPrice);
       results.push({ rowId: Number(row.dataset.id), data: resultData });
-      if (recordHistory) addHistory(resultData, { force: true });
     } catch (_) {
       invalidCount += 1;
     }
@@ -1014,47 +793,6 @@ function showResetUndoToast() {
   });
 }
 
-function exportHistory() {
-  const history = getHistory();
-  if (!history.length) return;
-
-  const headers = [
-    'timestamp',
-    'original price',
-    'discount %',
-    'discount amount',
-    'final fee'
-  ];
-
-  const rows = history.map((item) => [
-    item.timestamp,
-    Number(item.originalPrice).toFixed(2),
-    Number(item.discountPercent).toFixed(2),
-    Number(item.discountAmount).toFixed(2),
-    Number(item.finalFee).toFixed(2)
-  ]);
-
-  const escapeCsv = (value) => {
-    const text = String(value);
-    return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
-  };
-
-  const csv = [headers, ...rows]
-    .map((row) => row.map(escapeCsv).join(','))
-    .join('\r\n') + '\r\n';
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  const date = new Date().toISOString().slice(0, 10);
-  link.href = url;
-  link.download = 'backerfee-history-' + date + '.csv';
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
-
 function fallbackCopy(text) {
   const helper = document.createElement('textarea');
   helper.value = text;
@@ -1106,12 +844,10 @@ async function copyNote() {
     await navigator.clipboard.writeText(noteText.value);
     copyStatus.textContent = 'Copied ✓';
     showCopyFeedback();
-    if (calculated) addHistory(calculated);
   } catch (_) {
     if (fallbackCopy(noteText.value)) {
       copyStatus.textContent = 'Copied ✓';
       showCopyFeedback();
-      if (calculated) addHistory(calculated);
     } else {
       noteText.focus();
       noteText.select();
@@ -1145,21 +881,6 @@ function requestReset() {
     message: 'This will clear the current price, discount, results, and note.',
     actionLabel: 'Reset',
     onConfirm: resetCalculator
-  });
-}
-
-function requestClearHistory() {
-  if (!getHistory().length) return;
-
-  openConfirmModal({
-    title: 'Clear all history?',
-    message: 'This will permanently remove all saved calculations from this browser.',
-    actionLabel: 'Clear history',
-    onConfirm: () => {
-      saveHistory([]);
-      lastRecordedKey = '';
-      renderHistory();
-    }
   });
 }
 
@@ -1205,8 +926,6 @@ themeBtn.addEventListener('click', () => {
   saveSettings();
 });
 copyBtn.addEventListener('click', copyNote);
-clearHistoryBtn.addEventListener('click', requestClearHistory);
-exportHistoryBtn.addEventListener('click', exportHistory);
 modeSingleBtn.addEventListener('click', () => setMode('single'));
 modeBatchBtn.addEventListener('click', () => setMode('batch'));
 addBatchRowBtn.addEventListener('click', () => {
@@ -1232,30 +951,6 @@ confirmModal.addEventListener('click', (event) => {
   if (event.target === confirmModal) closeConfirmModal();
 });
 
-historyList.addEventListener('click', (event) => {
-  const button = event.target.closest('button[data-action]');
-  if (!button) return;
-
-  const history = getHistory();
-  const item = history.find((entry) => entry.id === button.dataset.id);
-  if (!item) return;
-
-  if (button.dataset.action === 'delete') {
-    saveHistory(history.filter((entry) => entry.id !== item.id));
-    lastRecordedKey = '';
-    renderHistory();
-    return;
-  }
-
-  setMode('single');
-  backerInput.value = Number(item.originalPrice ?? item.backer).toFixed(2);
-  discountInput.value = Number(item.discountPercent ?? item.discount).toFixed(2);
-  noteWasEdited = false;
-  updatePresetState();
-  calculateLive();
-  backerInput.focus();
-});
-
 document.querySelectorAll('.preset-btn').forEach((button) => {
   button.addEventListener('click', () => {
     const discount = button.dataset.discount;
@@ -1265,7 +960,6 @@ document.querySelectorAll('.preset-btn').forEach((button) => {
     noteWasEdited = false;
     updatePresetState();
     calculateLive();
-    addHistory(calculated);
     discountInput.focus();
   });
 });
@@ -1299,7 +993,6 @@ backerInput.addEventListener('input', () => {
 backerInput.addEventListener('blur', () => {
   formatBackerInput();
   validate({ showErrors: true });
-  if (calculateLive()) addHistory(calculated);
 });
 
 backerInput.addEventListener('keydown', (event) => {
@@ -1319,7 +1012,6 @@ discountInput.addEventListener('input', () => {
 
 discountInput.addEventListener('blur', () => {
   validate({ showErrors: true });
-  if (calculateLive()) addHistory(calculated);
 });
 
 discountInput.addEventListener('keydown', (event) => {
@@ -1376,8 +1068,6 @@ loadSettings();
 applyUrlParams();
 renderCustomPreset();
 updatePresetState();
-updateFeeBreakdown(null);
-renderHistory();
 renderBatchRows([createEmptyBatchRow(), createEmptyBatchRow()]);
 setMode('single');
 
