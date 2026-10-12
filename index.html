@@ -145,24 +145,6 @@
             </div>
           </section>
 
-          <section class="fee-breakdown single-only" aria-labelledby="feeBreakdownHeading">
-            <div class="fee-breakdown-heading">
-              <div>
-                <span class="section-kicker">BREAKDOWN</span>
-                <h2 id="feeBreakdownHeading">Fee split</h2>
-              </div>
-              <span class="fee-breakdown-total" id="feeBreakdownTotal">$0.00 original</span>
-            </div>
-            <div class="fee-bar-track" id="feeBreakdownBar" role="img" aria-label="Fee breakdown unavailable until valid details are entered.">
-              <span class="fee-bar-segment fee-bar-discount" id="discountBar" aria-hidden="true"></span>
-              <span class="fee-bar-segment fee-bar-final" id="finalFeeBar" aria-hidden="true"></span>
-            </div>
-            <div class="fee-breakdown-legend" aria-hidden="true">
-              <span><i class="legend-dot legend-discount"></i>Discount <strong id="discountBreakdownValue">$0.00</strong></span>
-              <span><i class="legend-dot legend-final"></i>Final fee <strong id="finalBreakdownValue">$0.00</strong></span>
-            </div>
-          </section>
-
           <section class="adjustment-card single-only" id="adjustmentCard" aria-labelledby="adjustmentHeading">
   <div class="adjustment-heading">
     <div>
@@ -217,42 +199,31 @@
   <p class="adjustment-note">Tax uses a fixed 9.75% rate and is rounded to the cent. Adjust Shipping Adjustment when needed.</p>
 </section>
 
-          <section class="note-panel single-only" aria-labelledby="noteHeading">
-            <div class="note-heading-row">
-              <div>
-                <span class="note-label">CUSTOMER NOTE</span>
-                <h2 id="noteHeading">Generated note</h2>
-              </div>
-              <span class="note-state" id="noteState">Waiting for valid details</span>
-            </div>
-            <div class="note-editor">
-              <textarea id="noteText" rows="10" readonly aria-readonly="true" spellcheck="true" aria-label="Generated customer note" placeholder=""></textarea>
-              <div class="empty-state note-empty" id="noteEmpty" aria-hidden="true">
-                <span class="empty-icon" aria-hidden="true">✦</span>
-                <strong>Your customer note will appear here</strong>
-                <span>Enter a price and discount to generate the copy-ready message.</span>
-              </div>
-            </div>
-            <div class="note-actions">
-              <button class="copy-btn" id="copyBtn" type="button" disabled>Copy Note</button>
-              <span class="copy-status" id="copyStatus" role="status" aria-live="polite"></span>
-            </div>
-          </section>
         </form>
       </section>
-      <section class="history-card" aria-labelledby="historyHeading">
-        <div class="history-heading-row">
-          <div>
-            <span class="section-kicker">RECENT</span>
-            <h2 id="historyHeading">Calculation history</h2>
-          </div>
-          <div class="history-actions">
-            <button class="secondary-btn compact" id="exportHistoryBtn" type="button" disabled>Export history</button>
-            <button class="secondary-btn compact" id="clearHistoryBtn" type="button" disabled>Clear history</button>
-          </div>
-        </div>
-        <div id="historyList" class="history-list" aria-live="polite"></div>
-      </section>
+      <aside class="history-card single-only" aria-label="Customer note">
+  <section class="note-panel single-only" aria-labelledby="noteHeading">
+    <div class="note-heading-row">
+      <div>
+        <span class="note-label">CUSTOMER NOTE</span>
+        <h2 id="noteHeading">Generated note</h2>
+      </div>
+      <span class="note-state" id="noteState">Waiting for valid details</span>
+    </div>
+    <div class="note-editor">
+      <textarea id="noteText" rows="10" readonly aria-readonly="true" spellcheck="true" aria-label="Generated customer note" placeholder=""></textarea>
+      <div class="empty-state note-empty" id="noteEmpty" aria-hidden="true">
+        <span class="empty-icon" aria-hidden="true">✦</span>
+        <strong>Your customer note will appear here</strong>
+        <span>Enter a price and discount to generate the copy-ready message.</span>
+      </div>
+    </div>
+    <div class="note-actions">
+      <button class="copy-btn" id="copyBtn" type="button" disabled>Copy Note</button>
+      <span class="copy-status" id="copyStatus" role="status" aria-live="polite"></span>
+    </div>
+  </section>
+      </aside>
     </div>
 
     <footer>
