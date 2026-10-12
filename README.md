@@ -20,6 +20,9 @@ A responsive, browser-only calculator for discounted backer fees and customer-re
 - Reset and Escape-key support
 - Exact-format clipboard copying
 - Live fee split breakdown with proportional discount/final-fee segments
+- Minted Financial Adjustment card that backs a tax-inclusive final fee into the pre-tax Amount, estimated tax, subtotal, and total
+- Shipping ZIP tax-rate input with local persistence, exact-cent matching, and copyable Minted Amount
+- Clear warning and disabled copying when cent rounding cannot reproduce the target total exactly
 - Animated result count-up with reduced-motion fallback
 - Active preset state with `aria-pressed`
 - Copy success feedback
@@ -35,6 +38,7 @@ A responsive, browser-only calculator for discounted backer fees and customer-re
 
 - Discount Amount = Original Price × (Discount ÷ 100)
 - Final Backer Fee = Original Price − Discount Amount
+- Minted Amount + rounded tax = Final Backer Fee (when an exact cent-rounded match exists)
 
 ## Test
 
