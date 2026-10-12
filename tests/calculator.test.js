@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildCustomerNote, calculateFee, formatMoney, roundMoney } from '../calculator-utils.js';
+import { buildCustomerNote, calculateAdjustment, calculateFee, formatMoney, roundMoney } from '../calculator-utils.js';
 
 test('calculates a standard discounted fee', () => {
   const result = calculateFee(100, 20);
@@ -58,4 +58,34 @@ test('builds the note with paragraph breaks and the requested fee wording', () =
   assert.ok(note.includes('\n\n'));
   assert.match(note, /for the quantity of cards you’ve purchased/);
   assert.match(note, /any local taxes/);
+});
+
+
+test('backs a tax-inclusive fee into the exact pre-tax Minted Amount', () => {
+  const adjustment = calculateAdjustment(19.24, 9.77);
+  assert.equal(adjustment.amountCents, 1753);
+  assert.equal(adjustment.taxCents, 171);
+  assert.equal(adjustment.subtotalCents, 1924);
+  assert.equal(adjustment.exactMatch, true);
+});
+
+test('supports zero-tax totals without changing the amount', () => {
+  const adjustment = calculateAdjustment(19.24, 0);
+  assert.equal(adjustment.amountCents, 1924);
+  assert.equal(adjustment.taxCents, 0);
+  assert.equal(adjustment.subtotalCents, 1924);
+  assert.equal(adjustment.exactMatch, true);
+});
+
+test('flags totals that cannot be matched at whole-cent precision', () => {
+  const adjustment = calculateAdjustment(0.01, 100);
+  assert.equal(adjustment.exactMatch, false);
+  assert.notEqual(adjustment.subtotalCents, adjustment.targetCents);
+});
+
+test('rejects invalid adjustment totals and tax rates', () => {
+  assert.throws(() => calculateAdjustment(-1, 9.77), RangeError);
+  assert.throws(() => calculateAdjustment(Number.NaN, 9.77), RangeError);
+  assert.throws(() => calculateAdjustment(19.24, -0.01), RangeError);
+  assert.throws(() => calculateAdjustment(19.24, 100.01), RangeError);
 });
