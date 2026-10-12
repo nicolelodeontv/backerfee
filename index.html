@@ -163,6 +163,37 @@
             </div>
           </section>
 
+          <section class="adjustment-card single-only" id="adjustmentCard" aria-labelledby="adjustmentHeading">
+            <div class="adjustment-heading">
+              <div>
+                <span class="section-kicker">FINANCIAL ADJUSTMENT</span>
+                <h2 id="adjustmentHeading">Minted entry</h2>
+              </div>
+              <span class="adjustment-target-label">Matches Final Backer Fee</span>
+            </div>
+            <label class="adjustment-rate-field" for="adjRate">
+              <span>Tax rate (from shipping ZIP)</span>
+              <div class="input-wrap adjustment-rate-input">
+                <input type="number" id="adjRate" min="0" max="100" step="0.01" placeholder="e.g. 9.77" inputmode="decimal" autocomplete="off" aria-describedby="adjRateHint adjRateError">
+                <span class="suffix" aria-hidden="true">%</span>
+              </div>
+              <small class="field-hint" id="adjRateHint">Enter the local tax rate. The quoted fee already includes local taxes.</small>
+              <small class="error" id="adjRateError" role="alert"></small>
+            </label>
+            <div class="adjustment-rows" aria-live="polite" aria-atomic="true">
+              <div class="adjustment-row"><span>Amount (enter in Minted)</span><strong id="adjAmount">—</strong></div>
+              <div class="adjustment-row"><span>Tax</span><strong id="adjTax">—</strong></div>
+              <div class="adjustment-row"><span>Subtotal</span><strong id="adjSubtotal">—</strong></div>
+              <div class="adjustment-row total"><span>Total Adjustment</span><strong id="adjTotal">—</strong></div>
+            </div>
+            <p class="adjustment-status" id="adjStatus" role="status" aria-live="polite">Enter the shipping ZIP tax rate to calculate the Minted Amount.</p>
+            <p class="adjustment-note">Tax is estimated using cent rounding. Confirm the rate and rounding shown by Minted before submitting.</p>
+            <div class="adjustment-actions">
+              <button class="copy-btn" id="adjCopy" type="button" disabled>Copy Amount</button>
+              <span class="copy-status" id="adjCopyStatus" role="status" aria-live="polite"></span>
+            </div>
+          </section>
+
           <section class="note-panel single-only" aria-labelledby="noteHeading">
             <div class="note-heading-row">
               <div>
