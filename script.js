@@ -437,6 +437,17 @@ function clearResults() {
   updateFeeBreakdown(null);
 }
 
+function noteFee(data) {
+  return typeof currentAdjustment?.totalCents === 'number'
+    ? currentAdjustment.totalCents / 100
+    : data.discountedPrice;
+}
+
+function refreshAdjustment() {
+  updateAdjustment(calculated?.discountedPrice ?? 0);
+  updateNote(calculated);
+}
+
 function updateNote(data, { force = false } = {}) {
   if (!data) {
     noteState.textContent = 'Waiting for valid details';
@@ -446,12 +457,14 @@ function updateNote(data, { force = false } = {}) {
     return;
   }
 
-  const generated = buildCustomerNote(data);
+  const generated = buildCustomerNote({ ...data, discountedPrice: noteFee(data) });
   if (force || !noteWasEdited || !noteText.value.trim()) {
     noteText.value = generated;
     noteWasEdited = false;
   }
-  noteState.textContent = noteWasEdited ? 'Edited — ready to copy' : 'Updated automatically';
+  noteState.textContent = typeof currentAdjustment?.totalCents !== 'number'
+    ? 'Add the tax rate to include tax in the fee'
+    : (noteWasEdited ? 'Edited — ready to copy' : 'Updated automatically');
   copyBtn.disabled = !noteText.value.trim();
   noteEmpty?.setAttribute('aria-hidden', noteText.value.trim() ? 'true' : 'false');
 }
@@ -1236,12 +1249,12 @@ form.addEventListener('submit', (event) => event.preventDefault());
 
 resetBtn.addEventListener('click', requestReset);
 adjRateInput.addEventListener('input', () => {
-  updateAdjustment(calculated?.discountedPrice ?? 0);
+  refreshAdjustment();
   saveSettings();
 });
 [adjTaxOverrideInput, adjShipInput, adjUseTaxInput].forEach((el) => {
   el.addEventListener('input', () => {
-    updateAdjustment(calculated?.discountedPrice ?? 0);
+    refreshAdjustment();
     saveSettings();
   });
 });
