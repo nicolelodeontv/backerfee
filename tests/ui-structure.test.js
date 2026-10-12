@@ -16,7 +16,14 @@ test('exposes the complete single and batch workflow controls', () => {
     'copyAllNotesBtn',
     'exportHistoryBtn',
     'clearHistoryBtn',
-    'toastRoot'
+    'toastRoot',
+    'adjustmentCard',
+    'adjRate',
+    'adjAmount',
+    'adjTax',
+    'adjSubtotal',
+    'adjTotal',
+    'adjCopy'
   ]) {
     assert.match(html, new RegExp('id="' + id + '"'));
   }
@@ -26,6 +33,10 @@ test('exposes the complete single and batch workflow controls', () => {
 
 test('keeps the existing single customer-note template path', () => {
   assert.match(script, /buildCustomerNote\(data\)/);
+  assert.match(script, /adjRateInput\.addEventListener\(['"]input['"]/);
+  assert.match(script, /updateAdjustment\(finalFee\)/);
+  assert.match(script, /calculateAdjustment\(finalFee, rate\)/);
+  assert.match(script, /copyAdjustmentAmount/);
   assert.match(script, /buildCustomerNote\(\{\s*discountedPrice:/);
   assert.match(script, /Copy Note/);
 });

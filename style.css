@@ -603,6 +603,7 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
       "heading results"
       "details results"
       "details breakdown"
+      "details adjustment"
       "details note";
     gap: 0 24px;
     align-items: start;
@@ -1002,4 +1003,107 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   .history-actions { flex-wrap: wrap; }
   .history-actions button { flex: 1 1 120px; }
   .history-list { max-height: 460px; }
+}
+
+
+/* Minted Financial Adjustment */
+.calculator-card form > .adjustment-card {
+  grid-area: adjustment;
+  margin: 0 0 26px;
+}
+.adjustment-card {
+  padding: 16px 17px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--paper-2);
+}
+.adjustment-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+.adjustment-heading h2 {
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.adjustment-target-label {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  text-align: right;
+}
+.adjustment-rate-field {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+.adjustment-rate-field > span:first-child {
+  display: block;
+  margin-bottom: 7px;
+}
+.adjustment-rate-input input {
+  height: 46px;
+  font-size: 13px;
+}
+.adjustment-rows { margin-top: 12px; }
+.adjustment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.adjustment-row strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.adjustment-row.total {
+  margin-top: 5px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+.adjustment-row.total strong {
+  color: var(--accent-dark);
+  font-size: 18px;
+}
+.adjustment-status {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+.adjustment-status.is-success { color: var(--success); }
+.adjustment-status.is-warning { color: var(--danger); }
+.adjustment-note {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+.adjustment-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.adjustment-actions .copy-btn { min-height: 40px; }
+.adjustment-actions .copy-status { font-size: 10px; }
+
+@media (max-width: 700px) {
+  .adjustment-heading { align-items: flex-start; }
+  .adjustment-target-label { max-width: 105px; }
 }
