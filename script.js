@@ -34,11 +34,7 @@ const adjTax = document.getElementById('adjTax');
 const adjSubtotal = document.getElementById('adjSubtotal');
 const adjTotal = document.getElementById('adjTotal');
 const adjStatus = document.getElementById('adjStatus');
-const adjCalcBtn = document.getElementById('adjCalc');
-const adjCopyBtn = document.getElementById('adjCopy');
-const adjCopyStatus = document.getElementById('adjCopyStatus');
 const adjShipInput = document.getElementById('adjShip');
-const adjCopyTotalBtn = document.getElementById('adjCopyTotal');
 const noteText = document.getElementById('noteText');
 const noteEmpty = document.getElementById('noteEmpty');
 const noteState = document.getElementById('noteState');
@@ -352,7 +348,6 @@ function clearAdjustmentResults() {
   adjTax.value = '';
   adjSubtotal.value = '';
   adjTotal.value = '';
-  adjCopyTotalBtn.disabled = true;
 }
 
 // Live: runs whenever Amount or Shipping changes.
@@ -363,7 +358,6 @@ function computeAdjustment() {
   adjAmount.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
   adjShipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
   adjStatus.classList.remove('is-success', 'is-warning');
-  adjCopyBtn.disabled = amount.empty || !amount.ok;
 
   const stop = (message, warn = false) => {
     clearAdjustmentResults();
@@ -385,7 +379,6 @@ function computeAdjustment() {
   adjTax.value = (taxCents / 100).toFixed(2);
   adjSubtotal.value = (subtotalCents / 100).toFixed(2);
   adjTotal.value = (totalCents / 100).toFixed(2);
-  adjCopyTotalBtn.disabled = false;
   adjStatus.textContent = 'Enter ' + money(amountCents / 100) + ' as the Amount in Minted. Total Adjustment: ' +
     money(totalCents / 100) + '.';
   adjStatus.classList.add('is-success');
@@ -394,7 +387,6 @@ function computeAdjustment() {
 
 // Called whenever the Final Backer Fee changes: Amount follows the fee, tax follows the Amount.
 function updateAdjustment(finalFee) {
-  adjCopyStatus.textContent = '';
   adjAmount.value = calculated ? (Math.round(Number(finalFee) * 100) / 100).toFixed(2) : '';
   computeAdjustment();
 }
@@ -1102,23 +1094,6 @@ function showCopyFeedback() {
   }, 1500);
 }
 
-async function copyAdjustmentValue(cents, hint) {
-  if (typeof cents !== 'number') return;
-
-  const text = (cents / 100).toFixed(2);
-  try {
-    if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
-    await navigator.clipboard.writeText(text);
-  } catch (_) {
-    if (!fallbackCopy(text)) {
-      adjCopyStatus.textContent = 'Clipboard unavailable. Copy the displayed value manually.';
-      return;
-    }
-  }
-
-  adjCopyStatus.textContent = 'Copied $' + text + '. ' + hint;
-}
-
 async function copyNote() {
   const text = noteText.value.trim();
   if (!text) {
@@ -1212,7 +1187,6 @@ form.addEventListener('submit', (event) => event.preventDefault());
 resetBtn.addEventListener('click', requestReset);
  [adjAmount, adjShipInput].forEach((el) => {
   el.addEventListener('input', () => {
-    adjCopyStatus.textContent = '';
     computeAdjustment();
     if (el === adjShipInput) saveSettings();
   });
@@ -1225,14 +1199,6 @@ resetBtn.addEventListener('click', requestReset);
     }
   });
 });
-adjCalcBtn.addEventListener('click', computeAdjustment);
-adjCopyBtn.addEventListener('click', () => {
-  const raw = adjAmount.value.trim();
-  if (!raw || !Number.isFinite(Number(raw))) return;
-  copyAdjustmentValue(Math.round(Number(raw) * 100), 'Enter this in Minted’s Amount field.');
-});
-adjCopyTotalBtn.addEventListener('click', () =>
-  copyAdjustmentValue(currentAdjustment?.totalCents, 'This is the Total Adjustment.'));
 themeBtn.addEventListener('click', () => {
   const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   applyTheme(next, { animate: true });

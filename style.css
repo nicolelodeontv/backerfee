@@ -1093,16 +1093,6 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   font-size: 9px;
   line-height: 1.5;
 }
-.adjustment-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-.adjustment-actions .copy-btn { min-height: 40px; }
-.adjustment-actions .copy-status { font-size: 10px; }
-
 @media (max-width: 700px) {
   .adjustment-heading { align-items: flex-start; }
   .adjustment-target-label { max-width: 105px; }
@@ -1211,7 +1201,6 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   color: var(--ink);
   font-weight: 800;
 }
-#adjCalc { min-height: 40px; }
 @media (max-width: 520px) {
   .adjustment-row { align-items: flex-start; gap: 10px; }
   .adjustment-row-label { padding-top: 12px; }
