@@ -158,6 +158,11 @@ test('gives Batch adjustment cards the full desktop width and a mobile-friendly 
   assert.match(css, /\.batch-row-main\s*\{[\s\S]*grid-template-columns/);
   assert.match(css, /\.batch-adjust-grid\s*\{[\s\S]*repeat\(5, minmax\(0, 1fr\)\)/);
   assert.match(css, /grid-template-areas:[\s\S]*"price discount"[\s\S]*"discount-amount final-fee"/);
+  assert.match(css, /@media \(max-width: 700px\) \{[\s\S]*?\.batch-grid-header \{\s*display: none;\s*\}/);
+  assert.match(css, /\.batch-row-main > \.batch-field:first-child::before[\s\S]*?content: "Original Price"/);
+  assert.match(css, /\.batch-row-main > \.batch-field:nth-child\(2\)::before[\s\S]*?content: "Discount"/);
+  assert.match(css, /\.batch-row-main > \.batch-result:nth-child\(3\)::before\s*\{\s*content: "Discount Amount";/);
+  assert.match(css, /\.batch-row-main > \.batch-result:nth-child\(4\)::before\s*\{\s*content: "Final Fee";/);
 });
 
 
