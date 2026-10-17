@@ -136,10 +136,21 @@
             </div>
             <div id="batchRows" class="batch-rows"></div>
 
+            <section class="note-panel batch-note" aria-labelledby="batchNoteHeading">
+              <div class="note-heading-row">
+                <div>
+                  <span class="note-label">CUSTOMER NOTE</span>
+                  <h2 id="batchNoteHeading">Generated note</h2>
+                </div>
+                <span class="note-state" id="batchNoteState">Waiting for valid details</span>
+              </div>
+              <textarea id="batchNoteText" rows="12" readonly aria-readonly="true" aria-label="Generated batch customer note" placeholder="Enter a price and discount in at least one row to generate the note."></textarea>
+            </section>
+
             <div class="batch-actions">
               <span class="batch-status" id="batchStatus" role="status" aria-live="polite"></span>
               <div class="batch-action-buttons">
-                <button class="copy-btn" id="copyAllNotesBtn" type="button" disabled>Copy All Notes</button>
+                <button class="copy-btn" id="copyAllNotesBtn" type="button" disabled>Copy Note</button>
               </div>
             </div>
           </section>
