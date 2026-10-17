@@ -127,10 +127,29 @@ test('preserves Batch adjustment entries and uses Total Adjustment in copied not
   assert.match(script, /amountEdited: row\.dataset\.amountEdited === '1'/);
   assert.match(script, /row\.dataset\.amountEdited = '1'/);
   assert.match(script, /if \(row\.dataset\.amountEdited !== '1'\) amountInput\.value = resultData\.discountedPrice\.toFixed\(2\)/);
-  assert.match(script, /discountedPrice: adjustment \? adjustment\.totalCents \/ 100 : data\.discountedPrice/);
+  assert.match(script, /feeCents: adjustment \? adjustment\.totalCents : Math\.round\(data\.discountedPrice \* 100\)/);
   assert.match(script, /function setMode\(mode\)[\s\S]*modeSingleBtn\.classList\.toggle\('active', !isBatch\)[\s\S]*dashboardCard\?\.classList\.toggle\('batch-mode', isBatch\)/);
   assert.match(script, /function removeBatchRow\(row\)[\s\S]*calculateBatch\(\)/);
   assert.match(script, /if \(snapshot\.mode === 'batch'\)[\s\S]*renderBatchRows\(snapshot\.rows\)[\s\S]*batchStatus\.textContent = 'Reset undone.'/);
+});
+
+
+test('builds one live Batch customer note with per-row names and fees', () => {
+  assert.match(html, /class="note-panel batch-note"/);
+  assert.match(html, /id="batchNoteText"[^>]*readonly/);
+  assert.match(html, /id="batchNoteState"/);
+  assert.match(html, /id="copyAllNotesBtn"[^>]*>Copy Note</);
+  assert.match(script, /function buildBatchNote\(items\)/);
+  assert.ok(script.includes("const names = quoted.length > 1"));
+  assert.ok(script.includes("join(', ') + ' and '"));
+  assert.ok(script.includes("const sameFee = new Set(items.map((item) => item.feeCents)).size === 1;"));
+  assert.ok(script.includes("feeText + ' per card, based on the quantity"));
+  assert.match(script, /name: row\.querySelector\('\.batch-name'\)\?\.value \?\? ''/);
+  assert.match(script, /name: row\.querySelector\('\.batch-name'\)\.value\.trim\(\) \|\| 'Card ' \+ \(index \+ 1\)/);
+  assert.match(script, /nameInput\.addEventListener\(['"]input['"], \(\) => calculateBatch\(\)\)/);
+  assert.match(script, /function updateBatchNote\(results\)[\s\S]*batchNoteText\.value = buildBatchNote/);
+  assert.match(script, /async function copyAllNotes\(\)[\s\S]*const notes = batchNoteText\.value/);
+  assert.match(script, /updateBatchNote\(results\);\s*batchResults = results;/);
 });
 
 test('gives Batch adjustment cards the full desktop width and a mobile-friendly layout', () => {

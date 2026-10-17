@@ -47,6 +47,8 @@ const batchRows = document.getElementById('batchRows');
 const addBatchRowBtn = document.getElementById('addBatchRowBtn');
 const copyAllNotesBtn = document.getElementById('copyAllNotesBtn');
 const batchStatus = document.getElementById('batchStatus');
+const batchNoteText = document.getElementById('batchNoteText');
+const batchNoteState = document.getElementById('batchNoteState');
 const dashboardCard = document.querySelector('.dashboard-card');
 
 let calculated = null;
@@ -509,12 +511,13 @@ function resetCalculator() {
 
 function createEmptyBatchRow() {
   batchRowId += 1;
-  return { id: batchRowId, backer: '', discount: '', amount: '', ship: '', amountEdited: false };
+  return { id: batchRowId, name: '', backer: '', discount: '', amount: '', ship: '', amountEdited: false };
 }
 
 function batchRowsData() {
   return Array.from(batchRows.querySelectorAll('.batch-row')).map((row) => ({
     id: Number(row.dataset.id),
+    name: row.querySelector('.batch-name')?.value ?? '',
     backer: row.querySelector('.batch-price')?.value ?? '',
     discount: row.querySelector('.batch-discount')?.value ?? '',
     amount: row.querySelector('.batch-adj-amount')?.value ?? '',
@@ -620,6 +623,8 @@ function renderBatchRows(rows) {
 
     // Static markup only; values are assigned through .value below.
     row.innerHTML =
+      '<div class="batch-card-name"><label><span>Card name</span>' +
+      '<input class="batch-name" type="text" maxlength="60" autocomplete="off" placeholder="e.g. Standard" aria-label="Card name"></label></div>' +
       '<div class="batch-row-main">' +
         '<div class="batch-field"><span class="input-wrap"><span class="prefix" aria-hidden="true">$</span>' +
         '<input class="batch-price" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Original price"></span>' +
@@ -655,6 +660,9 @@ function renderBatchRows(rows) {
     discountInputForRow.value = rowData.discount ?? '';
     amountInput.value = rowData.amount ?? '';
     shipInput.value = rowData.ship ?? '';
+    const nameInput = row.querySelector('.batch-name');
+    nameInput.value = rowData.name ?? '';
+    nameInput.addEventListener('input', () => calculateBatch());
 
     priceInput.addEventListener('focus', () => {
       priceInput.value = priceInput.value.replace(/,/g, '');
@@ -714,7 +722,7 @@ function calculateBatch() {
   const results = [];
   let invalidCount = 0;
 
-  rows.forEach((row) => {
+  rows.forEach((row, index) => {
     const priceInput = row.querySelector('.batch-price');
     const discountInput = row.querySelector('.batch-discount');
     const amountInput = row.querySelector('.batch-adj-amount');
@@ -749,7 +757,12 @@ function calculateBatch() {
       finalBox.textContent = money(resultData.discountedPrice);
       if (row.dataset.amountEdited !== '1') amountInput.value = resultData.discountedPrice.toFixed(2);
       const adjustment = applyBatchAdjustment(row, resultData);
-      results.push({ rowId: Number(row.dataset.id), data: resultData, adjustment });
+      results.push({
+        rowId: Number(row.dataset.id),
+        name: row.querySelector('.batch-name').value.trim() || 'Card ' + (index + 1),
+        data: resultData,
+        adjustment
+      });
     } catch (error) {
       console.error('Batch calculation failed:', error);
       invalidCount += 1;
@@ -757,6 +770,7 @@ function calculateBatch() {
     }
   });
 
+  updateBatchNote(results);
   batchResults = results;
   copyAllNotesBtn.disabled = results.length === 0;
   batchStatus.textContent = invalidCount
@@ -768,14 +782,41 @@ function calculateBatch() {
   return results;
 }
 
-async function copyAllNotes() {
-  const results = batchResults;
-  if (!results.length) return;
+function buildBatchNote(items) {
+  if (!items.length) return '';
 
-  const notes = results.map(({ data, adjustment }) => buildCustomerNote({
-    discountedPrice: adjustment ? adjustment.totalCents / 100 : data.discountedPrice,
-    discount: data.discount
-  })).join('\n\n');
+  const quoted = items.map((item) => '"' + item.name + '"');
+  const names = quoted.length > 1
+    ? quoted.slice(0, -1).join(', ') + ' and ' + quoted[quoted.length - 1]
+    : quoted[0];
+  const sameFee = new Set(items.map((item) => item.feeCents)).size === 1;
+  const feeText = sameFee ? ' of ' + money(items[0].feeCents / 100) : '';
+  const lines = items.map((item) => '"' + item.name + '" cards: ' + money(item.feeCents / 100));
+
+  return 'Please note that adding printing on the back of the ' + names + ' cards incurs an additional fee' +
+    feeText + ' per card, based on the quantity you\'ve purchased, including local taxes.\n\n' +
+    'For the cost of back-of-card printing:\n' + lines.join('\n') + '\n\n' +
+    'If you\'d like to continue with back-of-card printing, please request a change and leave a note approving the fee. ' +
+    'If you\'re happy with your card as-is and would no longer like printing on the back of your card, simply approve your design for print.';
+}
+
+function updateBatchNote(results) {
+  if (!results.length) {
+    batchNoteText.value = '';
+    batchNoteState.textContent = 'Waiting for valid details';
+    return;
+  }
+
+  batchNoteText.value = buildBatchNote(results.map(({ name, data, adjustment }) => ({
+    name,
+    feeCents: adjustment ? adjustment.totalCents : Math.round(data.discountedPrice * 100)
+  })));
+  batchNoteState.textContent = 'Updated automatically';
+}
+
+async function copyAllNotes() {
+  const notes = batchNoteText.value;
+  if (!notes.trim()) return;
 
   try {
     if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
@@ -783,7 +824,7 @@ async function copyAllNotes() {
   } catch (_) {
     if (!fallbackCopy(notes)) {
       copyAllNotesBtn.focus();
-      batchStatus.textContent = 'Clipboard unavailable — notes were not copied.';
+      batchStatus.textContent = 'Clipboard unavailable — note was not copied.';
       return;
     }
   }
@@ -791,11 +832,10 @@ async function copyAllNotes() {
   copyAllNotesBtn.textContent = '✓ Copied';
   copyAllNotesBtn.classList.add('is-copied');
   window.setTimeout(() => {
-    copyAllNotesBtn.textContent = 'Copy All Notes';
+    copyAllNotesBtn.textContent = 'Copy Note';
     copyAllNotesBtn.classList.remove('is-copied');
   }, 1500);
-  batchStatus.textContent = results.length + ' customer note' +
-    (results.length === 1 ? '' : 's') + ' copied.';
+  batchStatus.textContent = 'Customer note copied.';
 }
 
 function removeBatchRow(row) {
