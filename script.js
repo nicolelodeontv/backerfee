@@ -45,7 +45,6 @@ const modeBatchBtn = document.getElementById('modeBatchBtn');
 const batchPanel = document.getElementById('batchPanel');
 const batchRows = document.getElementById('batchRows');
 const addBatchRowBtn = document.getElementById('addBatchRowBtn');
-const calculateBatchBtn = document.getElementById('calculateBatchBtn');
 const copyAllNotesBtn = document.getElementById('copyAllNotesBtn');
 const batchStatus = document.getElementById('batchStatus');
 const dashboardCard = document.querySelector('.dashboard-card');
@@ -773,6 +772,11 @@ function setMode(mode) {
     batchStatus.textContent = '';
     copyAllNotesBtn.disabled = true;
   }
+
+  if (isBatch) {
+    batchRows.querySelectorAll('.batch-price').forEach(formatBatchPrice);
+    calculateBatch();
+  }
 }
 
 function showResetUndoToast() {
@@ -937,7 +941,6 @@ addBatchRowBtn.addEventListener('click', () => {
   renderBatchRows([...batchRowsData(), createEmptyBatchRow()]);
   batchRows.lastElementChild?.querySelector('.batch-price')?.focus();
 });
-calculateBatchBtn.addEventListener('click', () => calculateBatch());
 copyAllNotesBtn.addEventListener('click', copyAllNotes);
 batchRows.addEventListener('click', (event) => {
   const removeBtn = event.target.closest('button[data-action="remove-batch-row"]');
@@ -1075,6 +1078,7 @@ renderCustomPreset();
 updatePresetState();
 renderBatchRows([createEmptyBatchRow(), createEmptyBatchRow()]);
 setMode('single');
+calculateBatch();
 
 if (backerInput.value && discountInput.value) {
   noteWasEdited = false;
