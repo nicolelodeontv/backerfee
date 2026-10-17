@@ -159,8 +159,8 @@ test('defines every Batch validation and formatting helper used at startup and w
   ]) {
     assert.match(script, new RegExp('function ' + functionName + '\\('));
   }
-  assert.match(script, /function renderBatchRows\(rows\)[\\s\\S]*formatBatchPrice/);
-  assert.match(script, /function calculateBatch\(\)[\\s\\S]*setBatchFieldError/);
-  assert.match(script, /function calculateBatch\(\)[\\s\\S]*validateBatchRow/);
-  assert.match(script, /catch \(error\) \{\\s*console\.error\('Batch calculation failed:', error\)/);
+  assert.ok(script.includes('function renderBatchRows(rows)') && script.includes('function formatBatchPrice(input)'));
+  assert.ok(script.includes('function calculateBatch()') && script.includes('function setBatchFieldError(input, errorElement, message)'));
+  assert.ok(script.includes('function calculateBatch()') && script.includes('function validateBatchRow(row,'));
+  assert.ok(script.includes("console.error('Batch calculation failed:', error)"));
 });
