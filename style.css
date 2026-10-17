@@ -1291,3 +1291,40 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   .batch-adjust-head { align-items: flex-start; }
   .batch-adjust-head .adjustment-target-label { max-width: 105px; text-align: right; }
 }
+
+
+/* Batch generated customer note and per-row card labels */
+.batch-card-name { margin-bottom: 8px; }
+.batch-card-name span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+.batch-card-name input {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper-2);
+  color: var(--ink);
+  outline: none;
+  font-size: 12px;
+  font-weight: 600;
+}
+.batch-card-name input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(141,112,168,.12);
+}
+.batch-note { margin-top: 16px; }
+.batch-note textarea {
+  display: block;
+  width: 100%;
+  min-height: 260px;
+  resize: vertical;
+  white-space: pre-wrap;
+}
