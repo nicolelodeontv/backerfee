@@ -549,6 +549,62 @@ function getBatchInputValues(row) {
   };
 }
 
+
+
+function formatBatchPrice(input) {
+  const raw = input.value.trim().replace(/,/g, '');
+  if (!raw || !DECIMAL_PATTERN.test(raw)) return;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) return;
+  input.value = priceFormatter.format(value);
+}
+
+function setBatchFieldError(input, errorElement, message) {
+  input.setAttribute('aria-invalid', message ? 'true' : 'false');
+  errorElement.textContent = message;
+  input.closest('.batch-field')?.classList.toggle('invalid', Boolean(message));
+}
+
+function clampBatchDiscount(input) {
+  const raw = input.value.trim();
+  const value = Number(raw);
+  if (!raw || !Number.isFinite(value)) return '';
+  if (value > 100) {
+    input.value = '100';
+    return 'Discount capped at 100%.';
+  }
+  if (value < 0) {
+    input.value = '0';
+    return 'Discount raised to 0%.';
+  }
+  return '';
+}
+
+function validateBatchRow(row, { showErrors = false } = {}) {
+  const values = getBatchInputValues(row);
+  const priceError = values.validBacker
+    ? ''
+    : 'Enter a valid price from $0.00 with up to 2 decimals.';
+  const discountError = values.validDiscount
+    ? ''
+    : 'Enter a discount from 0% to 100%, with up to 2 decimals.';
+  const priceErrorElement = row.querySelector('.batch-error');
+  const discountErrorElement = row.querySelector('.batch-discount-error');
+
+  setBatchFieldError(
+    values.priceInput,
+    priceErrorElement,
+    showErrors || values.priceInput.value ? priceError : ''
+  );
+  setBatchFieldError(
+    values.discountInput,
+    discountErrorElement,
+    showErrors || values.discountInput.value ? discountError : ''
+  );
+
+  return values.validBacker && values.validDiscount ? values : null;
+}
+
 function renderBatchRows(rows) {
   batchRows.replaceChildren();
 
@@ -694,7 +750,8 @@ function calculateBatch() {
       if (row.dataset.amountEdited !== '1') amountInput.value = resultData.discountedPrice.toFixed(2);
       const adjustment = applyBatchAdjustment(row, resultData);
       results.push({ rowId: Number(row.dataset.id), data: resultData, adjustment });
-    } catch (_) {
+    } catch (error) {
+      console.error('Batch calculation failed:', error);
       invalidCount += 1;
       clearRow();
     }

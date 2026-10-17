@@ -148,3 +148,19 @@ test('automatically formats and recalculates Batch on restore and removes Calcul
   assert.match(script, /if \(isBatch\) \{\s*batchRows\.querySelectorAll\('\.batch-price'\)\.forEach\(formatBatchPrice\);\s*calculateBatch\(\);\s*\}/);
   assert.match(script, /renderBatchRows\(\[createEmptyBatchRow\(\), createEmptyBatchRow\(\)\]\);\s*setMode\('single'\);\s*calculateBatch\(\);/);
 });
+
+
+test('defines every Batch validation and formatting helper used at startup and while typing', () => {
+  for (const functionName of [
+    'formatBatchPrice',
+    'setBatchFieldError',
+    'clampBatchDiscount',
+    'validateBatchRow'
+  ]) {
+    assert.match(script, new RegExp('function ' + functionName + '\\('));
+  }
+  assert.ok(script.includes('function renderBatchRows(rows)') && script.includes('function formatBatchPrice(input)'));
+  assert.ok(script.includes('function calculateBatch()') && script.includes('function setBatchFieldError(input, errorElement, message)'));
+  assert.ok(script.includes('function calculateBatch()') && script.includes('function validateBatchRow(row,'));
+  assert.ok(script.includes("console.error('Batch calculation failed:', error)"));
+});
