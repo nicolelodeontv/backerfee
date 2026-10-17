@@ -1328,3 +1328,51 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   resize: vertical;
   white-space: pre-wrap;
 }
+
+/* Keep Batch mode within the viewport on phones and label compact row fields. */
+@media (max-width: 700px) {
+  .batch-grid-header {
+    display: none;
+  }
+
+  .batch-row-main > .batch-field:first-child::before,
+  .batch-row-main > .batch-field:nth-child(2)::before {
+    display: block;
+    margin: 0 0 6px;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  .batch-row-main > .batch-field:first-child::before {
+    content: "Original Price";
+  }
+
+  .batch-row-main > .batch-field:nth-child(2)::before {
+    content: "Discount";
+  }
+
+  .batch-row-main > .batch-result {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 3px;
+    min-height: 56px;
+    padding: 8px 11px;
+  }
+
+  .batch-row-main > .batch-result::before {
+    display: block;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  .batch-row-main > .batch-result:nth-child(3)::before {
+    content: "Discount Amount";
+  }
+
+  .batch-row-main > .batch-result:nth-child(4)::before {
+    content: "Final Fee";
+  }
+}
