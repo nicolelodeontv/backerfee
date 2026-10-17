@@ -48,6 +48,7 @@ const addBatchRowBtn = document.getElementById('addBatchRowBtn');
 const calculateBatchBtn = document.getElementById('calculateBatchBtn');
 const copyAllNotesBtn = document.getElementById('copyAllNotesBtn');
 const batchStatus = document.getElementById('batchStatus');
+const dashboardCard = document.querySelector('.dashboard-card');
 
 let calculated = null;
 let currentAdjustment = null;
@@ -299,6 +300,52 @@ function readAdjustmentField(input, max = Infinity) {
   return { empty: false, ok, value };
 }
 
+function adjustmentCents(amountValue, shipValue) {
+  const amountCents = Math.round(amountValue * 100);
+  const shipCents = Math.round(shipValue * 100);
+  const taxCents = Math.round((amountCents * TAX_RATE) / 100);
+  const subtotalCents = amountCents + taxCents;
+  return { amountCents, taxCents, subtotalCents, shipCents, totalCents: subtotalCents + shipCents };
+}
+
+// Per-row version of computeAdjustment() for Batch.
+function applyBatchAdjustment(row, data) {
+  const amountInput = row.querySelector('.batch-adj-amount');
+  const shipInput = row.querySelector('.batch-adj-ship');
+  const taxOut = row.querySelector('.batch-adj-tax');
+  const subtotalOut = row.querySelector('.batch-adj-subtotal');
+  const totalOut = row.querySelector('.batch-adj-total');
+  const status = row.querySelector('.batch-adj-status');
+
+  const clear = (message, warn = false) => {
+    taxOut.value = '';
+    subtotalOut.value = '';
+    totalOut.value = '';
+    status.textContent = message;
+    status.classList.remove('is-success', 'is-warning');
+    if (warn) status.classList.add('is-warning');
+    return null;
+  };
+
+  const amount = readAdjustmentField(amountInput);
+  const ship = readAdjustmentField(shipInput);
+  amountInput.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
+  shipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
+
+  if (!data || amount.empty) return clear('Enter a price and discount to see the Minted adjustment.');
+  if (!amount.ok || !ship.ok) return clear('Fix the highlighted values (up to 2 decimals).', true);
+
+  const adj = adjustmentCents(amount.value, ship.value);
+  taxOut.value = (adj.taxCents / 100).toFixed(2);
+  subtotalOut.value = (adj.subtotalCents / 100).toFixed(2);
+  totalOut.value = (adj.totalCents / 100).toFixed(2);
+  status.textContent = 'Enter ' + money(adj.amountCents / 100) + ' as the Amount in Minted. Total Adjustment: ' +
+    money(adj.totalCents / 100) + '.';
+  status.classList.remove('is-warning');
+  status.classList.add('is-success');
+  return adj;
+}
+
 function clearAdjustmentResults() {
   currentAdjustment = null;
   adjTax.value = '';
@@ -325,12 +372,8 @@ function computeAdjustment() {
   if (amount.empty) return stop('Enter a price and discount to see the Minted adjustment.');
   if (!amount.ok || !ship.ok) return stop('Fix the highlighted values (up to 2 decimals).', true);
 
-  const amountCents = Math.round(amount.value * 100);
-  const shipCents = Math.round(ship.value * 100);
-  const taxCents = Math.round((amountCents * TAX_RATE) / 100);   // locked: always Amount x fixed rate
-  const subtotalCents = amountCents + taxCents;                  // Minted: Amount + Tax
-  const totalCents = subtotalCents + shipCents;                  // Minted: Subtotal + Shipping
-  currentAdjustment = { amountCents, taxCents, subtotalCents, shipCents, totalCents };
+  currentAdjustment = adjustmentCents(amount.value, ship.value);
+  const { amountCents, taxCents, subtotalCents, totalCents } = currentAdjustment;
 
   adjTax.value = (taxCents / 100).toFixed(2);
   adjSubtotal.value = (subtotalCents / 100).toFixed(2);
@@ -467,14 +510,17 @@ function resetCalculator() {
 
 function createEmptyBatchRow() {
   batchRowId += 1;
-  return { id: batchRowId, backer: '', discount: '' };
+  return { id: batchRowId, backer: '', discount: '', amount: '', ship: '', amountEdited: false };
 }
 
 function batchRowsData() {
   return Array.from(batchRows.querySelectorAll('.batch-row')).map((row) => ({
     id: Number(row.dataset.id),
     backer: row.querySelector('.batch-price')?.value ?? '',
-    discount: row.querySelector('.batch-discount')?.value ?? ''
+    discount: row.querySelector('.batch-discount')?.value ?? '',
+    amount: row.querySelector('.batch-adj-amount')?.value ?? '',
+    ship: row.querySelector('.batch-adj-ship')?.value ?? '',
+    amountEdited: row.dataset.amountEdited === '1'
   }));
 }
 
@@ -507,55 +553,60 @@ function getBatchInputValues(row) {
 function renderBatchRows(rows) {
   batchRows.replaceChildren();
 
+  const adjField = (label, input, extra = '') =>
+    '<div class="batch-adj-field"><div class="batch-adj-label"><span>' + label + '</span>' + extra + '</div>' +
+    '<span class="input-wrap"><span class="prefix" aria-hidden="true">$</span>' + input + '</span></div>';
+
   rows.forEach((rowData) => {
     const row = document.createElement('div');
     row.className = 'batch-row';
     row.dataset.id = String(rowData.id ?? ++batchRowId);
+    row.dataset.amountEdited = rowData.amountEdited ? '1' : '';
 
-    const priceField = document.createElement('div');
-    priceField.className = 'batch-field';
-    priceField.innerHTML =
-      '<span class="input-wrap"><span class="prefix" aria-hidden="true">$</span>' +
-      '<input class="batch-price" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Original price"></span>' +
-      '<small class="error batch-error" role="alert"></small>';
+    // Static markup only; values are assigned through .value below.
+    row.innerHTML =
+      '<div class="batch-row-main">' +
+        '<div class="batch-field"><span class="input-wrap"><span class="prefix" aria-hidden="true">$</span>' +
+        '<input class="batch-price" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Original price"></span>' +
+        '<small class="error batch-error" role="alert"></small></div>' +
+        '<div class="batch-field"><span class="input-wrap"><input class="batch-discount" type="number" min="0" max="100" step="0.01" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Discount percentage">' +
+        '<span class="suffix" aria-hidden="true">%</span></span>' +
+        '<small class="error batch-discount-error" role="alert"></small></div>' +
+        '<div class="batch-result">$0.00</div>' +
+        '<div class="batch-result batch-result-final">$0.00</div>' +
+        '<button type="button" class="batch-remove" data-action="remove-batch-row" aria-label="Remove row" title="Remove row">×</button>' +
+      '</div>' +
+      '<div class="batch-adjust">' +
+        '<div class="batch-adjust-head"><div><span class="section-kicker">FINANCIAL ADJUSTMENT</span><h3>Minted entry</h3></div>' +
+        '<span class="adjustment-target-label">Fixed tax: 9.75%</span></div>' +
+        '<div class="batch-adjust-grid">' +
+          adjField('Amount (enter in Minted)', '<input class="batch-adj-amount" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Amount to enter in Minted">') +
+          adjField('Tax Based on Shipping Zip', '<input class="batch-adj-tax" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Tax based on fixed 9.75% rate">',
+            '<label class="adj-check">Include Tax: <input type="checkbox" checked disabled></label>') +
+          adjField('Subtotal', '<input class="batch-adj-subtotal" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated subtotal">') +
+          adjField('Shipping Adjustment', '<input class="batch-adj-ship" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Shipping adjustment">') +
+          adjField('Total Adjustment', '<input class="batch-adj-total" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated total adjustment">') +
+        '</div>' +
+        '<p class="adjustment-status batch-adj-status" role="status" aria-live="polite">Enter a price and discount to see the Minted adjustment.</p>' +
+      '</div>';
 
-    const discountField = document.createElement('div');
-    discountField.className = 'batch-field';
-    discountField.innerHTML =
-      '<span class="input-wrap"><input class="batch-discount" type="number" min="0" max="100" step="0.01" ' +
-      'inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Discount percentage">' +
-      '<span class="suffix" aria-hidden="true">%</span></span>' +
-      '<small class="error batch-discount-error" role="alert"></small>';
-
-    const discountResult = document.createElement('div');
-    discountResult.className = 'batch-result';
-    discountResult.textContent = '$0.00';
-
-    const finalResult = document.createElement('div');
-    finalResult.className = 'batch-result batch-result-final';
-    finalResult.textContent = '$0.00';
-
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.className = 'batch-remove';
-    removeBtn.dataset.action = 'remove-batch-row';
-    removeBtn.setAttribute('aria-label', 'Remove row');
-    removeBtn.title = 'Remove row';
-    removeBtn.textContent = '×';
-
-    row.append(priceField, discountField, discountResult, finalResult, removeBtn);
     batchRows.appendChild(row);
 
     const priceInput = row.querySelector('.batch-price');
     const discountInputForRow = row.querySelector('.batch-discount');
+    const amountInput = row.querySelector('.batch-adj-amount');
+    const shipInput = row.querySelector('.batch-adj-ship');
     priceInput.value = rowData.backer ?? '';
     discountInputForRow.value = rowData.discount ?? '';
+    amountInput.value = rowData.amount ?? '';
+    shipInput.value = rowData.ship ?? '';
 
     priceInput.addEventListener('focus', () => {
       priceInput.value = priceInput.value.replace(/,/g, '');
     });
 
     priceInput.addEventListener('input', () => {
+      row.dataset.amountEdited = '';
       calculateBatch();
     });
 
@@ -572,14 +623,11 @@ function renderBatchRows(rows) {
     });
 
     discountInputForRow.addEventListener('input', () => {
+      row.dataset.amountEdited = '';
       const boundMessage = clampBatchDiscount(discountInputForRow);
       calculateBatch();
       if (boundMessage) {
-        setBatchFieldError(
-          discountInputForRow,
-          row.querySelector('.batch-discount-error'),
-          boundMessage
-        );
+        setBatchFieldError(discountInputForRow, row.querySelector('.batch-discount-error'), boundMessage);
       }
     });
 
@@ -595,61 +643,15 @@ function renderBatchRows(rows) {
         else calculateBatch();
       }
     });
+
+    amountInput.addEventListener('input', () => {
+      row.dataset.amountEdited = '1';
+      calculateBatch();
+    });
+    shipInput.addEventListener('input', () => calculateBatch());
   });
-}
 
-function formatBatchPrice(input) {
-  const raw = input.value.trim().replace(/,/g, '');
-  if (!raw || !DECIMAL_PATTERN.test(raw)) return;
-  const value = Number(raw);
-  if (!Number.isFinite(value) || value < 0) return;
-  input.value = priceFormatter.format(value);
-}
-
-function setBatchFieldError(input, errorElement, message) {
-  input.setAttribute('aria-invalid', message ? 'true' : 'false');
-  errorElement.textContent = message;
-  input.closest('.batch-field')?.classList.toggle('invalid', Boolean(message));
-}
-
-function clampBatchDiscount(input) {
-  const raw = input.value.trim();
-  const value = Number(raw);
-  if (!raw || !Number.isFinite(value)) return '';
-  if (value > 100) {
-    input.value = '100';
-    return 'Discount capped at 100%.';
-  }
-  if (value < 0) {
-    input.value = '0';
-    return 'Discount raised to 0%.';
-  }
-  return '';
-}
-
-function validateBatchRow(row, { showErrors = false } = {}) {
-  const values = getBatchInputValues(row);
-  const priceError = values.validBacker
-    ? ''
-    : 'Enter a valid price from $0.00 with up to 2 decimals.';
-  const discountError = values.validDiscount
-    ? ''
-    : 'Enter a discount from 0% to 100%, with up to 2 decimals.';
-  const priceErrorElement = row.querySelector('.batch-error');
-  const discountErrorElement = row.querySelector('.batch-discount-error');
-
-  setBatchFieldError(
-    values.priceInput,
-    priceErrorElement,
-    showErrors || values.priceInput.value ? priceError : ''
-  );
-  setBatchFieldError(
-    values.discountInput,
-    discountErrorElement,
-    showErrors || values.discountInput.value ? discountError : ''
-  );
-
-  return values.validBacker && values.validDiscount ? values : null;
+  calculateBatch();
 }
 
 function calculateBatch() {
@@ -660,25 +662,29 @@ function calculateBatch() {
   rows.forEach((row) => {
     const priceInput = row.querySelector('.batch-price');
     const discountInput = row.querySelector('.batch-discount');
-    const resultBoxes = row.querySelectorAll('.batch-result');
-    const discountBox = resultBoxes[0];
-    const finalBox = resultBoxes[1];
+    const amountInput = row.querySelector('.batch-adj-amount');
+    const [discountBox, finalBox] = row.querySelectorAll('.batch-result');
     const hasAnyInput = Boolean(priceInput.value.trim() || discountInput.value.trim());
+
+    const clearRow = () => {
+      discountBox.textContent = '$0.00';
+      finalBox.textContent = '$0.00';
+      amountInput.value = '';
+      row.dataset.amountEdited = '';
+      applyBatchAdjustment(row, null);
+    };
 
     if (!hasAnyInput) {
       setBatchFieldError(priceInput, row.querySelector('.batch-error'), '');
       setBatchFieldError(discountInput, row.querySelector('.batch-discount-error'), '');
-      discountBox.textContent = '$0.00';
-      finalBox.textContent = '$0.00';
+      clearRow();
       return;
     }
 
     const values = validateBatchRow(row, { showErrors: true });
-
     if (!values) {
       invalidCount += 1;
-      discountBox.textContent = '$0.00';
-      finalBox.textContent = '$0.00';
+      clearRow();
       return;
     }
 
@@ -686,9 +692,12 @@ function calculateBatch() {
       const resultData = calculateFee(values.backer, values.discount);
       discountBox.textContent = money(resultData.discountAmount);
       finalBox.textContent = money(resultData.discountedPrice);
-      results.push({ rowId: Number(row.dataset.id), data: resultData });
+      if (row.dataset.amountEdited !== '1') amountInput.value = resultData.discountedPrice.toFixed(2);
+      const adjustment = applyBatchAdjustment(row, resultData);
+      results.push({ rowId: Number(row.dataset.id), data: resultData, adjustment });
     } catch (_) {
       invalidCount += 1;
+      clearRow();
     }
   });
 
@@ -707,8 +716,8 @@ async function copyAllNotes() {
   const results = batchResults;
   if (!results.length) return;
 
-  const notes = results.map(({ data }) => buildCustomerNote({
-    discountedPrice: data.discountedPrice,
+  const notes = results.map(({ data, adjustment }) => buildCustomerNote({
+    discountedPrice: adjustment ? adjustment.totalCents / 100 : data.discountedPrice,
     discount: data.discount
   })).join('\n\n');
 
@@ -738,9 +747,7 @@ function removeBatchRow(row) {
   if (!batchRows.querySelector('.batch-row')) {
     renderBatchRows([createEmptyBatchRow()]);
   }
-  batchResults = [];
-  copyAllNotesBtn.disabled = true;
-  batchStatus.textContent = '';
+  calculateBatch();
 }
 
 function setMode(mode) {
@@ -749,6 +756,9 @@ function setMode(mode) {
 
   modeSingleBtn.setAttribute('aria-selected', isBatch ? 'false' : 'true');
   modeBatchBtn.setAttribute('aria-selected', isBatch ? 'true' : 'false');
+  modeSingleBtn.classList.toggle('active', !isBatch);
+  modeBatchBtn.classList.toggle('active', isBatch);
+  dashboardCard?.classList.toggle('batch-mode', isBatch);
 
   document.querySelectorAll('.single-only').forEach((element) => {
     element.hidden = isBatch;
@@ -773,14 +783,8 @@ function showResetUndoToast() {
     if (!snapshot) return;
 
     if (snapshot.mode === 'batch') {
-      renderBatchRows(snapshot.rows.map((row) => ({
-        id: row.id,
-        backer: row.backer,
-        discount: row.discount
-      })));
-      batchResults = [];
+      renderBatchRows(snapshot.rows);
       batchStatus.textContent = 'Reset undone.';
-      copyAllNotesBtn.disabled = true;
       batchRows.querySelector('.batch-price')?.focus();
       return;
     }

@@ -40,9 +40,10 @@ test('locks tax at 9.75% and makes Amount-driven totals live', () => {
   assert.doesNotMatch(script, /adjRateInput|adjRateError|adjTaxOverrideInput|adjUseTaxInput|taxRate:|taxOverride:|useTax:/);
   assert.match(script, /function readAdjustmentField/);
   assert.match(script, /function clearAdjustmentResults\(\)/);
-  assert.match(script, /function computeAdjustment\(\)[\s\S]*Math\.round\(\(amountCents \* TAX_RATE\) \/ 100\)/);
+  assert.match(script, /function adjustmentCents\(amountValue, shipValue\)[\s\S]*Math\.round\(\(amountCents \* TAX_RATE\) \/ 100\)/);
+  assert.match(script, /function computeAdjustment\(\)[\s\S]*currentAdjustment = adjustmentCents\(amount\.value, ship\.value\)/);
   assert.match(script, /const subtotalCents = amountCents \+ taxCents/);
-  assert.match(script, /const totalCents = subtotalCents \+ shipCents/);
+  assert.match(script, /totalCents: subtotalCents \+ shipCents/);
   assert.match(script, /function clearResults\(\)[\s\S]*updateAdjustment\(0\)/);
   assert.doesNotMatch(script, /adjCopy|adjCalc|copyAdjustmentValue/);
   assert.match(script, /\[adjAmount, adjShipInput\]\.forEach\(\(el\) => \{[\s\S]*?el\.addEventListener\(['"]input['"][\s\S]*?computeAdjustment\(\)/);
@@ -103,4 +104,37 @@ test('persists shipping adjustment locally without a stored tax rate or override
   assert.match(script, /if \(typeof data\.shippingAdjustment === 'string' && data\.shippingAdjustment\.length <= 12\) adjShipInput\.value = data\.shippingAdjustment/);
   assert.doesNotMatch(script, /taxRate|taxOverride|useTax/);
   assert.match(script, /\[adjAmount, adjShipInput\]\.forEach/);
+});
+
+
+test('uses the same cent-rounded Minted adjustment calculation in Single and Batch', () => {
+  assert.match(script, /function adjustmentCents\(amountValue, shipValue\)/);
+  assert.match(script, /currentAdjustment = adjustmentCents\(amount\.value, ship\.value\)/);
+  assert.match(script, /function applyBatchAdjustment\(row, data\)/);
+  assert.match(script, /const adjustment = applyBatchAdjustment\(row, resultData\)/);
+  assert.match(script, /class="batch-adj-amount"/);
+  assert.match(script, /class="batch-adj-tax"/);
+  assert.match(script, /class="batch-adj-subtotal"/);
+  assert.match(script, /class="batch-adj-ship"/);
+  assert.match(script, /class="batch-adj-total"/);
+});
+
+test('preserves Batch adjustment entries and uses Total Adjustment in copied notes', () => {
+  assert.match(script, /amount: row\.querySelector\('\.batch-adj-amount'\)\?\.value/);
+  assert.match(script, /ship: row\.querySelector\('\.batch-adj-ship'\)\?\.value/);
+  assert.match(script, /amountEdited: row\.dataset\.amountEdited === '1'/);
+  assert.match(script, /row\.dataset\.amountEdited = '1'/);
+  assert.match(script, /if \(row\.dataset\.amountEdited !== '1'\) amountInput\.value = resultData\.discountedPrice\.toFixed\(2\)/);
+  assert.match(script, /discountedPrice: adjustment \? adjustment\.totalCents \/ 100 : data\.discountedPrice/);
+  assert.match(script, /function setMode\(mode\)[\s\S]*modeSingleBtn\.classList\.toggle\('active', !isBatch\)[\s\S]*dashboardCard\?\.classList\.toggle\('batch-mode', isBatch\)/);
+  assert.match(script, /function removeBatchRow\(row\)[\s\S]*calculateBatch\(\)/);
+  assert.match(script, /if \(snapshot\.mode === 'batch'\)[\s\S]*renderBatchRows\(snapshot\.rows\)[\s\S]*batchStatus\.textContent = 'Reset undone.'/);
+});
+
+test('gives Batch adjustment cards the full desktop width and a mobile-friendly layout', () => {
+  const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  assert.match(css, /\.dashboard-card\.batch-mode \.calculator-card \{ grid-column: 1 \/ -1; \}/);
+  assert.match(css, /\.batch-row-main\s*\{[\s\S]*grid-template-columns/);
+  assert.match(css, /\.batch-adjust-grid\s*\{[\s\S]*repeat\(5, minmax\(0, 1fr\)\)/);
+  assert.match(css, /grid-template-areas:[\s\S]*"price discount"[\s\S]*"discount-amount final-fee"/);
 });
