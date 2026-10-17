@@ -12,7 +12,6 @@ test('exposes the complete single and batch workflow controls', () => {
     'batchPanel',
     'batchRows',
     'addBatchRowBtn',
-    'calculateBatchBtn',
     'copyAllNotesBtn',
     'toastRoot',
     'adjustmentCard',
@@ -81,7 +80,8 @@ test('wires Batch mode controls to their handlers and initializes rows', () => {
   assert.match(script, /modeSingleBtn\.addEventListener\(['"]click['"]/);
   assert.match(script, /modeBatchBtn\.addEventListener\(['"]click['"]/);
   assert.match(script, /addBatchRowBtn\.addEventListener\(['"]click['"]/);
-  assert.match(script, /calculateBatchBtn\.addEventListener\(['"]click['"]/);
+  assert.doesNotMatch(script, /calculateBatchBtn/);
+  assert.doesNotMatch(html, /calculateBatchBtn|Calculate all/);
   assert.match(script, /copyAllNotesBtn\.addEventListener\(['"]click['"]/);
   assert.match(script, /batchRows\.addEventListener\(['"]click['"]/);
   assert.match(script, /renderBatchRows\(\[createEmptyBatchRow\(\), createEmptyBatchRow\(\)\]\)/);
@@ -91,7 +91,9 @@ test('wires Batch mode controls to their handlers and initializes rows', () => {
 test('recalculates batch inputs live without writing history', () => {
   assert.match(script, /priceInput\.addEventListener\(['"]input['"][\s\S]*calculateBatch\(\)/);
   assert.match(script, /discountInputForRow\.addEventListener\(['"]input['"][\s\S]*calculateBatch\(\)/);
-  assert.match(script, /calculateBatchBtn\.addEventListener\(['"]click['"][\s\S]*calculateBatch\(\)/);
+  assert.match(script, /function setMode\(mode\)[\s\S]*if \(isBatch\) \{[\s\S]*querySelectorAll\('\.batch-price'\)\.forEach\(formatBatchPrice\)[\s\S]*calculateBatch\(\)/);
+  assert.match(script, /setMode\(['"]single['"]\);\s*calculateBatch\(\);/);
+  assert.match(script, /function renderBatchRows\(rows\)[\s\S]*calculateBatch\(\);\s*\}/);
 });
 
 test('keeps settings local to the browser without a History feature', () => {
@@ -137,4 +139,12 @@ test('gives Batch adjustment cards the full desktop width and a mobile-friendly 
   assert.match(css, /\.batch-row-main\s*\{[\s\S]*grid-template-columns/);
   assert.match(css, /\.batch-adjust-grid\s*\{[\s\S]*repeat\(5, minmax\(0, 1fr\)\)/);
   assert.match(css, /grid-template-areas:[\s\S]*"price discount"[\s\S]*"discount-amount final-fee"/);
+});
+
+
+test('automatically formats and recalculates Batch on restore and removes Calculate all', () => {
+  assert.doesNotMatch(html, /id="calculateBatchBtn"|Calculate all/);
+  assert.doesNotMatch(script, /calculateBatchBtn/);
+  assert.match(script, /if \(isBatch\) \{\s*batchRows\.querySelectorAll\('\.batch-price'\)\.forEach\(formatBatchPrice\);\s*calculateBatch\(\);\s*\}/);
+  assert.match(script, /renderBatchRows\(\[createEmptyBatchRow\(\), createEmptyBatchRow\(\)\]\);\s*setMode\('single'\);\s*calculateBatch\(\);/);
 });
