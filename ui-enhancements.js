@@ -71,8 +71,8 @@ if (copyStatus) {
   const el = document.getElementById('mascot');
   if (!el) return;
 
-  const DIRECTIONS = "url('https://koboyo.com/page-mascot/mascots/afro-directions.webp')";
-  const REACTIONS = "url('https://koboyo.com/page-mascot/mascots/afro-reactions.webp')";
+  const DIRECTIONS = "url('mascots/afro-directions.webp')";
+  const REACTIONS = "url('mascots/afro-reactions.webp')";
   const CENTER = [1, 1];
   const REACTION_CELL = [1, 1];
   // Verified against the supplied 3x3 sprite sheet: clockwise from right.
@@ -84,7 +84,7 @@ if (copyStatus) {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let poking = false;
 
-  new Image().src = REACTIONS.slice(5, -2);
+  new Image().src = 'mascots/afro-reactions.webp';
 
   if (finePointer) {
     document.addEventListener('pointermove', (event) => {
