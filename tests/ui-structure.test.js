@@ -211,6 +211,9 @@ test('grows Single and Batch notes to fit and shows lead-approval reminders', ()
   assert.ok(css.includes('resize: none;'));
   assert.ok(css.includes('@supports (field-sizing: content)'));
   assert.ok(css.includes('field-sizing: content;'));
+  const singleNoteStart = html.indexOf('<textarea id="noteText"');
+  const singleNoteEnd = html.indexOf('>', singleNoteStart);
+  assert.ok(singleNoteStart >= 0 && !html.slice(singleNoteStart, singleNoteEnd).includes('readonly'));
 
   const reminder = 'Please obtain lead approval before entering the final Total Adjustment.';
   const adjustmentHeading = html.indexOf('class="adjustment-heading"');
