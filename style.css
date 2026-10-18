@@ -1521,20 +1521,16 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
 
 /* Interactive sprite mascot below the Single-mode customer note. */
 .mascot {
-  width: 140px;
-  height: 140px;
+  width: clamp(200px, 18vw, 290px);
+  height: auto;
+  aspect-ratio: 1;
   flex: 0 0 auto;
   background: url('mascots/afro-directions.webp') 50% 50% / 300% 300% no-repeat;
   cursor: pointer;
   transition: transform .12s ease;
 }
-.mascot.is-poked { transform: scale(.94); }
-@media (prefers-reduced-motion: reduce) {
-  .mascot.is-poked { transform: none; }
-}
-@media (max-width: 700px) {
-  .mascot { width: 96px; height: 96px; }
-}
+.mascot.is-poked { transform: scale(.96); }
+@media (prefers-reduced-motion: reduce) { .mascot.is-poked { transform: none; } }
 
 .dashboard-card > .history-card[hidden] { display: none; }
 
@@ -1552,5 +1548,8 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
 }
 
 @media (max-width: 900px) {
-  .history-card .mascot { margin: 16px 0 0 auto; }
+  .history-card .mascot {
+    width: 180px;
+    margin: 16px 0 0 auto;
+  }
 }
