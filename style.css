@@ -1524,7 +1524,7 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
   width: 140px;
   height: 140px;
   flex: 0 0 auto;
-  background: url('https://koboyo.com/page-mascot/mascots/afro-directions.webp') 50% 50% / 300% 300% no-repeat;
+  background: url('mascots/afro-directions.webp') 50% 50% / 300% 300% no-repeat;
   cursor: pointer;
   transition: transform .12s ease;
 }
