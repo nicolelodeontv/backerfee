@@ -1543,13 +1543,13 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
   }
   .dashboard-card > .history-card .mascot {
     margin-top: auto;
-    align-self: flex-end;
+    align-self: center;
   }
 }
 
 @media (max-width: 900px) {
   .history-card .mascot {
     width: 180px;
-    margin: 16px 0 0 auto;
+    margin: 16px auto 0;
   }
 }
