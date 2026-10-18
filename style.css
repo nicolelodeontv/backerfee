@@ -1536,7 +1536,7 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
   .mascot { width: 96px; height: 96px; }
 }
 
-.dashboard-card > .history-card[hidden] { display: none; }
+.dashboard-card > .dashboard-card > .history-card[hidden] { display: none; }
 
 @media (min-width: 901px) {
   .dashboard-card > .history-card {
