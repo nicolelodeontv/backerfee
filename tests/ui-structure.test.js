@@ -213,7 +213,7 @@ test('grows Single and Batch notes to fit and shows lead-approval reminders', ()
   assert.ok(css.includes('field-sizing: content;'));
 
   const reminder = 'Please obtain lead approval before entering the final Total Adjustment.';
-  const singleCallout = html.indexOf('class="adjustment-callout" role="note"');
+  const singleCallout = html.indexOf('class="adjustment-callout" role="note"', adjustmentHeading);
   const adjustmentHeading = html.indexOf('class="adjustment-heading"');
   const adjustmentRows = html.indexOf('class="adjustment-rows"');
   assert.ok(singleCallout > adjustmentHeading && singleCallout < adjustmentRows);
