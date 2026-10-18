@@ -71,6 +71,12 @@ let displayedResults = {
 
 const money = formatMoney;
 
+function fitNote(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = (el.scrollHeight + 2) + 'px';
+}
+
 function prefersReducedMotion() {
   return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 }
@@ -413,6 +419,7 @@ function updateNote(data, { force = false } = {}) {
     copyBtn.disabled = true;
     if (force || !noteWasEdited) noteText.value = '';
     noteEmpty?.setAttribute('aria-hidden', noteText.value.trim() ? 'true' : 'false');
+    fitNote(noteText);
     return;
   }
 
@@ -424,6 +431,7 @@ function updateNote(data, { force = false } = {}) {
   noteState.textContent = noteWasEdited ? 'Edited — ready to copy' : 'Updated automatically';
   copyBtn.disabled = !noteText.value.trim();
   noteEmpty?.setAttribute('aria-hidden', noteText.value.trim() ? 'true' : 'false');
+  fitNote(noteText);
 }
 
 function calculateLive() {
@@ -804,6 +812,7 @@ function updateBatchNote(results) {
   if (!results.length) {
     batchNoteText.value = '';
     batchNoteState.textContent = 'Waiting for valid details';
+    fitNote(batchNoteText);
     return;
   }
 
@@ -812,6 +821,7 @@ function updateBatchNote(results) {
     feeCents: adjustment ? adjustment.totalCents : Math.round(data.discountedPrice * 100)
   })));
   batchNoteState.textContent = 'Updated automatically';
+  fitNote(batchNoteText);
 }
 
 async function copyAllNotes() {
@@ -874,6 +884,9 @@ function setMode(mode) {
     batchRows.querySelectorAll('.batch-price').forEach(formatBatchPrice);
     calculateBatch();
   }
+
+  if (!isBatch) fitNote(noteText);
+  if (isBatch) fitNote(batchNoteText);
 }
 
 function showResetUndoToast() {
@@ -1134,6 +1147,7 @@ noteText.addEventListener('input', () => {
   restoreCopyButton();
   noteEmpty?.setAttribute('aria-hidden', noteText.value.trim() ? 'true' : 'false');
   saveSettings();
+  fitNote(noteText);
 });
 
 document.addEventListener('keydown', (event) => {
