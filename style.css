@@ -1517,3 +1517,40 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
   font-size: 12px;
   font-weight: 800;
 }
+
+
+/* Interactive sprite mascot below the Single-mode customer note. */
+.mascot {
+  width: 140px;
+  height: 140px;
+  flex: 0 0 auto;
+  background: url('mascots/afro-directions.webp') 50% 50% / 300% 300% no-repeat;
+  cursor: pointer;
+  transition: transform .12s ease;
+}
+.mascot.is-poked { transform: scale(.94); }
+@media (prefers-reduced-motion: reduce) {
+  .mascot.is-poked { transform: none; }
+}
+@media (max-width: 700px) {
+  .mascot { width: 96px; height: 96px; }
+}
+
+.history-card[hidden] { display: none; }
+
+@media (min-width: 901px) {
+  .dashboard-card > .history-card {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .dashboard-card > .history-card .mascot {
+    margin-top: auto;
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 900px) {
+  .history-card .mascot { margin: 16px 0 0 auto; }
+}
