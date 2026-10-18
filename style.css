@@ -1376,3 +1376,106 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
     content: "Final Fee";
   }
 }
+
+/* ===== Dark gradient theme ===== */
+html[data-theme="dark"] {
+  --page-bg:
+    radial-gradient(900px 600px at 10% -10%, rgba(139, 92, 246, .30), transparent 60%),
+    radial-gradient(800px 600px at 100% 8%, rgba(236, 72, 153, .16), transparent 55%),
+    radial-gradient(900px 700px at 50% 120%, rgba(59, 130, 246, .18), transparent 60%),
+    linear-gradient(135deg, #0b0912 0%, #14101f 50%, #0a0e19 100%);
+  --paper: rgba(22, 18, 34, .78);
+  --paper-2: rgba(255, 255, 255, .04);
+  --soft: rgba(181, 140, 240, .12);
+  --line: rgba(255, 255, 255, .09);
+  --accent: #b58cf0;
+  --accent-dark: #e4d3ff;
+  --grad-accent: linear-gradient(135deg, #8b5cf6 0%, #c084fc 55%, #f0abfc 100%);
+  --glow: 0 8px 24px rgba(139, 92, 246, .35);
+}
+
+html[data-theme="dark"] body { background-attachment: fixed; }
+html[data-theme="dark"] body::before { background: none; }
+
+/* Main card (desktop) */
+@media (min-width: 901px) {
+  html[data-theme="dark"] .dashboard-card {
+    background: linear-gradient(160deg, rgba(36, 28, 56, .88) 0%, rgba(17, 13, 28, .92) 100%);
+    border-color: rgba(255, 255, 255, .08);
+    box-shadow: 0 30px 90px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .06);
+  }
+}
+html[data-theme="dark"] .calculator-card,
+html[data-theme="dark"] .history-card {
+  background-image: linear-gradient(160deg, rgba(36, 28, 56, .5), rgba(17, 13, 28, .3));
+}
+
+/* Title */
+html[data-theme="dark"] h1 {
+  background: linear-gradient(135deg, #ffffff 15%, #d8b4fe 65%, #f0abfc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Panels */
+html[data-theme="dark"] .result-box,
+html[data-theme="dark"] .adjustment-card,
+html[data-theme="dark"] .batch-panel,
+html[data-theme="dark"] .batch-row,
+html[data-theme="dark"] .batch-adjust {
+  background: linear-gradient(145deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .02));
+  border-color: rgba(255, 255, 255, .09);
+}
+html[data-theme="dark"] .highlighted {
+  background: linear-gradient(135deg, rgba(139, 92, 246, .38), rgba(236, 72, 153, .18));
+  border-color: rgba(192, 132, 252, .45);
+  box-shadow: 0 10px 30px rgba(139, 92, 246, .18);
+}
+html[data-theme="dark"] .highlighted strong {
+  background: linear-gradient(135deg, #ffffff, #f0abfc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+html[data-theme="dark"] .note-panel {
+  background: linear-gradient(160deg, rgba(139, 92, 246, .20), rgba(236, 72, 153, .08));
+  border-color: rgba(192, 132, 252, .30);
+}
+
+/* Inputs */
+html[data-theme="dark"] .input-wrap input:focus,
+html[data-theme="dark"] .batch-field input:focus,
+html[data-theme="dark"] .note-panel textarea:focus {
+  border-color: #c084fc;
+  box-shadow: 0 0 0 4px rgba(192, 132, 252, .18);
+}
+
+/* Accent buttons and active states */
+html[data-theme="dark"] .copy-btn:not(.is-copied),
+html[data-theme="dark"] .preset-btn.active,
+html[data-theme="dark"] .mode-tab.active,
+html[data-theme="dark"] .mode-tab[aria-selected="true"] {
+  background: var(--grad-accent);
+  border-color: transparent;
+  color: #1b1030;
+  box-shadow: var(--glow);
+}
+html[data-theme="dark"] .copy-btn:not(.is-copied):hover {
+  background: var(--grad-accent);
+  filter: brightness(1.1);
+  border-color: transparent;
+}
+html[data-theme="dark"] .secondary-btn:hover,
+html[data-theme="dark"] .theme-btn:hover,
+html[data-theme="dark"] .preset-btn:hover {
+  border-color: #c084fc;
+  box-shadow: 0 0 0 3px rgba(192, 132, 252, .12);
+}
+
+/* Small accents */
+html[data-theme="dark"] .live-dot {
+  background: #c084fc;
+  box-shadow: 0 0 0 4px rgba(192, 132, 252, .18), 0 0 12px rgba(192, 132, 252, .7);
+}
+html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
