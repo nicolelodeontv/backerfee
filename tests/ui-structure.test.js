@@ -188,3 +188,19 @@ test('defines every Batch validation and formatting helper used at startup and w
   assert.ok(script.includes('function calculateBatch()') && script.includes('function validateBatchRow(row,'));
   assert.ok(script.includes("console.error('Batch calculation failed:', error)"));
 });
+
+
+test('grows Single and Batch notes to fit and shows lead-approval reminders', () => {
+  const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  assert.match(script, /function fitNote\(el\)[\\s\\S]*el\\.style\\.height = 'auto'[\\s\\S]*el\\.style\\.height = \\(el\\.scrollHeight \\+ 2\\) \\+ 'px'/);
+  assert.match(script, /function updateNote\(data, \{ force = false \} = \{\}\)[\\s\\S]*fitNote\(noteText\);[\\s\\S]*noteWasEdited/);
+  assert.match(script, /function updateBatchNote\(results\)[\\s\\S]*fitNote\(batchNoteText\)/);
+  assert.match(script, /if \(!isBatch\) fitNote\(noteText\);/);
+  assert.match(script, /if \(isBatch\) fitNote\(batchNoteText\);/);
+  assert.match(script, /noteText\.addEventListener\(['"]input['"][\\s\\S]*fitNote\(noteText\)/);
+  assert.match(css, /\\.note-panel textarea \\{[\\s\\S]*min-height: 360px;[\\s\\S]*overflow-y: hidden;[\\s\\S]*resize: none;/);
+  assert.match(css, /@supports \\(field-sizing: content\\)[\\s\\S]*field-sizing: content/);
+  assert.match(html, /class="adjustment-heading"[\\s\\S]*?class="adjustment-callout" role="note"[\\s\\S]*?Please obtain lead approval before entering the final Total Adjustment\.[\\s\\S]*?class="adjustment-rows"/);
+  assert.match(html, /class="batch-trust" role="note"[\\s\\S]*?class="adjustment-callout" role="note"[\\s\\S]*?Please obtain lead approval before entering the final Total Adjustment\.[\\s\\S]*?class="batch-grid batch-grid-header"/);
+  assert.match(css, /\\.adjustment-callout \\{[\\s\\S]*display: flex;[\\s\\S]*background: var\\(--soft\\);[\\s\\S]*color: var\\(--ink\\);/);
+});
