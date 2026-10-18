@@ -242,12 +242,12 @@ test('adds the vanilla sprite mascot beneath the Single note and hides it in Bat
   const asideEnd = html.indexOf('</aside>', asideStart);
   assert.ok(mascotAt > noteEnd && mascotAt < asideEnd);
   assert.match(html, /<div class="mascot" id="mascot" role="img" aria-label="Mascot"><\/div>/);
-  assert.match(css, /\.mascot\s*\{[\s\S]*background: url\('mascots\/afro-directions\.webp'\)[\s\S]*300% 300%/);
-  assert.match(css, /\.mascot\.is-poked\s*\{\s*transform: scale\(\.94\);/);
+  assert.match(css, /\.mascot\s*\{[\s\S]*width: clamp\(200px, 18vw, 290px\);[\s\S]*height: auto;[\s\S]*aspect-ratio: 1;[\s\S]*background: url\('mascots\/afro-directions\.webp'\)[\s\S]*300% 300%/);
+  assert.match(css, /\.mascot\.is-poked\s*\{\s*transform: scale\(\.96\);/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.mascot\.is-poked\s*\{\s*transform: none;/);
   assert.ok(css.includes('.dashboard-card > .history-card[hidden] { display: none; }'));
   assert.match(css, /@media \(min-width: 901px\)[\s\S]*\.dashboard-card > \.history-card \.mascot[\s\S]*margin-top: auto;[\s\S]*align-self: flex-end;/);
-  assert.match(css, /@media \(max-width: 700px\)[\s\S]*\.mascot \{ width: 96px; height: 96px; \}/);
+  assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.history-card \.mascot\s*\{[\s\S]*width: 180px;[\s\S]*margin: 16px 0 0 auto;/);
   assert.match(enhancements, /function[\s\S]*afro-reactions\.webp/);
   assert.match(enhancements, /const CELLS = \[\[2, 1\], \[2, 2\], \[1, 2\], \[0, 2\], \[0, 1\], \[0, 0\], \[1, 0\], \[2, 0\]\]/);
   assert.match(enhancements, /el\.addEventListener\('pointermove'|document\.addEventListener\('pointermove'/);
