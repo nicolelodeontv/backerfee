@@ -245,7 +245,7 @@ test('adds the vanilla sprite mascot beneath the Single note and hides it in Bat
   assert.match(css, /\.mascot\s*\{[\s\S]*background: url\('mascots\/afro-directions\.webp'\)[\s\S]*300% 300%/);
   assert.match(css, /\.mascot\.is-poked\s*\{\s*transform: scale\(\.94\);/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.mascot\.is-poked\s*\{\s*transform: none;/);
-  assert.match(css, /\\.dashboard-card > \\.history-card\\[hidden\\]\\s*\\{\\s*display: none;\\s*\\}/);
+  assert.ok(css.includes('.dashboard-card > .history-card[hidden] { display: none; }'));
   assert.match(css, /@media \(min-width: 901px\)[\s\S]*\.dashboard-card > \.history-card \.mascot[\s\S]*margin-top: auto;[\s\S]*align-self: flex-end;/);
   assert.match(css, /@media \(max-width: 700px\)[\s\S]*\.mascot \{ width: 96px; height: 96px; \}/);
   assert.match(enhancements, /function[\s\S]*afro-reactions\.webp/);
