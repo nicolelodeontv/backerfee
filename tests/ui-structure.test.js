@@ -197,13 +197,13 @@ test('grows Single and Batch notes to fit and shows lead-approval reminders', ()
   assert.ok(script.includes("el.style.height = (el.scrollHeight + 2) + 'px';"));
 
   const noteUpdater = script.slice(script.indexOf('function updateNote('), script.indexOf('function calculateLive()'));
-  assert.equal((noteUpdater.match(/fitNote\\(noteText\\);/g) || []).length, 2);
+  assert.equal(noteUpdater.split('fitNote(noteText);').length - 1, 2);
   assert.ok(script.includes("noteText.addEventListener('input'"));
   assert.ok(script.includes('if (!isBatch) fitNote(noteText);'));
   assert.ok(script.includes('if (isBatch) fitNote(batchNoteText);'));
 
   const batchNoteUpdater = script.slice(script.indexOf('function updateBatchNote('), script.indexOf('async function copyAllNotes()'));
-  assert.equal((batchNoteUpdater.match(/fitNote\\(batchNoteText\\);/g) || []).length, 2);
+  assert.equal(batchNoteUpdater.split('fitNote(batchNoteText);').length - 1, 2);
 
   assert.ok(css.includes('.note-panel textarea {'));
   assert.ok(css.includes('min-height: 360px;'));
