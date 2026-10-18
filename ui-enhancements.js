@@ -66,3 +66,54 @@ if (copyStatus) {
   copyObserver.observe(copyStatus, { childList: true, characterData: true, subtree: true });
 }
 
+/* Vanilla sprite mascot: tracks pointer direction and reacts when clicked. */
+(() => {
+  const el = document.getElementById('mascot');
+  if (!el) return;
+
+  const DIRECTIONS = "url('mascots/afro-directions.webp')";
+  const REACTIONS = "url('mascots/afro-reactions.webp')";
+  const CENTER = [1, 1];
+  const REACTION_CELL = [1, 1];
+  // Verified against the supplied 3x3 sprite sheet: clockwise from right.
+  const CELLS = [[2, 1], [2, 2], [1, 2], [0, 2], [0, 1], [0, 0], [1, 0], [2, 0]];
+  const DEAD_ZONE = 0.45;
+
+  const pos = (c, r) => (c * 50) + '% ' + (r * 50) + '%';
+  const finePointer = window.matchMedia('(pointer: fine)').matches;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let poking = false;
+
+  new Image().src = 'mascots/afro-reactions.webp';
+
+  if (finePointer) {
+    document.addEventListener('pointermove', (event) => {
+      if (poking || el.closest('[hidden]') || !el.getClientRects().length) return;
+      const rect = el.getBoundingClientRect();
+      const dx = event.clientX - (rect.left + rect.width / 2);
+      const dy = event.clientY - (rect.top + rect.height / 2);
+      if (Math.hypot(dx, dy) < rect.width * DEAD_ZONE) {
+        el.style.backgroundPosition = pos(...CENTER);
+        return;
+      }
+      const slot = (Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) + 8) % 8;
+      el.style.backgroundPosition = pos(...CELLS[slot]);
+    });
+  }
+
+  const react = () => {
+    if (poking) return;
+    poking = true;
+    el.style.backgroundImage = REACTIONS;
+    el.style.backgroundPosition = pos(...REACTION_CELL);
+    if (!reduceMotion) el.classList.add('is-poked');
+    window.setTimeout(() => {
+      el.style.backgroundImage = DIRECTIONS;
+      el.style.backgroundPosition = pos(...CENTER);
+      el.classList.remove('is-poked');
+      poking = false;
+    }, 500);
+  };
+
+  el.addEventListener('click', react);
+})();

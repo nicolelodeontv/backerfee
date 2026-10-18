@@ -231,3 +231,25 @@ test('grows Single and Batch notes to fit and shows lead-approval reminders', ()
   assert.ok(css.includes('background: var(--soft);'));
   assert.ok(css.includes('color: var(--ink);'));
 });
+
+
+test('adds the vanilla sprite mascot beneath the Single note and hides it in Batch', () => {
+  const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  const enhancements = readFileSync(new URL('../ui-enhancements.js', import.meta.url), 'utf8');
+  const asideStart = html.indexOf('<aside class="history-card single-only"');
+  const noteEnd = html.indexOf('</section>', html.indexOf('id="noteHeading"'));
+  const mascotAt = html.indexOf('id="mascot"', asideStart);
+  const asideEnd = html.indexOf('</aside>', asideStart);
+  assert.ok(mascotAt > noteEnd && mascotAt < asideEnd);
+  assert.match(html, /<div class="mascot" id="mascot" role="img" aria-label="Mascot"><\/div>/);
+  assert.match(css, /\.mascot\s*\{[\s\S]*background: url\('mascots\/afro-directions\.webp'\)[\s\S]*300% 300%/);
+  assert.match(css, /\.mascot\.is-poked\s*\{\s*transform: scale\(\.94\);/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.mascot\.is-poked\s*\{\s*transform: none;/);
+  assert.ok(css.includes('.dashboard-card > .history-card[hidden] { display: none; }'));
+  assert.match(css, /@media \(min-width: 901px\)[\s\S]*\.dashboard-card > \.history-card \.mascot[\s\S]*margin-top: auto;[\s\S]*align-self: flex-end;/);
+  assert.match(css, /@media \(max-width: 700px\)[\s\S]*\.mascot \{ width: 96px; height: 96px; \}/);
+  assert.match(enhancements, /function[\s\S]*afro-reactions\.webp/);
+  assert.match(enhancements, /const CELLS = \[\[2, 1\], \[2, 2\], \[1, 2\], \[0, 2\], \[0, 1\], \[0, 0\], \[1, 0\], \[2, 0\]\]/);
+  assert.match(enhancements, /el\.addEventListener\('pointermove'|document\.addEventListener\('pointermove'/);
+  assert.match(enhancements, /el\.addEventListener\('click', react\)/);
+});
