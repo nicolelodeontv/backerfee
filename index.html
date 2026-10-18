@@ -127,6 +127,11 @@
               <span>Runs locally in your browser. Batch values stay in this browser.</span>
             </div>
 
+            <p class="adjustment-callout" role="note">
+              <span class="adjustment-callout-icon" aria-hidden="true">!</span>
+              <span>Please obtain lead approval before entering the final Total Adjustment.</span>
+            </p>
+
             <div class="batch-grid batch-grid-header" aria-hidden="true">
               <span>Original Price</span>
               <span>Discount</span>
@@ -163,6 +168,11 @@
     </div>
     <span class="adjustment-target-label">Fixed tax: 9.75%</span>
   </div>
+
+  <p class="adjustment-callout" role="note">
+    <span class="adjustment-callout-icon" aria-hidden="true">!</span>
+    <span>Please obtain lead approval before entering the final Total Adjustment.</span>
+  </p>
 
   <div class="adjustment-rows" aria-live="polite" aria-atomic="true">
     <div class="adjustment-row">
@@ -221,7 +231,7 @@
       <span class="note-state" id="noteState">Waiting for valid details</span>
     </div>
     <div class="note-editor">
-      <textarea id="noteText" rows="10" readonly aria-readonly="true" spellcheck="true" aria-label="Generated customer note" placeholder=""></textarea>
+      <textarea id="noteText" rows="10" spellcheck="true" aria-label="Customer note" placeholder=""></textarea>
       <div class="empty-state note-empty" id="noteEmpty" aria-hidden="true">
         <span class="empty-icon" aria-hidden="true">✦</span>
         <strong>Your customer note will appear here</strong>

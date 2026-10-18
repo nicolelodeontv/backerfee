@@ -188,3 +188,46 @@ test('defines every Batch validation and formatting helper used at startup and w
   assert.ok(script.includes('function calculateBatch()') && script.includes('function validateBatchRow(row,'));
   assert.ok(script.includes("console.error('Batch calculation failed:', error)"));
 });
+
+
+test('grows Single and Batch notes to fit and shows lead-approval reminders', () => {
+  const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  assert.ok(script.includes('function fitNote(el) {'));
+  assert.ok(script.includes("el.style.height = 'auto';"));
+  assert.ok(script.includes("el.style.height = (el.scrollHeight + 2) + 'px';"));
+
+  const noteUpdater = script.slice(script.indexOf('function updateNote('), script.indexOf('function calculateLive()'));
+  assert.equal(noteUpdater.split('fitNote(noteText);').length - 1, 2);
+  assert.ok(script.includes("noteText.addEventListener('input'"));
+  assert.ok(script.includes('if (!isBatch) fitNote(noteText);'));
+  assert.ok(script.includes('if (isBatch) fitNote(batchNoteText);'));
+
+  const batchNoteUpdater = script.slice(script.indexOf('function updateBatchNote('), script.indexOf('async function copyAllNotes()'));
+  assert.equal(batchNoteUpdater.split('fitNote(batchNoteText);').length - 1, 2);
+
+  assert.ok(css.includes('.note-panel textarea {'));
+  assert.ok(css.includes('min-height: 360px;'));
+  assert.ok(css.includes('overflow-y: hidden;'));
+  assert.ok(css.includes('resize: none;'));
+  assert.ok(css.includes('@supports (field-sizing: content)'));
+  assert.ok(css.includes('field-sizing: content;'));
+  const singleNoteStart = html.indexOf('<textarea id="noteText"');
+  const singleNoteEnd = html.indexOf('>', singleNoteStart);
+  assert.ok(singleNoteStart >= 0 && !html.slice(singleNoteStart, singleNoteEnd).includes('readonly'));
+
+  const reminder = 'Please obtain lead approval before entering the final Total Adjustment.';
+  const adjustmentHeading = html.indexOf('class="adjustment-heading"');
+  const singleCallout = html.indexOf('class="adjustment-callout" role="note"', adjustmentHeading);
+  const adjustmentRows = html.indexOf('class="adjustment-rows"');
+  assert.ok(singleCallout > adjustmentHeading && singleCallout < adjustmentRows);
+  assert.ok(html.slice(singleCallout, adjustmentRows).includes(reminder));
+
+  const batchTrust = html.indexOf('class="local-trust batch-trust"');
+  const batchCallout = html.indexOf('class="adjustment-callout" role="note"', batchTrust);
+  const batchGrid = html.indexOf('class="batch-grid batch-grid-header"', batchTrust);
+  assert.ok(batchCallout > batchTrust && batchCallout < batchGrid);
+  assert.ok(html.slice(batchCallout, batchGrid).includes(reminder));
+  assert.ok(css.includes('.adjustment-callout {'));
+  assert.ok(css.includes('background: var(--soft);'));
+  assert.ok(css.includes('color: var(--ink);'));
+});
