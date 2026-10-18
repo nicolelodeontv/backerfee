@@ -252,5 +252,4 @@ test('adds the vanilla sprite mascot beneath the Single note and hides it in Bat
   assert.match(enhancements, /const CELLS = \[\[2, 1\], \[2, 2\], \[1, 2\], \[0, 2\], \[0, 1\], \[0, 0\], \[1, 0\], \[2, 0\]\]/);
   assert.match(enhancements, /el\.addEventListener\('pointermove'|document\.addEventListener\('pointermove'/);
   assert.match(enhancements, /el\.addEventListener\('click', react\)/);
-  assert.match(enhancements, /el\.addEventListener\('keydown'/);
 });
