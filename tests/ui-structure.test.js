@@ -242,7 +242,7 @@ test('adds the vanilla sprite mascot beneath the Single note and hides it in Bat
   const asideEnd = html.indexOf('</aside>', asideStart);
   assert.ok(mascotAt > noteEnd && mascotAt < asideEnd);
   assert.match(html, /<div class="mascot" id="mascot" role="img" aria-label="Mascot"><\/div>/);
-  assert.match(css, /\.mascot\s*\{[\s\S]*background: url\('mascots\/afro-directions\.webp'\)[\s\S]*300% 300%/);
+  assert.match(css, /\.mascot\s*\{[\s\S]*background: url\('https:\/\/koboyo\.com\/page-mascot\/mascots\/afro-directions\.webp'\)[\s\S]*300% 300%/);
   assert.match(css, /\.mascot\.is-poked\s*\{\s*transform: scale\(\.94\);/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.mascot\.is-poked\s*\{\s*transform: none;/);
   assert.match(css, /\.history-card\[hidden\]\s*\{\s*display: none;\s*\}/);
