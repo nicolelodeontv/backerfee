@@ -181,6 +181,11 @@ try {
     const inputBox = await adjustmentFields.nth(i).locator('.input-wrap input').first().boundingBox();
     assert.ok(inputBox && inputBox.width >= 48, `Phone adjustment field ${i + 1} needs a usable input width`);
   }
+  const phoneAdjustmentBoxes = await positions(adjustmentFields);
+  assertSameLine(phoneAdjustmentBoxes[0], phoneAdjustmentBoxes[1], 'Phone Amount and Tax should share the first adjustment line');
+  assert.ok(phoneAdjustmentBoxes[2].y > phoneAdjustmentBoxes[1].y + 10, 'Phone Subtotal should start the second adjustment line');
+  assertSameLine(phoneAdjustmentBoxes[2], phoneAdjustmentBoxes[3], 'Phone Subtotal and Shipping should share the second adjustment line');
+  assert.ok(phoneAdjustmentBoxes[4].y > phoneAdjustmentBoxes[3].y + 10, 'Phone Total should use the final full-width line');
   await page.screenshot({ path: screenshotName('phone-375-three-rows'), fullPage: true });
 
   // Switch back to Single and confirm existing panels and mascot remain visible at desktop width.
