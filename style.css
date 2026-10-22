@@ -1614,3 +1614,11 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
   .batch-adjust-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .batch-adj-field:last-child { grid-column: 1 / -1; }
 }
+
+
+/* Ensure each Batch adjustment input fills its grid cell. */
+.batch-adj-field > .input-wrap {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
