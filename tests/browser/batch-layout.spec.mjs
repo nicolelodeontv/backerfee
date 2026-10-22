@@ -184,9 +184,17 @@ try {
     const inputBox = await input.boundingBox();
     assert.ok(inputBox && inputBox.width >= 48, `Adjustment field ${i + 1} needs a usable input width`);
   }
-  const firstLineLabelHeight = await adjustmentFields.nth(0).locator('.batch-adj-label').evaluate((el) => getComputedStyle(el).minHeight);
-  assert.equal(firstLineLabelHeight, '30px',
-    'Amount label should keep its reserved height so the Tax checkbox can wrap beneath its label');
+  for (const index of [0, 1, 2]) {
+    const labelHeight = await adjustmentFields.nth(index).locator('.batch-adj-label').evaluate((el) => getComputedStyle(el).minHeight);
+    assert.equal(labelHeight, '36px',
+      `Top-line Batch adjustment label ${index + 1} should share a 36px minimum height`);
+  }
+  const topLineInputBoxes = await Promise.all([0, 1, 2].map(async (index) =>
+    adjustmentFields.nth(index).locator('.input-wrap input').first().boundingBox()));
+  assert.ok(topLineInputBoxes.every(Boolean), 'All three top-line adjustment inputs should have layout boxes');
+  const topLineInputY = topLineInputBoxes.map((box) => box.y);
+  assert.ok(Math.max(...topLineInputY) - Math.min(...topLineInputY) <= 1,
+    `Amount, Tax Based on Shipping Zip, and Subtotal inputs should align on one line (y=${topLineInputY.join(', ')})`);
   for (const index of [3, 4]) {
     const labelHeight = await adjustmentFields.nth(index).locator('.batch-adj-label').evaluate((el) => getComputedStyle(el).minHeight);
     assert.equal(labelHeight, '0px',
