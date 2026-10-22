@@ -1553,3 +1553,64 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
     margin: 16px auto 0;
   }
 }
+
+
+/* Batch: two-column rows */
+.batch-grid-header { display: none; }
+
+.batch-rows {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+  overflow: visible;
+}
+.batch-row { min-width: 0; }
+.batch-row-main {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .8fr) minmax(0, 1fr) minmax(0, 1fr) 32px;
+  gap: 8px;
+}
+.batch-cell { min-width: 0; }
+.batch-cell-label {
+  display: block;
+  height: 14px;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.batch-remove { margin-top: 19px; }
+.batch-field .error:empty { display: none; }
+
+.batch-adjust-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 1100px) {
+  .batch-rows { grid-template-columns: 1fr; }
+}
+
+/* Keep compact controls on phones while using the new inline labels. */
+@media (max-width: 700px) {
+  .batch-row-main {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "price discount"
+      "discount-amount final-fee"
+      "remove remove";
+  }
+  .batch-row-main > .batch-field:first-child { grid-area: price; }
+  .batch-row-main > .batch-field:nth-child(2) { grid-area: discount; }
+  .batch-row-main > .batch-cell:nth-child(3) { grid-area: discount-amount; }
+  .batch-row-main > .batch-cell:nth-child(4) { grid-area: final-fee; }
+  .batch-row-main > .batch-remove { grid-area: remove; justify-self: end; }
+
+  .batch-row-main > .batch-field:first-child::before,
+  .batch-row-main > .batch-field:nth-child(2)::before {
+    content: none;
+    display: none;
+  }
+
+  .batch-adjust-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .batch-adj-field:last-child { grid-column: 1 / -1; }
+}
