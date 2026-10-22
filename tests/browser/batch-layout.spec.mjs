@@ -288,7 +288,8 @@ try {
       'generated note has one line per row and copies completely',
       'remove-row reflow leaves the third row in the left column',
       'single-column layout at 1100px',
-      'no horizontal overflow at 375px and 320px',\n      'tax label fits inside its column at 320px',
+      'no horizontal overflow at 375px and 320px',
+      'tax label fits inside its column at 320px',
       'Single mode panels and mascot remain visible',
       'no uncaught browser runtime errors'
     ],
@@ -296,7 +297,8 @@ try {
       'desktop-1440-four-rows.png',
       'desktop-1440-three-rows.png',
       'tablet-1100-three-rows.png',
-      'phone-375-three-rows.png',\n      'phone-320-three-rows.png',
+      'phone-375-three-rows.png',
+      'phone-320-three-rows.png',
       'single-mode-1440.png'
     ]
   }, null, 2));
