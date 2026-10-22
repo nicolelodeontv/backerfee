@@ -237,6 +237,25 @@ try {
   assert.ok(phoneAdjustmentBoxes[4].y > phoneAdjustmentBoxes[3].y + 10, 'Phone Total should use the final full-width line');
   await page.screenshot({ path: screenshotName('phone-375-three-rows'), fullPage: true });
 
+  // Verify the no-wrap tax label at the narrow 320px viewport too.
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.waitForTimeout(150);
+  const narrowOverflow = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    document: document.documentElement.scrollWidth,
+    body: document.body.scrollWidth
+  }));
+  assert.ok(narrowOverflow.document <= narrowOverflow.viewport + 1 &&
+    narrowOverflow.body <= narrowOverflow.viewport + 1,
+  `320px phone layout should not scroll sideways (viewport=${narrowOverflow.viewport}, document=${narrowOverflow.document}, body=${narrowOverflow.body})`);
+  const narrowTaxFieldBox = await adjustmentFields.nth(1).boundingBox();
+  const narrowTaxLabelBox = await adjustmentFields.nth(1).locator('.batch-adj-label > span').boundingBox();
+  assert.ok(narrowTaxFieldBox && narrowTaxLabelBox &&
+    narrowTaxLabelBox.x >= narrowTaxFieldBox.x - 1 &&
+    narrowTaxLabelBox.x + narrowTaxLabelBox.width <= narrowTaxFieldBox.x + narrowTaxFieldBox.width + 1,
+  `320px tax label should fit within its column (field=${JSON.stringify(narrowTaxFieldBox)}, label=${JSON.stringify(narrowTaxLabelBox)})`);
+  await page.screenshot({ path: screenshotName('phone-320-three-rows'), fullPage: true });
+
   // Switch back to Single and confirm existing panels and mascot remain visible at desktop width.
   await page.setViewportSize({ width: 1440, height: 1300 });
   await page.waitForTimeout(150);
@@ -260,7 +279,7 @@ try {
   console.log(JSON.stringify({
     result: 'PASS',
     baseUrl,
-    viewportChecks: [1440, 1100, 375],
+    viewportChecks: [1440, 1100, 375, 320],
     checks: [
       'four-row ordering',
       'individual row calculations and focus retention',
@@ -269,7 +288,7 @@ try {
       'generated note has one line per row and copies completely',
       'remove-row reflow leaves the third row in the left column',
       'single-column layout at 1100px',
-      'no horizontal overflow at 375px',
+      'no horizontal overflow at 375px and 320px',\n      'tax label fits inside its column at 320px',
       'Single mode panels and mascot remain visible',
       'no uncaught browser runtime errors'
     ],
@@ -277,7 +296,7 @@ try {
       'desktop-1440-four-rows.png',
       'desktop-1440-three-rows.png',
       'tablet-1100-three-rows.png',
-      'phone-375-three-rows.png',
+      'phone-375-three-rows.png',\n      'phone-320-three-rows.png',
       'single-mode-1440.png'
     ]
   }, null, 2));
