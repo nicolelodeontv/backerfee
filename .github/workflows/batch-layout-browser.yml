@@ -1,0 +1,88 @@
+name: Batch layout browser QA
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'script.js'
+      - 'style.css'
+      - 'index.html'
+      - 'calculator-utils.js'
+      - 'ui-enhancements.js'
+      - 'tests/browser/**'
+      - '.github/workflows/batch-layout-browser.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser-layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Playwright
+        run: npm install --no-save playwright
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start local app server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/backerfee-http.log 2>&1 &
+          echo $! > /tmp/backerfee-http.pid
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/backerfee-http.log
+          exit 1
+
+      - name: Run Chromium checks against pull request source
+        env:
+          BASE_URL: http://127.0.0.1:4173/
+          SCREENSHOT_DIR: artifacts/source
+        run: node tests/browser/batch-layout.spec.mjs
+
+      - name: Try the actual Vercel preview
+        env:
+          PREVIEW_URL: https://backerfee-git-feat-batch-two-column-layout-meow-7e9e.vercel.app/
+        shell: bash
+        run: |
+          set +e
+          found=0
+          for i in $(seq 1 24); do
+            status=$(curl -L --silent --show-error --max-time 15 -o /tmp/backerfee-preview.html -w '%{http_code}' "$PREVIEW_URL" 2>/dev/null)
+            if [ "$status" = "200" ] && grep -q 'id="modeBatchBtn"' /tmp/backerfee-preview.html; then
+              found=1
+              break
+            fi
+            sleep 5
+          done
+
+          if [ "$found" = "1" ]; then
+            echo "The Vercel preview returned the Backer Fee app HTML; running the same Chromium checks against it."
+            BASE_URL="$PREVIEW_URL" SCREENSHOT_DIR=artifacts/preview node tests/browser/batch-layout.spec.mjs
+          else
+            echo "::notice title=Vercel preview not browser-accessible::The CI runner could not get the app HTML from the stable preview alias (last HTTP status: $status). The same Chromium checks have passed or failed separately against the exact pull request source served locally."
+            printf '\nPreview browser check: not run (preview alias was unavailable or access-protected; last HTTP status: %s).\n' "$status" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: batch-layout-browser-screenshots
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 7
