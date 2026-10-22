@@ -39,11 +39,41 @@ try {
     origin: new URL(baseUrl).origin
   }).catch(() => {});
   const page = await context.newPage();
+  const isProduction = new URL(baseUrl).hostname === 'backerfee.vercel.app';
+  const fontResponses = [];
   page.on('pageerror', (error) => errors.push(error.message));
+  page.on('response', (response) => {
+    const url = new URL(response.url());
+    if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+      fontResponses.push({ url: response.url(), status: response.status() });
+    }
+  });
 
   const response = await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
   assert.equal(response?.status(), 200, `App returned HTTP ${response?.status()}`);
   await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length >= 2, null, { timeout: 15000 });
+
+  if (isProduction) {
+    for (const path of ['mascots/afro-directions.webp', 'mascots/afro-reactions.webp']) {
+      const asset = await page.request.get(new URL(path, baseUrl).toString(), { timeout: 20000 });
+      assert.equal(asset.status(), 200, `Production mascot asset should load: ${path}`);
+      assert.match(asset.headers()['content-type'] || '', /image\/webp/i,
+        `Production mascot asset should be served as WebP: ${path}`);
+      assert.ok((await asset.body()).byteLength > 1000, `Production mascot asset should not be empty: ${path}`);
+    }
+    await page.evaluate(() => document.fonts.ready);
+    const loadedPoppins = await page.evaluate(() =>
+      Array.from(document.fonts)
+        .filter((face) => /Poppins/i.test(face.family))
+        .map((face) => ({ family: face.family, status: face.status }))
+    );
+    assert.ok(fontResponses.some((item) => item.url.includes('fonts.googleapis.com') && item.status === 200),
+      'Production Google Fonts stylesheet should load successfully');
+    assert.ok(fontResponses.some((item) => item.url.includes('fonts.gstatic.com') && item.status === 200),
+      'Production Poppins font file should load successfully');
+    assert.ok(loadedPoppins.some((face) => face.status === 'loaded'),
+      `Production Poppins font face should finish loading: ${JSON.stringify(loadedPoppins)}`);
+  }
 
   // Switch to Batch, add rows 3 and 4, and fill distinct values in all rows.
   await page.locator('#modeBatchBtn').click();
