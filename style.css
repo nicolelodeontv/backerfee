@@ -1830,3 +1830,15 @@ html[data-theme="dark"] .adjustment-callout-icon {
   background: var(--success);
   color: #0f1f16;
 }
+
+/* Let the long Batch Amount label wrap beside its Copy button without making that label row taller. */
+@media (min-width: 521px) {
+  .batch-adj-field:first-child .batch-adj-label > span:first-child {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .batch-adj-field:first-child .batch-adj-label .adj-copy-btn {
+    align-self: flex-start;
+  }
+}
