@@ -76,6 +76,8 @@ try {
   assertSameColumn(boxes[0], boxes[2], 'Row 3 should start the next line in the left column');
   assertSameColumn(boxes[1], boxes[3], 'Row 4 should be in the right column below row 2');
 
+  await page.screenshot({ path: screenshotName('desktop-1440-four-rows'), fullPage: true });
+
   // Financial Adjustment: three fields on the first line and two on the second.
   const adjustmentFields = rows.nth(0).locator('.batch-adjust-grid .batch-adj-field');
   assert.equal(await adjustmentFields.count(), 5);
@@ -85,12 +87,13 @@ try {
   assert.ok(adjustmentBoxes[3].y > adjustmentBoxes[2].y + 10, 'Shipping should begin the second adjustment line');
   assertSameLine(adjustmentBoxes[3], adjustmentBoxes[4], 'Shipping and Total should share the second adjustment line');
   for (let i = 0; i < 5; i += 1) {
-    const input = adjustmentFields.nth(i).locator('input').first();
+    const input = adjustmentFields.nth(i).locator('.input-wrap input').first();
     const inputBox = await input.boundingBox();
     assert.ok(inputBox && inputBox.width >= 48, `Adjustment field ${i + 1} needs a usable input width`);
   }
   const taxLabel = adjustmentFields.nth(1).locator('.batch-adj-label');
   assert.ok(await taxLabel.isVisible(), 'Tax label and checkbox row should remain visible');
+  assert.ok(await taxLabel.locator('.adj-check input').isVisible(), 'Include Tax checkbox should remain visible');
   const taxLabelBox = await taxLabel.boundingBox();
   const adjustmentBox = await rows.nth(0).locator('.batch-adjust').boundingBox();
   assert.ok(taxLabelBox && adjustmentBox &&
@@ -169,7 +172,7 @@ try {
     assertSameColumn(boxes[0], boxes[i], 'At phone width, Batch rows should use one column');
   }
   for (let i = 0; i < 5; i += 1) {
-    const inputBox = await adjustmentFields.nth(i).locator('input').first().boundingBox();
+    const inputBox = await adjustmentFields.nth(i).locator('.input-wrap input').first().boundingBox();
     assert.ok(inputBox && inputBox.width >= 48, `Phone adjustment field ${i + 1} needs a usable input width`);
   }
   await page.screenshot({ path: screenshotName('phone-375-three-rows'), fullPage: true });
