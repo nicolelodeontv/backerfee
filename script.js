@@ -77,6 +77,10 @@ function fitNote(el) {
   el.style.height = (el.scrollHeight + 2) + 'px';
 }
 
+window.addEventListener('resize', () => {
+  fitNote(currentMode === 'batch' ? batchNoteText : noteText);
+});
+
 function prefersReducedMotion() {
   return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 }
