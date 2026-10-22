@@ -263,7 +263,7 @@ try {
     narrowTaxLabelBox.x >= narrowTaxFieldBox.x - 1 &&
     narrowTaxLabelBox.x + narrowTaxLabelBox.width <= narrowTaxFieldBox.x + narrowTaxFieldBox.width + 1,
   `320px tax label should fit within its column (field=${JSON.stringify(narrowTaxFieldBox)}, label=${JSON.stringify(narrowTaxLabelBox)})`);
-  // Switch back to Single and confirm existing panels and mascot remain visible at desktop width.
+  // Switch back to Single and verify the redesigned desktop calculator and full-width note.
   await page.setViewportSize({ width: 1440, height: 1300 });
   await page.waitForTimeout(150);
   await page.locator('#modeSingleBtn').click();
@@ -277,9 +277,33 @@ try {
   assert.equal(await page.locator('#modeBatchBtn').evaluate((el) => el.classList.contains('active')), false,
     'Batch tab should not carry the active class in Single mode');
   assert.equal(await page.locator('.history-card').isVisible(), true, 'Single-mode note panel should remain visible');
-  assert.equal(await page.locator('.history-card .mascot').isVisible(), true, 'Single-mode mascot should remain visible');
+  assert.equal(await page.locator('.history-card .mascot').count(), 0, 'Single-mode mascot should be removed from the note column');
   assert.equal(await page.locator('#adjustmentCard').isVisible(), true, 'Single-mode Financial Adjustment should remain visible');
-  assert.ok(await page.locator('.history-card .note-panel').boundingBox(), 'Single-mode generated note should have a layout box');
+  const singleCardBox = await page.locator('.dashboard-card').boundingBox();
+  const singleCalculatorBox = await page.locator('.calculator-card').boundingBox();
+  const singleHistoryBox = await page.locator('.history-card').boundingBox();
+  const singleDetailsBox = await page.locator('.calculator-card form > .field-grid').boundingBox();
+  const singleResultsBox = await page.locator('#results').boundingBox();
+  const singleAdjustmentBox = await page.locator('#adjustmentCard').boundingBox();
+  const singleNoteBox = await page.locator('.history-card .note-panel').boundingBox();
+  assert.ok(singleCardBox && singleCalculatorBox && singleHistoryBox && singleDetailsBox && singleResultsBox && singleAdjustmentBox && singleNoteBox,
+    'Single-mode desktop layout elements should have layout boxes');
+  assert.ok(singleCalculatorBox.width > singleCardBox.width * 0.9,
+    'Single-mode calculator should span nearly the full dashboard width');
+  assert.ok(singleHistoryBox.y > singleCalculatorBox.y + singleCalculatorBox.height - 2,
+    'Single-mode generated note should sit below the calculator');
+  assert.ok(singleNoteBox.width > singleCalculatorBox.width * 0.9,
+    'Single-mode generated note should span nearly the full calculator width');
+  assert.ok(singleDetailsBox.x < singleResultsBox.x,
+    'Single-mode entry fields should sit to the left of calculation results');
+  assert.ok(singleAdjustmentBox.x >= singleResultsBox.x - 2,
+    'Single-mode Financial Adjustment should sit below results in the right column');
+  assert.equal(await page.locator('.calculator-card form').evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length), 2,
+    'Single-mode desktop form should have two columns');
+  assert.ok(await page.locator('.history-card .note-panel textarea').evaluate((el) => parseFloat(getComputedStyle(el).minHeight) >= 260),
+    'Single-mode desktop note textarea should have a 260px minimum height');
+  assert.equal(await page.locator('.history-card .note-actions').evaluate((el) => getComputedStyle(el).flexDirection), 'row-reverse',
+    'Single-mode Copy Note action should be at the bottom right, with status on the left');
   await page.screenshot({ path: screenshotName('single-mode-1440'), fullPage: true });
 
   assert.deepEqual(errors, [], `Browser should not emit runtime errors: ${errors.join('; ')}`);
@@ -297,7 +321,7 @@ try {
       'single-column layout at 1100px',
       'no horizontal overflow at 375px and 320px',
       'tax label fits inside its column at 320px',
-      'Single mode panels and mascot remain visible',
+      'Single mode two-column layout, full-width note, and no mascot',
       'no uncaught browser runtime errors'
     ],
     screenshots: [
