@@ -1745,3 +1745,17 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
     margin: 0;
   }
 }
+
+/* Keep empty Single-mode validation messages from adding blank lines. Align fee results and adjustment card at the bottom. */
+@media (min-width: 901px) {
+  .calculator-card form > .field-grid .error:empty { display: none; }
+
+  .calculator-card form > .results {
+    align-self: end;
+    margin: 12px 0 0;
+  }
+
+  .calculator-card form > .adjustment-card {
+    align-self: stretch;
+  }
+}
