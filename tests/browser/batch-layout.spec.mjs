@@ -118,6 +118,37 @@ try {
   const adjustmentFields = rows.nth(0).locator('.batch-adjust-grid .batch-adj-field');
   assert.equal(await adjustmentFields.count(), 5);
   const adjustmentBoxes = await positions(adjustmentFields);
+  const adjustmentGridBox = await rows.nth(0).locator('.batch-adjust-grid').boundingBox();
+  assert.ok(adjustmentGridBox, 'Financial Adjustment grid should have a layout box');
+  const adjustmentInputBoxes = await Promise.all(Array.from({ length: 5 }, (_, i) =>
+    adjustmentFields.nth(i).locator('.input-wrap input').first().boundingBox()
+  ));
+  assert.ok(adjustmentInputBoxes.every(Boolean), 'All five adjustment inputs should have layout boxes');
+  for (let i = 0; i < 5; i += 1) {
+    const fieldBox = adjustmentBoxes[i];
+    assert.ok(fieldBox && fieldBox.x >= adjustmentGridBox.x - 1 &&
+      fieldBox.x + fieldBox.width <= adjustmentGridBox.x + adjustmentGridBox.width + 1,
+    `Adjustment field ${i + 1} should stay inside the grid`);
+  }
+  assertSameLine(adjustmentInputBoxes[0], adjustmentInputBoxes[1], 'Amount and Tax inputs should align vertically');
+  assertSameLine(adjustmentInputBoxes[1], adjustmentInputBoxes[2], 'Tax and Subtotal inputs should align vertically');
+  assertSameLine(adjustmentInputBoxes[3], adjustmentInputBoxes[4], 'Shipping and Total inputs should align vertically');
+  for (let i = 1; i < 3; i += 1) {
+    assert.ok(Math.abs(adjustmentBoxes[0].width - adjustmentBoxes[i].width) <= 3,
+      'Amount, Tax, and Subtotal should have equal field widths on wider screens');
+  }
+  assert.ok(Math.abs(adjustmentBoxes[3].width - adjustmentBoxes[4].width) <= 3,
+    'Shipping and Total should have equal field widths on wider screens');
+  assert.ok(adjustmentBoxes[3].width > adjustmentBoxes[0].width * 1.4,
+    'Shipping and Total should each use half of the second line, not leave an empty slot');
+  assert.ok(Math.abs(adjustmentBoxes[0].x - adjustmentGridBox.x) <= 2,
+    'Amount should start at the left edge of the adjustment grid');
+  assert.ok(Math.abs(adjustmentBoxes[2].x + adjustmentBoxes[2].width - adjustmentGridBox.x - adjustmentGridBox.width) <= 2,
+    'Subtotal should reach the right edge of the first adjustment line');
+  assert.ok(Math.abs(adjustmentBoxes[3].x - adjustmentGridBox.x) <= 2,
+    'Shipping should start at the left edge of the second adjustment line');
+  assert.ok(Math.abs(adjustmentBoxes[4].x + adjustmentBoxes[4].width - adjustmentGridBox.x - adjustmentGridBox.width) <= 2,
+    'Total should reach the right edge of the second adjustment line');
   assertSameLine(adjustmentBoxes[0], adjustmentBoxes[1], 'Amount and Tax should share the first adjustment line');
   assertSameLine(adjustmentBoxes[1], adjustmentBoxes[2], 'Tax and Subtotal should share the first adjustment line');
   assert.ok(adjustmentBoxes[3].y > adjustmentBoxes[2].y + 10, 'Shipping should begin the second adjustment line');
