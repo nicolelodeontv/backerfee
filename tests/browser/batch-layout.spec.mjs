@@ -304,6 +304,15 @@ try {
     'Single-mode Financial Adjustment should begin level with the entry fields');
   assert.ok(singleAdjustmentBox.height > singleDetailsBox.height,
     'Single-mode Financial Adjustment should be the taller right-side column');
+  const singleResultsBottom = singleResultsBox.y + singleResultsBox.height;
+  const singleAdjustmentBottom = singleAdjustmentBox.y + singleAdjustmentBox.height;
+  assert.ok(Math.abs(singleResultsBottom - singleAdjustmentBottom) < 3,
+    `Single-mode fee results and Financial Adjustment should share a bottom line (results=${singleResultsBottom}, adjustment=${singleAdjustmentBottom})`);
+  const emptySingleErrors = page.locator('.calculator-card form > .field-grid .error:empty');
+  assert.equal(await emptySingleErrors.count(), 3,
+    'Single-mode field inputs should each have their empty validation message element');
+  assert.ok((await emptySingleErrors.evaluateAll((els) => els.map((el) => getComputedStyle(el).display))).every((display) => display === 'none'),
+    'Empty validation messages should not reserve blank lines on desktop');
   assert.equal(await page.locator('.calculator-card form').evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length), 2,
     'Single-mode desktop form should have two columns');
   assert.ok(await page.locator('.history-card .note-panel textarea').evaluate((el) => parseFloat(getComputedStyle(el).minHeight) >= 260),
