@@ -233,23 +233,13 @@ test('grows Single and Batch notes to fit and shows lead-approval reminders', ()
 });
 
 
-test('adds the vanilla sprite mascot beneath the Single note and hides it in Batch', () => {
-  const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+test('omits the optional sprite mascot from the Single note and safely skips its enhancement', () => {
   const enhancements = readFileSync(new URL('../ui-enhancements.js', import.meta.url), 'utf8');
   const asideStart = html.indexOf('<aside class="history-card single-only"');
-  const noteEnd = html.indexOf('</section>', html.indexOf('id="noteHeading"'));
-  const mascotAt = html.indexOf('id="mascot"', asideStart);
   const asideEnd = html.indexOf('</aside>', asideStart);
-  assert.ok(mascotAt > noteEnd && mascotAt < asideEnd);
-  assert.match(html, /<div class="mascot" id="mascot" role="img" aria-label="Mascot"><\/div>/);
-  assert.match(css, /\.mascot\s*\{[\s\S]*width: clamp\(200px, 18vw, 290px\);[\s\S]*height: auto;[\s\S]*aspect-ratio: 1;[\s\S]*background: url\('mascots\/afro-directions\.webp'\)[\s\S]*300% 300%/);
-  assert.match(css, /\.mascot\.is-poked\s*\{\s*transform: scale\(\.96\);/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.mascot\.is-poked\s*\{\s*transform: none;/);
-  assert.ok(css.includes('.dashboard-card > .history-card[hidden] { display: none; }'));
-  assert.match(css, /@media \(min-width: 901px\)[\s\S]*\.dashboard-card > \.history-card \.mascot[\s\S]*margin-top: auto;[\s\S]*align-self: center;/);
-  assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.history-card \.mascot\s*\{[\s\S]*width: 180px;[\s\S]*margin: 16px auto 0;/);
-  assert.match(enhancements, /function[\s\S]*afro-reactions\.webp/);
-  assert.match(enhancements, /const CELLS = \[\[2, 1\], \[2, 2\], \[1, 2\], \[0, 2\], \[0, 1\], \[0, 0\], \[1, 0\], \[2, 0\]\]/);
-  assert.match(enhancements, /el\.addEventListener\('pointermove'|document\.addEventListener\('pointermove'/);
-  assert.match(enhancements, /el\.addEventListener\('click', react\)/);
+  assert.ok(asideStart >= 0 && asideEnd > asideStart, 'Single-mode customer note aside should remain in the document');
+  assert.equal(html.includes('id="mascot"'), false, 'Mascot element should be removed from the page');
+  assert.equal(html.includes('class="mascot"'), false, 'No mascot placeholder should remain in the page');
+  assert.match(enhancements, /const el = document\.getElementById\('mascot'\);\s*if \(!el\) return;/,
+    'Optional mascot behavior should exit safely when the element is absent');
 });
