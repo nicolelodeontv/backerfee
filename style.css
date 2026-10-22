@@ -1654,3 +1654,24 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
     letter-spacing: -.01em;
   }
 }
+
+/* Compact the stacked Batch adjustment fields on ultra-narrow phones. */
+@media (max-width: 360px) {
+  .batch-row { padding: 8px; }
+  .batch-row-main { gap: 6px; }
+  .batch-card-name { margin-bottom: 4px; }
+
+  .batch-adjust { padding: 10px; }
+  .batch-adjust-head { margin-bottom: 8px; }
+  .batch-adjust-grid { gap: 6px; }
+
+  .batch-adj-label {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 0;
+    margin-bottom: 3px;
+  }
+
+  .batch-adj-status { margin-top: 6px; }
+}
