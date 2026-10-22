@@ -123,7 +123,7 @@ try {
   for (let i = 1; i <= 4; i += 1) {
     assert.ok(noteText.includes(`"Row ${i}" cards: $`), `Generated note should include row ${i}`);
   }
-  const rowLineCount = noteText.split('\\n').filter((line) => /"Row \\d+" cards: \\$/.test(line)).length;
+  const rowLineCount = noteText.split('\n').filter((line) => /"Row \d+" cards: \$/.test(line)).length;
   assert.equal(rowLineCount, 4, 'Generated note should contain one fee line per valid row');
 
   await page.screenshot({ path: screenshotName('desktop-1440-four-rows'), fullPage: true });
