@@ -1759,3 +1759,43 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
     align-self: stretch;
   }
 }
+
+/* Warm amber-red approval notice shared by Single and Batch modes. */
+.adjustment-callout {
+  border-color: #f59e0b;
+  border-left-width: 8px;
+  background: #fff1d6;
+  color: #7a2a05;
+  box-shadow: 0 6px 18px rgba(245, 158, 11, .25);
+}
+.adjustment-callout-icon {
+  background: #dc2626;
+  color: #fff;
+  animation: callout-pulse 2.2s ease-out infinite;
+}
+@keyframes callout-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(220, 38, 38, .55); }
+  70%  { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+html[data-theme="dark"] .adjustment-callout {
+  border-color: #fbbf24;
+  background: linear-gradient(135deg, rgba(245, 158, 11, .26), rgba(220, 38, 38, .22));
+  color: #fff3d6;
+  box-shadow: 0 8px 26px rgba(245, 158, 11, .22);
+}
+html[data-theme="dark"] .adjustment-callout-icon {
+  background: #f59e0b;
+  color: #1f1300;
+  animation-name: callout-pulse-dark;
+}
+@keyframes callout-pulse-dark {
+  0%   { box-shadow: 0 0 0 0 rgba(251, 191, 36, .6); }
+  70%  { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adjustment-callout-icon { animation: none; }
+}
