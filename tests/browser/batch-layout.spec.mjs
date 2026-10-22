@@ -184,6 +184,14 @@ try {
     const inputBox = await input.boundingBox();
     assert.ok(inputBox && inputBox.width >= 48, `Adjustment field ${i + 1} needs a usable input width`);
   }
+  const firstLineLabelHeight = await adjustmentFields.nth(0).locator('.batch-adj-label').evaluate((el) => getComputedStyle(el).minHeight);
+  assert.equal(firstLineLabelHeight, '30px',
+    'Amount label should keep its reserved height so the Tax checkbox can wrap beneath its label');
+  for (const index of [3, 4]) {
+    const labelHeight = await adjustmentFields.nth(index).locator('.batch-adj-label').evaluate((el) => getComputedStyle(el).minHeight);
+    assert.equal(labelHeight, '0px',
+      `Batch second-line field ${index + 1} should not reserve extra label height`);
+  }
   const taxLabel = adjustmentFields.nth(1).locator('.batch-adj-label');
   assert.ok(await taxLabel.isVisible(), 'Tax label and checkbox row should remain visible');
   assert.ok(await taxLabel.locator('.adj-check input').isVisible(), 'Include Tax checkbox should remain visible');

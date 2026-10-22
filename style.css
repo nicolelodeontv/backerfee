@@ -1800,3 +1800,8 @@ html[data-theme="dark"] .adjustment-callout-icon {
   .adjustment-callout-icon,
   html[data-theme="dark"] .adjustment-callout-icon { animation: none; }
 }
+
+/* The second Batch adjustment line has single-line labels, so it needs no reserved label height. */
+@media (min-width: 521px) {
+  .batch-adj-field:nth-child(n + 4) .batch-adj-label { min-height: 0; }
+}
