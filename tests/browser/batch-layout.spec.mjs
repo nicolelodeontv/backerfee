@@ -212,6 +212,14 @@ try {
   await page.waitForTimeout(150);
   await page.locator('#modeSingleBtn').click();
   await page.waitForFunction(() => document.querySelector('#batchPanel').hidden);
+  assert.equal(await page.locator('#modeSingleBtn').getAttribute('aria-selected'), 'true',
+    'Single tab should be marked selected after returning from Batch');
+  assert.equal(await page.locator('#modeBatchBtn').getAttribute('aria-selected'), 'false',
+    'Batch tab should no longer be selected in Single mode');
+  assert.equal(await page.locator('#modeSingleBtn').evaluate((el) => el.classList.contains('active')), true,
+    'Single tab should carry the active class');
+  assert.equal(await page.locator('#modeBatchBtn').evaluate((el) => el.classList.contains('active')), false,
+    'Batch tab should not carry the active class in Single mode');
   assert.equal(await page.locator('.history-card').isVisible(), true, 'Single-mode note panel should remain visible');
   assert.equal(await page.locator('.history-card .mascot').isVisible(), true, 'Single-mode mascot should remain visible');
   assert.equal(await page.locator('#adjustmentCard').isVisible(), true, 'Single-mode Financial Adjustment should remain visible');
