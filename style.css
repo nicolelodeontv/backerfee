@@ -1621,3 +1621,18 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
   width: 100%;
   min-width: 0;
 }
+
+/* Stack the tax checkbox below its label on narrow Batch screens. */
+@media (max-width: 520px) {
+  .batch-adj-label {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 3px;
+    min-height: 30px;
+  }
+  .batch-adj-label .adj-check {
+    font-size: 9px;
+    gap: 5px;
+  }
+}
