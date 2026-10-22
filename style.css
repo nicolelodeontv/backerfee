@@ -1797,5 +1797,6 @@ html[data-theme="dark"] .adjustment-callout-icon {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .adjustment-callout-icon { animation: none; }
+  .adjustment-callout-icon,
+  html[data-theme="dark"] .adjustment-callout-icon { animation: none; }
 }
