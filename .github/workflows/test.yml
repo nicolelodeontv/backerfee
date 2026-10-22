@@ -25,3 +25,36 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Install Playwright for browser QA
+        run: npm install --no-save playwright
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start local app server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/backerfee-http.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/backerfee-http.log
+          exit 1
+
+      - name: Run Chromium layout and interaction checks
+        env:
+          BASE_URL: http://127.0.0.1:4173/
+          SCREENSHOT_DIR: artifacts/source
+        run: node tests/browser/batch-layout.spec.mjs
+
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: batch-layout-browser-screenshots
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 7
