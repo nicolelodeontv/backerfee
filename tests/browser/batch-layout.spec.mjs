@@ -248,14 +248,21 @@ try {
   assert.ok(narrowOverflow.document <= narrowOverflow.viewport + 1 &&
     narrowOverflow.body <= narrowOverflow.viewport + 1,
   `320px phone layout should not scroll sideways (viewport=${narrowOverflow.viewport}, document=${narrowOverflow.document}, body=${narrowOverflow.body})`);
+  await page.screenshot({ path: screenshotName('phone-320-three-rows'), fullPage: true });
+  const narrowLayoutMetrics = {
+    row: await rows.nth(0).boundingBox(),
+    adjustment: await rows.nth(0).locator('.batch-adjust').boundingBox(),
+    grid: await rows.nth(0).locator('.batch-adjust-grid').boundingBox(),
+    amount: await adjustmentFields.nth(0).boundingBox(),
+    tax: await adjustmentFields.nth(1).boundingBox()
+  };
+  console.log('320px Batch dimensions: ' + JSON.stringify(narrowLayoutMetrics));
   const narrowTaxFieldBox = await adjustmentFields.nth(1).boundingBox();
   const narrowTaxLabelBox = await adjustmentFields.nth(1).locator('.batch-adj-label > span').boundingBox();
   assert.ok(narrowTaxFieldBox && narrowTaxLabelBox &&
     narrowTaxLabelBox.x >= narrowTaxFieldBox.x - 1 &&
     narrowTaxLabelBox.x + narrowTaxLabelBox.width <= narrowTaxFieldBox.x + narrowTaxFieldBox.width + 1,
   `320px tax label should fit within its column (field=${JSON.stringify(narrowTaxFieldBox)}, label=${JSON.stringify(narrowTaxLabelBox)})`);
-  await page.screenshot({ path: screenshotName('phone-320-three-rows'), fullPage: true });
-
   // Switch back to Single and confirm existing panels and mascot remain visible at desktop width.
   await page.setViewportSize({ width: 1440, height: 1300 });
   await page.waitForTimeout(150);
