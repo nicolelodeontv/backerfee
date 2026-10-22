@@ -1805,3 +1805,8 @@ html[data-theme="dark"] .adjustment-callout-icon {
 @media (min-width: 521px) {
   .batch-adj-field:nth-child(n + 4) .batch-adj-label { min-height: 0; }
 }
+
+/* Keep the three top-line Batch adjustment inputs aligned below equal-height labels. */
+@media (min-width: 521px) {
+  .batch-adj-field:nth-child(-n + 3) .batch-adj-label { min-height: 36px; }
+}
