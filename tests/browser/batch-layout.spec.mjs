@@ -299,7 +299,7 @@ try {
     `Batch status text should not wrap beyond two readable lines in the two-column cards: ${JSON.stringify(statusMetrics)}`);
 
   const realValueNote = await note.inputValue();
-  const realValueLines = realValueNote.split('\\n').filter((line) => /^".+" cards: \\$/i.test(line));
+  const realValueLines = realValueNote.split('\n').filter((line) => /^".+" cards: \$/i.test(line));
   assert.equal(realValueLines.length, 4,
     'Real-value note should still include exactly one fee line per valid row');
   assert.deepEqual(realValueLines.map((line) => line.match(/^"([^"]+)" cards:/)?.[1]),
