@@ -160,6 +160,12 @@ try {
   // At phone width, ensure both the rows and document avoid horizontal overflow.
   await page.setViewportSize({ width: 375, height: 900 });
   await page.waitForTimeout(150);
+  const phoneNoteSize = await note.evaluate((el) => ({
+    clientHeight: el.clientHeight,
+    scrollHeight: el.scrollHeight
+  }));
+  assert.ok(phoneNoteSize.scrollHeight <= phoneNoteSize.clientHeight + 2,
+    `Generated note should expand after resizing to phone width (clientHeight=${phoneNoteSize.clientHeight}, scrollHeight=${phoneNoteSize.scrollHeight})`);
   const overflow = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
     document: document.documentElement.scrollWidth,
@@ -177,7 +183,9 @@ try {
   }
   await page.screenshot({ path: screenshotName('phone-375-three-rows'), fullPage: true });
 
-  // Switch back to Single and confirm existing panels and mascot remain visible.
+  // Switch back to Single and confirm existing panels and mascot remain visible at desktop width.
+  await page.setViewportSize({ width: 1440, height: 1300 });
+  await page.waitForTimeout(150);
   await page.locator('#modeSingleBtn').click();
   await page.waitForFunction(() => document.querySelector('#batchPanel').hidden);
   assert.equal(await page.locator('.history-card').isVisible(), true, 'Single-mode note panel should remain visible');
