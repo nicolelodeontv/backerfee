@@ -49,6 +49,13 @@ jobs:
           BASE_URL: http://127.0.0.1:4173/
           SCREENSHOT_DIR: artifacts/source
         run: node tests/browser/batch-layout.spec.mjs
+      
+      - name: Try Chromium checks against the Vercel preview
+        continue-on-error: true
+        env:
+          BASE_URL: https://backerfee-git-feat-batch-two-column-layout-meow-7e9e.vercel.app/
+          SCREENSHOT_DIR: artifacts/preview
+        run: node tests/browser/batch-layout.spec.mjs
 
       - name: Upload browser screenshots
         if: always()
