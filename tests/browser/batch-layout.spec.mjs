@@ -258,6 +258,66 @@ try {
   const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
   assert.equal(clipboardText, noteText, 'Copy Note should copy the complete generated note');
 
+  // Exercise a realistic large amount, blank Card names, and status text in the two-column Batch layout.
+  await rows.nth(0).locator('.batch-name').fill('');
+  await rows.nth(1).locator('.batch-name').fill('');
+  await rows.nth(2).locator('.batch-name').fill('Premium');
+  await rows.nth(3).locator('.batch-name').fill('');
+  const largeAmount = rows.nth(0).locator('.batch-adj-amount');
+  const largeShipping = rows.nth(0).locator('.batch-adj-ship');
+  await largeAmount.fill('1124.88');
+  await largeShipping.fill('0');
+  await page.waitForFunction(() =>
+    document.querySelector('#batchRows .batch-row .batch-adj-total')?.value === '1234.56'
+  );
+  const largeTotal = rows.nth(0).locator('.batch-adj-total');
+  assert.equal(await largeTotal.inputValue(), '1234.56',
+    'A large Total Adjustment should calculate to $1,234.56');
+  const largeTotalBox = await largeTotal.boundingBox();
+  assert.ok(largeTotalBox && largeTotalBox.width >= 70,
+    `Large Total Adjustment needs enough input width to display its value (box=${JSON.stringify(largeTotalBox)})`);
+  const largeStatus = rows.nth(0).locator('.batch-adj-status');
+  const statusText = await largeStatus.textContent();
+  assert.ok(statusText.includes('Enter $1,124.88 as the Amount in Minted.'),
+    'Large-value status should show the exact Amount to enter in Minted');
+  assert.ok(statusText.includes('Total Adjustment: $1,234.56.'),
+    'Large-value status should show the formatted Total Adjustment');
+  const statusMetrics = await rows.evaluateAll((els) => els.map((row) => {
+    const status = row.querySelector('.batch-adj-status');
+    const style = getComputedStyle(status);
+    const box = status.getBoundingClientRect();
+    const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.5;
+    return {
+      text: status.textContent,
+      width: Math.round(box.width),
+      height: Math.round(box.height),
+      lineHeight: Math.round(lineHeight),
+      estimatedLines: Math.max(1, Math.round(box.height / lineHeight))
+    };
+  }));
+  assert.ok(statusMetrics.every((item) => item.height <= item.lineHeight * 2 + 2),
+    `Batch status text should not wrap beyond two readable lines in the two-column cards: ${JSON.stringify(statusMetrics)}`);
+
+  const realValueNote = await note.inputValue();
+  const realValueLines = realValueNote.split('\\n').filter((line) => /^".+" cards: \\$/i.test(line));
+  assert.equal(realValueLines.length, 4,
+    'Real-value note should still include exactly one fee line per valid row');
+  assert.deepEqual(realValueLines.map((line) => line.match(/^"([^"]+)" cards:/)?.[1]),
+    ['Card 1', 'Card 2', 'Premium', 'Card 4'],
+    'Blank Card names should fall back to Card 1, Card 2, and subsequent row numbers');
+  assert.ok(realValueLines[0].includes('$1,234.56'),
+    'Generated note should include the large Total Adjustment for row 1');
+  console.log('Batch real-value status metrics: ' + JSON.stringify(statusMetrics));
+  await page.screenshot({ path: screenshotName('batch-real-values-1440'), fullPage: true, animations: 'disabled' });
+  await rows.nth(0).screenshot({ path: screenshotName('batch-real-values-first-row'), animations: 'disabled' });
+
+  // Restore the original names/amounts so the remaining reflow and copy checks retain their existing fixture.
+  for (let i = 0; i < 4; i += 1) {
+    await rows.nth(i).locator('.batch-name').fill(`Row ${i + 1}`);
+  }
+  await rows.nth(0).locator('.batch-adj-amount').fill('100');
+  await rows.nth(0).locator('.batch-adj-ship').fill('3.50');
+
   // Removing a row should preserve the remaining order and reflow the third row left.
   await rows.nth(3).locator('.batch-remove').click();
   assert.equal(await rows.count(), 3, 'Removing row 4 should leave three rows');
