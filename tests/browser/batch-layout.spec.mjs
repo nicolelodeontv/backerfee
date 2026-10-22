@@ -61,8 +61,14 @@ try {
   for (let i = 0; i < 4; i += 1) {
     const row = rows.nth(i);
     await row.locator('.batch-name').fill(`Row ${i + 1}`);
-    await row.locator('.batch-price').fill(prices[i]);
-    await row.locator('.batch-discount').fill(discounts[i]);
+    const rowPrice = row.locator('.batch-price');
+    await rowPrice.fill(prices[i]);
+    assert.equal(await rowPrice.evaluate((el) => document.activeElement === el), true,
+      `Row ${i + 1} price should retain focus while recalculating`);
+    const rowDiscount = row.locator('.batch-discount');
+    await rowDiscount.fill(discounts[i]);
+    assert.equal(await rowDiscount.evaluate((el) => document.activeElement === el), true,
+      `Row ${i + 1} discount should retain focus while recalculating`);
     assert.equal(await row.locator('.batch-result-final').textContent(), `$${expectedFinalFees[i]}`,
       `Row ${i + 1} should calculate its own final fee`);
     assert.equal(await row.locator('.batch-adj-amount').inputValue(), expectedFinalFees[i],
@@ -114,8 +120,14 @@ try {
   // Restore row 1 and test that Amount and Shipping change only that row.
   await firstPrice.fill('100');
   await rows.nth(0).locator('.batch-discount').fill('10');
-  await rows.nth(0).locator('.batch-adj-amount').fill('100');
-  await rows.nth(0).locator('.batch-adj-ship').fill('3.50');
+  const rowOneAmount = rows.nth(0).locator('.batch-adj-amount');
+  await rowOneAmount.fill('100');
+  assert.equal(await rowOneAmount.evaluate((el) => document.activeElement === el), true,
+    'Amount should retain focus while recalculating');
+  const rowOneShipping = rows.nth(0).locator('.batch-adj-ship');
+  await rowOneShipping.fill('3.50');
+  assert.equal(await rowOneShipping.evaluate((el) => document.activeElement === el), true,
+    'Shipping should retain focus while recalculating');
   assert.equal(await rows.nth(0).locator('.batch-adj-amount').inputValue(), '100');
   assert.equal(await rows.nth(0).locator('.batch-adj-total').inputValue(), '113.25',
     'Row 1 total should use its entered Amount and Shipping plus 9.75% tax');
@@ -129,6 +141,13 @@ try {
   }
   const rowLineCount = noteText.split('\n').filter((line) => /"Row \d+" cards: \$/.test(line)).length;
   assert.equal(rowLineCount, 4, 'Generated note should contain one fee line per valid row');
+
+  const rowsBox = await page.locator('#batchRows').boundingBox();
+  const noteBox = await page.locator('.batch-note').boundingBox();
+  assert.ok(rowsBox && noteBox && noteBox.y >= rowsBox.y + rowsBox.height - 2,
+    'Generated note should remain below the full batch row grid');
+  assert.ok(rowsBox && noteBox && noteBox.width >= rowsBox.width - 2,
+    'Generated note should use the full width of the batch row grid');
 
   await page.screenshot({ path: screenshotName('desktop-1440-four-rows'), fullPage: true });
   await page.locator('#copyAllNotesBtn').click();
@@ -179,7 +198,7 @@ try {
   }
   for (let i = 0; i < 5; i += 1) {
     const inputBox = await adjustmentFields.nth(i).locator('.input-wrap input').first().boundingBox();
-    assert.ok(inputBox && inputBox.width >= 48, `Phone adjustment field ${i + 1} needs a usable input width`);
+    assert.ok(inputBox && inputBox.width >= 100, `Phone adjustment field ${i + 1} needs enough width to read currency values`);
   }
   const phoneAdjustmentBoxes = await positions(adjustmentFields);
   assertSameLine(phoneAdjustmentBoxes[0], phoneAdjustmentBoxes[1], 'Phone Amount and Tax should share the first adjustment line');
