@@ -49,6 +49,44 @@ jobs:
           BASE_URL: http://127.0.0.1:4173/
           SCREENSHOT_DIR: artifacts/source
         run: node tests/browser/batch-layout.spec.mjs
+
+      - name: Wait for production page and mascot assets
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          PRODUCTION_URL: https://backerfee.vercel.app/
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=0
+          status=000
+          for i in $(seq 1 36); do
+            status=$(curl --location --silent --show-error --max-time 15 -o /tmp/backerfee-production.html -w '%{http_code}' "$PRODUCTION_URL" 2>/dev/null || true)
+            if [[ "$status" == "200" ]] && grep -q 'id="modeBatchBtn"' /tmp/backerfee-production.html; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          if [[ "$ready" != "1" ]]; then
+            echo "Production page did not become available with the Batch UI (last HTTP status: $status)."
+            exit 1
+          fi
+
+          for asset in mascots/afro-directions.webp mascots/afro-reactions.webp; do
+            asset_status=$(curl --location --silent --show-error --max-time 20 -o /tmp/$(basename "$asset") -w '%{http_code}' "$PRODUCTION_URL$asset")
+            if [[ "$asset_status" != "200" ]] || [[ ! -s "/tmp/$(basename "$asset")" ]]; then
+              echo "Production asset failed: $asset (HTTP $asset_status)."
+              exit 1
+            fi
+          done
+
+      - name: Run Chromium checks against production
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          BASE_URL: https://backerfee.vercel.app/
+          SCREENSHOT_DIR: artifacts/production
+        run: node tests/browser/batch-layout.spec.mjs
+
       
       - name: Upload browser screenshots
         if: always()
