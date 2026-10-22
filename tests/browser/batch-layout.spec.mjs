@@ -15,7 +15,8 @@ function screenshotName(name) {
 
 async function positions(rows) {
   const boxes = [];
-  for (let i = 0; i < rows.count(); i += 1) {
+  const count = await rows.count();
+  for (let i = 0; i < count; i += 1) {
     boxes.push(await rows.nth(i).boundingBox());
   }
   return boxes;
