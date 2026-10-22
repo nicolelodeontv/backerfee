@@ -51,6 +51,63 @@ try {
 
   const response = await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
   assert.equal(response?.status(), 200, `App returned HTTP ${response?.status()}`);
+
+  // The same approval callout exists in Single and Batch modes.
+  const callouts = page.locator('.adjustment-callout');
+  assert.equal(await callouts.count(), 2, 'Single and Batch should share the same approval notice');
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
+  const lightCalloutStyles = await callouts.evaluateAll((els) => els.map((el) => {
+    const icon = el.querySelector('.adjustment-callout-icon');
+    const style = getComputedStyle(el);
+    const iconStyle = getComputedStyle(icon);
+    return {
+      background: style.backgroundColor,
+      color: style.color,
+      borderColor: style.borderTopColor,
+      borderLeftWidth: style.borderLeftWidth,
+      iconBackground: iconStyle.backgroundColor,
+      iconColor: iconStyle.color,
+      animationName: iconStyle.animationName
+    };
+  }));
+  for (const styles of lightCalloutStyles) {
+    assert.equal(styles.background, 'rgb(255, 241, 214)', 'Light callout should use a warm cream background');
+    assert.equal(styles.color, 'rgb(122, 42, 5)', 'Light callout text should be dark brown');
+    assert.equal(styles.borderColor, 'rgb(245, 158, 11)', 'Light callout should use an amber border');
+    assert.equal(styles.borderLeftWidth, '8px', 'Light callout should have the thick amber left bar');
+    assert.equal(styles.iconBackground, 'rgb(220, 38, 38)', 'Light callout icon should use red');
+    assert.equal(styles.iconColor, 'rgb(255, 255, 255)', 'Light callout icon should have white text');
+    assert.equal(styles.animationName, 'callout-pulse', 'Light callout icon should pulse');
+  }
+
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+  const darkCalloutStyles = await callouts.evaluateAll((els) => els.map((el) => {
+    const icon = el.querySelector('.adjustment-callout-icon');
+    const style = getComputedStyle(el);
+    const iconStyle = getComputedStyle(icon);
+    return {
+      backgroundImage: style.backgroundImage,
+      color: style.color,
+      borderColor: style.borderTopColor,
+      iconBackground: iconStyle.backgroundColor,
+      iconColor: iconStyle.color,
+      animationName: iconStyle.animationName
+    };
+  }));
+  for (const styles of darkCalloutStyles) {
+    assert.ok(styles.backgroundImage.includes('linear-gradient'), 'Dark callout should use an amber-red gradient');
+    assert.equal(styles.color, 'rgb(255, 243, 214)', 'Dark callout text should use warm white');
+    assert.equal(styles.borderColor, 'rgb(251, 191, 36)', 'Dark callout should use a brighter amber border');
+    assert.equal(styles.iconBackground, 'rgb(245, 158, 11)', 'Dark callout icon should use amber');
+    assert.equal(styles.iconColor, 'rgb(31, 19, 0)', 'Dark callout icon should use dark text');
+    assert.equal(styles.animationName, 'callout-pulse-dark', 'Dark callout icon should use the amber pulse');
+  }
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  assert.equal(await page.locator('.adjustment-callout-icon').first().evaluate((el) => getComputedStyle(el).animationName),
+    'none', 'Reduced-motion preference should disable the callout pulse');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length >= 2, null, { timeout: 15000 });
 
   if (isProduction) {
