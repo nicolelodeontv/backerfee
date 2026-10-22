@@ -77,6 +77,10 @@ function fitNote(el) {
   el.style.height = (el.scrollHeight + 2) + 'px';
 }
 
+window.addEventListener('resize', () => {
+  fitNote(currentMode === 'batch' ? batchNoteText : noteText);
+});
+
 function prefersReducedMotion() {
   return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 }
@@ -634,14 +638,16 @@ function renderBatchRows(rows) {
       '<div class="batch-card-name"><label><span>Card name</span>' +
       '<input class="batch-name" type="text" maxlength="60" autocomplete="off" placeholder="e.g. Standard" aria-label="Card name"></label></div>' +
       '<div class="batch-row-main">' +
-        '<div class="batch-field"><span class="input-wrap"><span class="prefix" aria-hidden="true">$</span>' +
+        '<div class="batch-field"><span class="batch-cell-label">Original price</span>' +
+        '<span class="input-wrap"><span class="prefix" aria-hidden="true">$</span>' +
         '<input class="batch-price" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Original price"></span>' +
         '<small class="error batch-error" role="alert"></small></div>' +
-        '<div class="batch-field"><span class="input-wrap"><input class="batch-discount" type="number" min="0" max="100" step="0.01" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Discount percentage">' +
+        '<div class="batch-field"><span class="batch-cell-label">Discount</span>' +
+        '<span class="input-wrap"><input class="batch-discount" type="number" min="0" max="100" step="0.01" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Discount percentage">' +
         '<span class="suffix" aria-hidden="true">%</span></span>' +
         '<small class="error batch-discount-error" role="alert"></small></div>' +
-        '<div class="batch-result">$0.00</div>' +
-        '<div class="batch-result batch-result-final">$0.00</div>' +
+        '<div class="batch-cell"><span class="batch-cell-label">Discount amount</span><div class="batch-result">$0.00</div></div>' +
+        '<div class="batch-cell"><span class="batch-cell-label">Final fee</span><div class="batch-result batch-result-final">$0.00</div></div>' +
         '<button type="button" class="batch-remove" data-action="remove-batch-row" aria-label="Remove row" title="Remove row">×</button>' +
       '</div>' +
       '<div class="batch-adjust">' +
