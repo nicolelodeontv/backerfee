@@ -1842,3 +1842,15 @@ html[data-theme="dark"] .adjustment-callout-icon {
     align-self: flex-start;
   }
 }
+
+/* Single: put Copy before the input so every amount field keeps its aligned right edge. */
+.adjustment-row > .adj-copy-btn { order: 1; }
+.adjustment-row > .adjustment-value-input { order: 2; }
+
+/* Batch: align the labels and inputs for the two fields on the second line. */
+@media (min-width: 521px) {
+  .batch-adj-field:nth-child(n + 4) .batch-adj-label {
+    min-height: 26px;
+    align-items: center;
+  }
+}

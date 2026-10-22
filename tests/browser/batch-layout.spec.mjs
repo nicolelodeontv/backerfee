@@ -202,9 +202,14 @@ try {
     `Amount, Tax Based on Shipping Zip, and Subtotal inputs should align on one line (y=${topLineInputY.join(', ')})`);
   for (const index of [3, 4]) {
     const labelHeight = await adjustmentFields.nth(index).locator('.batch-adj-label').evaluate((el) => getComputedStyle(el).minHeight);
-    assert.equal(labelHeight, '0px',
-      `Batch second-line field ${index + 1} should not reserve extra label height`);
+    assert.equal(labelHeight, '26px',
+      `Batch second-line field ${index + 1} should reserve the shared 26px label height`);
   }
+  const secondLineInputBoxes = await Promise.all([3, 4].map(async (index) =>
+    adjustmentFields.nth(index).locator('.input-wrap input').first().boundingBox()));
+  assert.ok(secondLineInputBoxes.every(Boolean), 'Shipping and Total Adjustment inputs should have layout boxes');
+  assert.ok(Math.abs(secondLineInputBoxes[0].y - secondLineInputBoxes[1].y) <= 1,
+    `Batch Shipping and Total Adjustment inputs should align at the same height (boxes=${JSON.stringify(secondLineInputBoxes)})`);
   const taxLabel = adjustmentFields.nth(1).locator('.batch-adj-label');
   assert.ok(await taxLabel.isVisible(), 'Tax label and checkbox row should remain visible');
   assert.ok(await taxLabel.locator('.adj-check input').isVisible(), 'Include Tax checkbox should remain visible');
@@ -490,22 +495,35 @@ try {
     'Single-mode Copy Note action should be at the bottom right, with status on the left');
   // Check Single-mode copy buttons using a calculated fee and Total Adjustment.
   await page.locator('#backer').fill('100');
-  await page.locator('#discount').fill('10');
+  await page.locator('#discount').fill('20');
   await page.waitForFunction(() =>
-    document.querySelector('#adjAmount').value === '90.00' &&
-    document.querySelector('#adjTotal').value === '98.78'
+    document.querySelector('#adjAmount').value === '80.00' &&
+    document.querySelector('#adjTotal').value === '87.80'
   );
+  const singleInputBoxes = await page.locator('#adjustmentCard .adjustment-row').evaluateAll((rows) =>
+    rows.map((row) => row.querySelector('.adjustment-value-input input')?.getBoundingClientRect()).filter(Boolean)
+      .map((box) => ({ x: box.x, right: box.right, width: box.width }))
+  );
+  assert.equal(singleInputBoxes.length, 5, 'Single mode should have all five Financial Adjustment inputs');
+  assert.ok(Math.max(...singleInputBoxes.map((box) => box.width)) - Math.min(...singleInputBoxes.map((box) => box.width)) <= 1,
+    `Single Amount and Total Adjustment should be as wide as the other fields (boxes=${JSON.stringify(singleInputBoxes)})`);
+  for (const selector of ['#adjAmount', '#adjTotal']) {
+    const inputBox = await page.locator(selector).boundingBox();
+    const buttonBox = await page.locator(`.adj-copy-btn[data-copy-from="${selector}"]`).boundingBox();
+    assert.ok(inputBox && buttonBox && buttonBox.x < inputBox.x,
+      `Single ${selector} Copy button should sit to the left of the input`);
+  }
   const singleAmountCopy = page.locator('.adj-copy-btn[data-copy-from="#adjAmount"]');
   const singleTotalCopy = page.locator('.adj-copy-btn[data-copy-from="#adjTotal"]');
   assert.equal(await singleAmountCopy.count(), 1, 'Single mode should have one Amount copy button');
   assert.equal(await singleTotalCopy.count(), 1, 'Single mode should have one Total Adjustment copy button');
   await singleAmountCopy.click();
   await page.waitForFunction(() => document.querySelector('.adj-copy-btn[data-copy-from="#adjAmount"]')?.textContent.trim() === 'Copied ✓');
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '90.00',
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '80.00',
     'Single Amount copy should copy a plain number');
   await singleTotalCopy.click();
   await page.waitForFunction(() => document.querySelector('.adj-copy-btn[data-copy-from="#adjTotal"]')?.textContent.trim() === 'Copied ✓');
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '98.78',
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '87.80',
     'Single Total Adjustment copy should copy a plain number');
 
   await page.screenshot({ path: screenshotName('single-mode-1440'), fullPage: true });
