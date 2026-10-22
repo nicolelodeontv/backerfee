@@ -1611,8 +1611,6 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
     display: none;
   }
 
-  .batch-adjust-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .batch-adj-field:last-child { grid-column: 1 / -1; }
 }
 
 
