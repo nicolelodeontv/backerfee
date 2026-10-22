@@ -57,7 +57,7 @@ try {
     for (const path of ['mascots/afro-directions.webp', 'mascots/afro-reactions.webp']) {
       const asset = await page.request.get(new URL(path, baseUrl).toString(), { timeout: 20000 });
       assert.equal(asset.status(), 200, `Production mascot asset should load: ${path}`);
-      assert.match(asset.headers()['content-type'] || '', /image\\/webp/i,
+      assert.match(asset.headers()['content-type'] || '', /image\/webp/i,
         `Production mascot asset should be served as WebP: ${path}`);
       assert.ok((await asset.body()).byteLength > 1000, `Production mascot asset should not be empty: ${path}`);
     }
