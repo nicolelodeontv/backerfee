@@ -1686,3 +1686,37 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
     align-content: flex-start;
   }
 }
+
+/* Single mode: two columns with the generated note below the calculator. */
+@media (min-width: 901px) {
+  .dashboard-card { grid-template-columns: minmax(0, 1fr); }
+  .calculator-card { grid-column: 1 / -1; }
+
+  .calculator-card form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "heading heading"
+      "trust trust"
+      "details results"
+      "details adjustment";
+    gap: 0 24px;
+  }
+  .calculator-card form > .section-heading { grid-area: heading; margin-bottom: 18px; }
+  .calculator-card form > .local-trust { grid-area: trust; justify-self: start; }
+  .calculator-card form > .field-grid { grid-area: details; }
+  .calculator-card form > .results { grid-area: results; }
+  .calculator-card form > .adjustment-card { grid-area: adjustment; }
+
+  .dashboard-card > .history-card {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+    padding: 0;
+    border-left: 0;
+  }
+
+  .history-card .note-panel textarea { min-height: 260px; }
+  .history-card .note-actions {
+    flex-direction: row-reverse;
+    justify-content: space-between;
+  }
+}
