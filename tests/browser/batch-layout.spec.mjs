@@ -294,10 +294,16 @@ try {
     'Single-mode generated note should sit below the calculator');
   assert.ok(singleNoteBox.width > singleCalculatorBox.width * 0.9,
     'Single-mode generated note should span nearly the full calculator width');
-  assert.ok(singleDetailsBox.x < singleResultsBox.x,
-    'Single-mode entry fields should sit to the left of calculation results');
-  assert.ok(singleAdjustmentBox.x >= singleResultsBox.x - 2,
-    'Single-mode Financial Adjustment should sit below results in the right column');
+  assert.ok(Math.abs(singleDetailsBox.x - singleResultsBox.x) < 3,
+    'Single-mode results should align beneath the entry fields in the left column');
+  assert.ok(singleResultsBox.y >= singleDetailsBox.y + singleDetailsBox.height + 8,
+    'Single-mode results should sit beneath the discount presets');
+  assert.ok(singleAdjustmentBox.x > singleDetailsBox.x + singleDetailsBox.width * 0.7,
+    'Single-mode Financial Adjustment should occupy the right column');
+  assert.ok(Math.abs(singleAdjustmentBox.y - singleDetailsBox.y) < 3,
+    'Single-mode Financial Adjustment should begin level with the entry fields');
+  assert.ok(singleAdjustmentBox.height > singleDetailsBox.height,
+    'Single-mode Financial Adjustment should be the taller right-side column');
   assert.equal(await page.locator('.calculator-card form').evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length), 2,
     'Single-mode desktop form should have two columns');
   assert.ok(await page.locator('.history-card .note-panel textarea').evaluate((el) => parseFloat(getComputedStyle(el).minHeight) >= 260),
