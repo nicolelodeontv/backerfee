@@ -181,6 +181,7 @@
         <span class="prefix" aria-hidden="true">$</span>
         <input type="number" id="adjAmount" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-describedby="adjStatus">
       </div>
+      <button type="button" class="adj-copy-btn" data-copy-from="#adjAmount" aria-label="Copy Amount">Copy</button>
     </div>
     <div class="adjustment-row tax">
       <label class="adjustment-row-label" for="adjTax">Tax Based on Shipping Zip</label>
@@ -212,6 +213,7 @@
         <span class="prefix" aria-hidden="true">$</span>
         <input type="number" id="adjTotal" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated total adjustment">
       </div>
+      <button type="button" class="adj-copy-btn" data-copy-from="#adjTotal" aria-label="Copy Total Adjustment">Copy</button>
     </div>
   </div>
 
