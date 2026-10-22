@@ -654,12 +654,14 @@ function renderBatchRows(rows) {
         '<div class="batch-adjust-head"><div><span class="section-kicker">FINANCIAL ADJUSTMENT</span><h3>Minted entry</h3></div>' +
         '<span class="adjustment-target-label">Fixed tax: 9.75%</span></div>' +
         '<div class="batch-adjust-grid">' +
-          adjField('Amount (enter in Minted)', '<input class="batch-adj-amount" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Amount to enter in Minted">') +
+          adjField('Amount (enter in Minted)', '<input class="batch-adj-amount" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Amount to enter in Minted">',
+            '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-amount" aria-label="Copy Amount">Copy</button>') +
           adjField('Tax Based on Shipping Zip', '<input class="batch-adj-tax" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Tax based on fixed 9.75% rate">',
             '<label class="adj-check">Include Tax: <input type="checkbox" checked disabled></label>') +
           adjField('Subtotal', '<input class="batch-adj-subtotal" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated subtotal">') +
           adjField('Shipping Adjustment', '<input class="batch-adj-ship" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Shipping adjustment">') +
-          adjField('Total Adjustment', '<input class="batch-adj-total" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated total adjustment">') +
+          adjField('Total Adjustment', '<input class="batch-adj-total" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated total adjustment">',
+            '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-total" aria-label="Copy Total Adjustment">Copy</button>') +
         '</div>' +
         '<p class="adjustment-status batch-adj-status" role="status" aria-live="polite">Enter a price and discount to see the Minted adjustment.</p>' +
       '</div>';
@@ -1187,6 +1189,41 @@ document.addEventListener('keydown', (event) => {
       first.focus();
     }
   }
+});
+
+
+function flashCopyButton(button, text, ok = true) {
+  if (!button.dataset.label) button.dataset.label = button.textContent;
+  button.textContent = text;
+  button.classList.toggle('is-copied', ok);
+  window.setTimeout(() => {
+    button.textContent = button.dataset.label;
+    button.classList.remove('is-copied');
+  }, 1200);
+}
+
+document.addEventListener('click', async (event) => {
+  const button = event.target.closest('.adj-copy-btn');
+  if (!button) return;
+
+  // In Batch, look inside this row only; in Single, look in the whole page.
+  const scope = button.closest('.batch-adjust') || document;
+  const value = scope.querySelector(button.dataset.copyFrom)?.value.trim();
+  if (!value) {
+    flashCopyButton(button, 'Empty', false);
+    return;
+  }
+
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+    await navigator.clipboard.writeText(value);
+  } catch (_) {
+    if (!fallbackCopy(value)) {
+      flashCopyButton(button, 'Failed', false);
+      return;
+    }
+  }
+  flashCopyButton(button, 'Copied ✓');
 });
 
 loadSettings();

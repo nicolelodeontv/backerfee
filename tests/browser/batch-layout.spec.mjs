@@ -141,6 +141,11 @@ try {
   const rows = page.locator('#batchRows .batch-row');
   assert.equal(await rows.count(), 4, 'Batch should have four rows after adding two');
 
+  const emptyAmountCopy = rows.nth(0).locator('.adj-copy-btn[aria-label="Copy Amount"]');
+  await emptyAmountCopy.click();
+  assert.equal((await emptyAmountCopy.textContent()).trim(), 'Empty',
+    'Copy Amount should show Empty when the field has no value');
+
   const prices = ['100', '200', '300', '400'];
   const discounts = ['10', '20', '30', '40'];
   const expectedFinalFees = ['90.00', '160.00', '210.00', '240.00'];
@@ -307,6 +312,37 @@ try {
     'Blank Card names should fall back to Card 1, Card 2, and subsequent row numbers');
   assert.ok(realValueLines[0].includes('$1,234.56'),
     'Generated note should include the large Total Adjustment for row 1');
+
+  const rowOneAmountCopy = rows.nth(0).locator('.adj-copy-btn[aria-label="Copy Amount"]');
+  await rowOneAmountCopy.click();
+  await page.waitForFunction(() =>
+    document.querySelector('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Amount"]')?.textContent.trim() === 'Copied ✓'
+  );
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '1124.88',
+    'Batch Amount copy should copy a plain number without currency symbol or commas');
+  const rowTwoAmountCopy = rows.nth(1).locator('.adj-copy-btn[aria-label="Copy Amount"]');
+  await rowTwoAmountCopy.click();
+  await page.waitForFunction(() =>
+    document.querySelectorAll('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Amount"]')[1]?.textContent.trim() === 'Copied ✓'
+  );
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '160.00',
+    'Each Batch Amount button should copy its own row value');
+
+  const rowOneTotalCopy = rows.nth(0).locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]');
+  await rowOneTotalCopy.click();
+  await page.waitForFunction(() =>
+    document.querySelector('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Total Adjustment"]')?.textContent.trim() === 'Copied ✓'
+  );
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '1234.56',
+    'Batch Total Adjustment copy should copy a plain number without currency symbol or commas');
+  const rowTwoTotalCopy = rows.nth(1).locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]');
+  await rowTwoTotalCopy.click();
+  await page.waitForFunction(() =>
+    document.querySelectorAll('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Total Adjustment"]')[1]?.textContent.trim() === 'Copied ✓'
+  );
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '175.60',
+    'Each Batch Total Adjustment button should copy its own row value');
+
   console.log('Batch real-value status metrics: ' + JSON.stringify(statusMetrics));
   await page.screenshot({ path: screenshotName('batch-real-values-1440'), fullPage: true, animations: 'disabled' });
   await rows.nth(0).screenshot({ path: screenshotName('batch-real-values-first-row'), animations: 'disabled' });
@@ -452,6 +488,26 @@ try {
     'Single-mode desktop note textarea should have a 260px minimum height');
   assert.equal(await page.locator('.history-card .note-actions').evaluate((el) => getComputedStyle(el).flexDirection), 'row-reverse',
     'Single-mode Copy Note action should be at the bottom right, with status on the left');
+  // Check Single-mode copy buttons using a calculated fee and Total Adjustment.
+  await page.locator('#backer').fill('100');
+  await page.locator('#discount').fill('10');
+  await page.waitForFunction(() =>
+    document.querySelector('#adjAmount').value === '90.00' &&
+    document.querySelector('#adjTotal').value === '98.78'
+  );
+  const singleAmountCopy = page.locator('.adj-copy-btn[data-copy-from="#adjAmount"]');
+  const singleTotalCopy = page.locator('.adj-copy-btn[data-copy-from="#adjTotal"]');
+  assert.equal(await singleAmountCopy.count(), 1, 'Single mode should have one Amount copy button');
+  assert.equal(await singleTotalCopy.count(), 1, 'Single mode should have one Total Adjustment copy button');
+  await singleAmountCopy.click();
+  await page.waitForFunction(() => document.querySelector('.adj-copy-btn[data-copy-from="#adjAmount"]')?.textContent.trim() === 'Copied ✓');
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '90.00',
+    'Single Amount copy should copy a plain number');
+  await singleTotalCopy.click();
+  await page.waitForFunction(() => document.querySelector('.adj-copy-btn[data-copy-from="#adjTotal"]')?.textContent.trim() === 'Copied ✓');
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '98.78',
+    'Single Total Adjustment copy should copy a plain number');
+
   await page.screenshot({ path: screenshotName('single-mode-1440'), fullPage: true });
 
   assert.deepEqual(errors, [], `Browser should not emit runtime errors: ${errors.join('; ')}`);
@@ -465,6 +521,7 @@ try {
       'Amount and Shipping isolate to their own row',
       'three-column Financial Adjustment at desktop width',
       'generated note has one line per row and copies completely',
+      'Single and row-scoped Batch Amount/Total Adjustment copy buttons copy plain numbers with feedback',
       'remove-row reflow leaves the third row in the left column',
       'single-column layout at 1100px',
       'no horizontal overflow at 375px and 320px',
@@ -478,7 +535,9 @@ try {
       'tablet-1100-three-rows.png',
       'phone-375-three-rows.png',
       'phone-320-three-rows.png',
-      'single-mode-1440.png'
+      'single-mode-1440.png',
+      'batch-real-values-1440.png',
+      'batch-real-values-first-row.png'
     ]
   }, null, 2));
   await context.close();

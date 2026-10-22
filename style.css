@@ -1810,3 +1810,35 @@ html[data-theme="dark"] .adjustment-callout-icon {
 @media (min-width: 521px) {
   .batch-adj-field:nth-child(-n + 3) .batch-adj-label { min-height: 36px; }
 }
+
+.adj-copy-btn {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
+  color: var(--button-soft-text);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+  transition: background .18s ease, border-color .18s ease, color .18s ease;
+}
+.adj-copy-btn:hover { border-color: var(--accent); }
+.adj-copy-btn.is-copied {
+  border-color: var(--success);
+  background: var(--success);
+  color: #0f1f16;
+}
+
+/* Let the long Batch Amount label wrap beside its Copy button without making that label row taller. */
+@media (min-width: 521px) {
+  .batch-adj-field:first-child .batch-adj-label > span:first-child {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .batch-adj-field:first-child .batch-adj-label .adj-copy-btn {
+    align-self: flex-start;
+  }
+}
