@@ -150,6 +150,48 @@ try {
     'Discount Amount should use the number pop-in markup');
   assert.ok(await page.locator('#total .t-digit-group').count(),
     'Final Backer Fee should use the number pop-in markup');
+  // Guard against digit spans being restyled as the result label and making the boxes multi-line.
+  await page.waitForTimeout(360);
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+  const singleResultMetrics = {};
+  for (const selector of ['#result', '#total']) {
+    singleResultMetrics[selector] = await page.locator(selector).evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      const styles = getComputedStyle(el);
+      const group = el.querySelector('.t-digit-group');
+      const digit = el.querySelector('.t-digit');
+      const groupStyles = group ? getComputedStyle(group) : null;
+      const digitStyles = digit ? getComputedStyle(digit) : null;
+      return {
+        height: rect.height,
+        fontSize: parseFloat(styles.fontSize),
+        lineHeight: styles.lineHeight,
+        whiteSpace: styles.whiteSpace,
+        text: el.textContent,
+        groupDisplay: groupStyles?.display,
+        digitDisplay: digitStyles?.display,
+        digitFontSize: digitStyles?.fontSize,
+        digitColor: digitStyles?.color,
+        digitWebkitTextFillColor: digitStyles?.webkitTextFillColor,
+        parentBackgroundImage: styles.backgroundImage,
+        parentWebkitTextFillColor: styles.webkitTextFillColor
+      };
+    });
+    const metrics = singleResultMetrics[selector];
+    assert.ok(metrics.height <= Math.max(metrics.fontSize * 1.8, 48),
+      `${selector} should remain one line tall, got ${JSON.stringify(metrics)}`);
+    assert.equal(metrics.whiteSpace, 'nowrap', `${selector} must prevent animated digits from wrapping`);
+    assert.equal(metrics.groupDisplay, 'inline-block', `${selector} digit group should stay inline`);
+    assert.equal(metrics.digitDisplay, 'inline-block', `${selector} digits should override the generic result label span rule`);
+    assert.equal(metrics.digitFontSize, metrics.fontSize + 'px',
+      `${selector} digits should inherit the full-sized amount font`);
+  }
+  assert.ok(singleResultMetrics['#total'].parentBackgroundImage.includes('linear-gradient'),
+    'Final Backer Fee should retain its purple gradient background');
+  assert.match(singleResultMetrics['#total'].parentWebkitTextFillColor, /transparent|rgba\\(0, 0, 0, 0\\)/,
+    'Final Backer Fee should retain transparent text fill for the gradient');
+  await page.screenshot({ path: screenshotName('single-mode-digit-layout-dark'), fullPage: true });
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   assert.equal(await page.locator('#adjTotal').inputValue(), '87.80',
     'Total Adjustment value and tax math must remain unchanged');
   assert.equal(await page.locator('#adjTotal').evaluate((el) => el.classList.contains('t-number-field-pop')), true,
