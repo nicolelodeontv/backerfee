@@ -150,6 +150,8 @@ try {
     'Discount Amount should use the number pop-in markup');
   assert.ok(await page.locator('#total .t-digit-group').count(),
     'Final Backer Fee should use the number pop-in markup');
+  assert.equal(await page.locator('#adjTotal').evaluate((el) => el.classList.contains('t-number-field-pop')), true,
+    'Total Adjustment input should receive its pop-in cue');
   // Guard against digit spans being restyled as the result label and making the boxes multi-line.
   await page.waitForTimeout(360);
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
@@ -197,8 +199,6 @@ try {
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   assert.equal(await page.locator('#adjTotal').inputValue(), '87.80',
     'Total Adjustment value and tax math must remain unchanged');
-  assert.equal(await page.locator('#adjTotal').evaluate((el) => el.classList.contains('t-number-field-pop')), true,
-    'Total Adjustment input should receive its pop-in cue');
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.locator('#discount').fill('25');
