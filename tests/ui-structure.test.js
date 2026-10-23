@@ -199,7 +199,7 @@ test('defines every Batch validation and formatting helper used at startup and w
     assert.match(script, new RegExp('function ' + functionName + '\\('));
   }
   assert.ok(script.includes('function renderBatchRows(rows)') && script.includes('function formatBatchPrice(input)'));
-  assert.ok(script.includes('function calculateBatch()') && script.includes('function setBatchFieldError(input, errorElement, message)'));
+  assert.ok(script.includes('function calculateBatch()') && script.includes('function setBatchFieldError(input, errorElement, message, { shake = false } = {})'));
   assert.ok(script.includes('function calculateBatch()') && script.includes('function validateBatchRow(row,'));
   assert.ok(script.includes("console.error('Batch calculation failed:', error)"));
 });
@@ -267,10 +267,14 @@ test('installs transitions.dev motion recipes with reduced-motion support', () =
 
   assert.match(skill, /name: transitions-dev/);
   assert.equal(lock.skills['transitions-dev'].source, 'Jakubantalik/transitions.dev');
-  assert.match(script, /function setDigitDisplay\(element, value\)/);
+  assert.match(script, /function setDigitDisplay\(element, value, \{ restart = false \} = \{\}\)/);
+  assert.match(script, /if \(restart\) scheduleDigitAnimation\(element, previousStableText, nextText\)/);
   assert.match(script, /function setPopInputValue\(input, value\)/);
+  assert.match(script, /const MOTION_INPUT_PAUSE_MS = 200/);
+  assert.match(script, /function renderDigitAnimation\(element, previousText, nextText\)/);
+  assert.match(script, /function clearPopInputMotion\(input\)/);
   assert.match(script, /function setCopyButtonText\(button, nextText\)/);
-  assert.match(script, /function setInputMotionError\(input, hasError\)/);
+  assert.match(script, /function setInputMotionError\(input, hasError, \{ shake = false \} = \{\}\)/);
   assert.match(script, /function replayPanelReveal\(panel\)/);
 
   for (const selector of [
