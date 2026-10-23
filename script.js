@@ -93,19 +93,17 @@ function motionMilliseconds(name, fallback) {
   return raw.endsWith('s') && !raw.endsWith('ms') ? value * 1000 : value;
 }
 
-function setInputMotionError(input, hasError) {
+function setInputMotionError(input, hasError, { shake = false } = {}) {
   if (!input) return;
   if (hasError) input.classList.add('t-input');
-  const wasError = input.classList.contains('is-error');
   input.classList.toggle('is-error', Boolean(hasError));
 
-  if (!hasError) {
+  if (!hasError || !shake || prefersReducedMotion()) {
     if (input._shakeTimer) window.clearTimeout(input._shakeTimer);
     input._shakeTimer = null;
     input.classList.remove('is-shaking');
     return;
   }
-  if (wasError || prefersReducedMotion()) return;
 
   if (input._shakeTimer) window.clearTimeout(input._shakeTimer);
   input.classList.remove('is-shaking');
@@ -161,11 +159,23 @@ function loadSettings() {
   }
 }
 
-function setCustomDiscountError(message) {
+function setCustomDiscountError(message, { shake = false } = {}) {
   const hasError = Boolean(message);
   customDiscountInput.setAttribute('aria-invalid', hasError ? 'true' : 'false');
   customDiscountError.textContent = message;
-  setInputMotionError(customDiscountInput, hasError);
+  setInputMotionError(customDiscountInput, hasError, { shake });
+}
+
+function validateCustomDiscount({ shake = false } = {}) {
+  const raw = customDiscountInput.value.trim();
+  const discount = Number(raw);
+  const valid = Boolean(raw) && DECIMAL_PATTERN.test(raw) &&
+    Number.isFinite(discount) && discount >= 0 && discount <= 100;
+  const message = valid
+    ? ''
+    : 'Enter a custom discount from 0% to 100%, with up to 2 decimals.';
+  setCustomDiscountError(message, { shake });
+  return valid;
 }
 
 function renderCustomPreset() {
@@ -239,14 +249,14 @@ function applyTheme(theme, { animate = false } = {}) {
   themeBtn.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
 }
 
-function setFieldError(input, errorId, message) {
+function setFieldError(input, errorId, message, { shake = false } = {}) {
   const hasError = Boolean(message);
   const field = input.closest('.field');
   const error = document.getElementById(errorId);
   field.classList.toggle('invalid', hasError);
   error.textContent = message;
   input.setAttribute('aria-invalid', hasError ? 'true' : 'false');
-  setInputMotionError(input, hasError);
+  setInputMotionError(input, hasError, { shake });
 }
 
 function readValues() {
@@ -269,7 +279,7 @@ function readValues() {
   };
 }
 
-function validate({ showErrors = false } = {}) {
+function validate({ showErrors = false, shakeErrors = false } = {}) {
   const values = readValues();
 
   const backerMessage = values.validBacker
@@ -280,13 +290,13 @@ function validate({ showErrors = false } = {}) {
     : 'Enter a discount from 0% to 100%, with up to 2 decimals.';
 
   if (showErrors || values.backerRaw) {
-    setFieldError(backerInput, 'backerError', backerMessage);
+    setFieldError(backerInput, 'backerError', backerMessage, { shake: shakeErrors });
   } else {
     setFieldError(backerInput, 'backerError', '');
   }
 
   if (showErrors || values.discountRaw) {
-    setFieldError(discountInput, 'discountError', discountMessage);
+    setFieldError(discountInput, 'discountError', discountMessage, { shake: shakeErrors });
   } else {
     setFieldError(discountInput, 'discountError', '');
   }
@@ -296,15 +306,17 @@ function validate({ showErrors = false } = {}) {
     : null;
 }
 
-function setDigitDisplay(element, value) {
-  const nextText = String(value);
-  const previousText = element.textContent.replace(/\s+/g, '');
-  if (previousText === nextText) return;
-  if (prefersReducedMotion()) {
-    element.textContent = nextText;
-    return;
-  }
+const MOTION_INPUT_PAUSE_MS = 200;
 
+function cancelDigitDisplay(element, value = element.textContent) {
+  if (element._digitAnimationTimer) window.clearTimeout(element._digitAnimationTimer);
+  element._digitAnimationTimer = null;
+  const nextText = String(value);
+  element.textContent = nextText;
+  element._digitStableText = nextText.replace(/\s+/g, '');
+}
+
+function renderDigitAnimation(element, previousText, nextText) {
   let same = 0;
   while (same < previousText.length && same < nextText.length && previousText[same] === nextText[same]) {
     same += 1;
@@ -325,6 +337,66 @@ function setDigitDisplay(element, value) {
   element.replaceChildren(group);
   void group.offsetHeight;
   group.classList.add('is-animating');
+  element._digitStableText = nextText;
+}
+
+function scheduleDigitAnimation(element, previousStableText, nextText) {
+  if (element._digitAnimationTimer) window.clearTimeout(element._digitAnimationTimer);
+  element._digitAnimationTimer = null;
+  if (prefersReducedMotion() || !previousStableText || previousStableText === nextText) {
+    element.textContent = nextText;
+    element._digitStableText = nextText;
+    return;
+  }
+
+  element._digitAnimationTimer = window.setTimeout(() => {
+    element._digitAnimationTimer = null;
+    if (element.textContent.replace(/\s+/g, '') !== nextText) return;
+    if (prefersReducedMotion()) {
+      element.textContent = nextText;
+      element._digitStableText = nextText;
+      return;
+    }
+    renderDigitAnimation(element, previousStableText, nextText);
+  }, MOTION_INPUT_PAUSE_MS);
+}
+
+function setDigitDisplay(element, value, { restart = false } = {}) {
+  const nextText = String(value);
+  const visibleText = element.textContent.replace(/\s+/g, '');
+  const previousStableText = element._digitStableText ?? visibleText;
+
+  if (visibleText === nextText) {
+    if (restart) scheduleDigitAnimation(element, previousStableText, nextText);
+    return;
+  }
+
+  element._digitStableText = previousStableText;
+  element.textContent = nextText;
+  scheduleDigitAnimation(element, previousStableText, nextText);
+}
+
+function clearPopInputMotion(input) {
+  if (input._digitPopDebounceTimer) window.clearTimeout(input._digitPopDebounceTimer);
+  if (input._digitPopTimer) window.clearTimeout(input._digitPopTimer);
+  input._digitPopDebounceTimer = null;
+  input._digitPopTimer = null;
+  input.classList.remove('t-number-field-pop');
+}
+
+function schedulePopInputAnimation(input, nextValue) {
+  input._digitPopDebounceTimer = window.setTimeout(() => {
+    input._digitPopDebounceTimer = null;
+    if (input.value !== nextValue || prefersReducedMotion()) return;
+
+    input.classList.remove('t-number-field-pop');
+    void input.offsetWidth;
+    input.classList.add('t-number-field-pop');
+    input._digitPopTimer = window.setTimeout(() => {
+      input.classList.remove('t-number-field-pop');
+      input._digitPopTimer = null;
+    }, motionMilliseconds('--digit-dur', 320) + 40);
+  }, MOTION_INPUT_PAUSE_MS);
 }
 
 function setPopInputValue(input, value) {
@@ -332,29 +404,32 @@ function setPopInputValue(input, value) {
   const previousValue = input.value;
   input.value = nextValue;
 
-  if (!nextValue || previousValue === nextValue || prefersReducedMotion()) {
-    if (input._digitPopTimer) window.clearTimeout(input._digitPopTimer);
-    input._digitPopTimer = null;
-    input.classList.remove('t-number-field-pop');
+  if (!nextValue) {
+    clearPopInputMotion(input);
+    return;
+  }
+  if (prefersReducedMotion()) {
+    clearPopInputMotion(input);
+    return;
+  }
+  if (previousValue === nextValue) {
+    if (input._digitPopDebounceTimer) {
+      window.clearTimeout(input._digitPopDebounceTimer);
+      input._digitPopDebounceTimer = null;
+      schedulePopInputAnimation(input, nextValue);
+    } else if (input._digitPopTimer) {
+      clearPopInputMotion(input);
+      schedulePopInputAnimation(input, nextValue);
+    }
     return;
   }
 
-  if (input._digitPopTimer) window.clearTimeout(input._digitPopTimer);
-  input.classList.remove('t-number-field-pop');
-  void input.offsetWidth;
-  input.classList.add('t-number-field-pop');
-  input._digitPopTimer = window.setTimeout(() => {
-    input.classList.remove('t-number-field-pop');
-    input._digitPopTimer = null;
-  }, motionMilliseconds('--digit-dur', 320) + 40);
+  clearPopInputMotion(input);
+  schedulePopInputAnimation(input, nextValue);
 }
 
 function animateMoney(element, from, to) {
-  if (from === to) {
-    element.textContent = money(to);
-    return;
-  }
-  setDigitDisplay(element, money(to));
+  setDigitDisplay(element, money(to), { restart: from === to });
 }
 
 function updateResults(data) {
@@ -402,8 +477,7 @@ function applyBatchAdjustment(row, data) {
     subtotalOut.value = '';
     totalOut.value = '';
     totalOut.classList.remove('t-number-field-pop');
-    if (totalOut._digitPopTimer) window.clearTimeout(totalOut._digitPopTimer);
-    totalOut._digitPopTimer = null;
+    clearPopInputMotion(totalOut);
     status.textContent = message;
     status.classList.remove('is-success', 'is-warning');
     if (warn) status.classList.add('is-warning');
@@ -437,8 +511,7 @@ function clearAdjustmentResults() {
   adjSubtotal.value = '';
   adjTotal.value = '';
   adjTotal.classList.remove('t-number-field-pop');
-  if (adjTotal._digitPopTimer) window.clearTimeout(adjTotal._digitPopTimer);
-  adjTotal._digitPopTimer = null;
+  clearPopInputMotion(adjTotal);
 }
 
 // Live: runs whenever Amount or Shipping changes.
@@ -653,12 +726,12 @@ function formatBatchPrice(input) {
   input.value = priceFormatter.format(value);
 }
 
-function setBatchFieldError(input, errorElement, message) {
+function setBatchFieldError(input, errorElement, message, { shake = false } = {}) {
   const hasError = Boolean(message);
   input.setAttribute('aria-invalid', hasError ? 'true' : 'false');
   errorElement.textContent = message;
   input.closest('.batch-field')?.classList.toggle('invalid', hasError);
-  setInputMotionError(input, hasError);
+  setInputMotionError(input, hasError, { shake });
 }
 
 function clampBatchDiscount(input) {
@@ -676,7 +749,7 @@ function clampBatchDiscount(input) {
   return '';
 }
 
-function validateBatchRow(row, { showErrors = false } = {}) {
+function validateBatchRow(row, { showErrors = false, shakeErrors = false } = {}) {
   const values = getBatchInputValues(row);
   const priceError = values.validBacker
     ? ''
@@ -690,12 +763,14 @@ function validateBatchRow(row, { showErrors = false } = {}) {
   setBatchFieldError(
     values.priceInput,
     priceErrorElement,
-    showErrors || values.priceInput.value ? priceError : ''
+    showErrors || values.priceInput.value ? priceError : '',
+    { shake: shakeErrors }
   );
   setBatchFieldError(
     values.discountInput,
     discountErrorElement,
-    showErrors || values.discountInput.value ? discountError : ''
+    showErrors || values.discountInput.value ? discountError : '',
+    { shake: shakeErrors }
   );
 
   return values.validBacker && values.validDiscount ? values : null;
@@ -772,7 +847,7 @@ function renderBatchRows(rows) {
 
     priceInput.addEventListener('blur', () => {
       formatBatchPrice(priceInput);
-      validateBatchRow(row, { showErrors: true });
+      validateBatchRow(row, { showErrors: true, shakeErrors: true });
     });
 
     priceInput.addEventListener('keydown', (event) => {
@@ -792,7 +867,7 @@ function renderBatchRows(rows) {
     });
 
     discountInputForRow.addEventListener('blur', () => {
-      validateBatchRow(row, { showErrors: true });
+      validateBatchRow(row, { showErrors: true, shakeErrors: true });
     });
 
     discountInputForRow.addEventListener('keydown', (event) => {
@@ -808,7 +883,17 @@ function renderBatchRows(rows) {
       row.dataset.amountEdited = '1';
       calculateBatch();
     });
+    amountInput.addEventListener('blur', () => {
+      calculateBatch();
+      const value = readAdjustmentField(amountInput);
+      setInputMotionError(amountInput, !value.ok, { shake: true });
+    });
     shipInput.addEventListener('input', () => calculateBatch());
+    shipInput.addEventListener('blur', () => {
+      calculateBatch();
+      const value = readAdjustmentField(shipInput);
+      setInputMotionError(shipInput, !value.ok, { shake: true });
+    });
   });
 
   calculateBatch();
@@ -827,8 +912,8 @@ function calculateBatch() {
     const hasAnyInput = Boolean(priceInput.value.trim() || discountInput.value.trim());
 
     const clearRow = () => {
-      discountBox.textContent = '$0.00';
-      finalBox.textContent = '$0.00';
+      cancelDigitDisplay(discountBox, '$0.00');
+      cancelDigitDisplay(finalBox, '$0.00');
       amountInput.value = '';
       row.dataset.amountEdited = '';
       applyBatchAdjustment(row, null);
@@ -1170,6 +1255,13 @@ resetBtn.addEventListener('click', requestReset);
   });
 });
 [adjAmount, adjShipInput].forEach((el) => {
+  el.addEventListener('blur', () => {
+    computeAdjustment();
+    const value = readAdjustmentField(el);
+    setInputMotionError(el, !value.ok, { shake: true });
+  });
+});
+[adjAmount, adjShipInput].forEach((el) => {
   el.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -1223,7 +1315,11 @@ document.querySelectorAll('.preset-btn').forEach((button) => {
 saveCustomPresetBtn.addEventListener('click', saveCustomPreset);
 
 customDiscountInput.addEventListener('input', () => {
-  setCustomDiscountError('');
+  validateCustomDiscount();
+});
+
+customDiscountInput.addEventListener('blur', () => {
+  validateCustomDiscount({ shake: true });
 });
 
 customDiscountInput.addEventListener('keydown', (event) => {
@@ -1248,7 +1344,7 @@ backerInput.addEventListener('input', () => {
 
 backerInput.addEventListener('blur', () => {
   formatBackerInput();
-  validate({ showErrors: true });
+  validate({ showErrors: true, shakeErrors: true });
 });
 
 backerInput.addEventListener('keydown', (event) => {
@@ -1267,7 +1363,7 @@ discountInput.addEventListener('input', () => {
 });
 
 discountInput.addEventListener('blur', () => {
-  validate({ showErrors: true });
+  validate({ showErrors: true, shakeErrors: true });
 });
 
 discountInput.addEventListener('keydown', (event) => {
