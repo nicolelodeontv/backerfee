@@ -65,7 +65,6 @@ let batchRowId = 0;
 let batchResults = [];
 let lastResetSnapshot = null;
 let resultsAnimationTimer = null;
-const resultAnimationFrames = new Map();
 let displayedResults = {
   discountAmount: 0,
   discountedPrice: 0
@@ -297,34 +296,65 @@ function validate({ showErrors = false } = {}) {
     : null;
 }
 
-function animateMoney(element, from, to) {
-  const existingFrame = resultAnimationFrames.get(element);
-  if (existingFrame) cancelAnimationFrame(existingFrame);
-
-  if (prefersReducedMotion() || from === to) {
-    element.textContent = money(to);
-    resultAnimationFrames.delete(element);
+function setDigitDisplay(element, value) {
+  const nextText = String(value);
+  const previousText = element.textContent.replace(/\s+/g, '');
+  if (previousText === nextText) return;
+  if (prefersReducedMotion()) {
+    element.textContent = nextText;
     return;
   }
 
-  const startTime = performance.now();
-  const duration = 300;
+  let same = 0;
+  while (same < previousText.length && same < nextText.length && previousText[same] === nextText[same]) {
+    same += 1;
+  }
 
-  const renderFrame = (now) => {
-    const progress = Math.min((now - startTime) / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    const value = from + ((to - from) * eased);
-    element.textContent = money(value);
+  const group = document.createElement('span');
+  group.className = 't-digit-group';
+  nextText.split('').forEach((character, index, characters) => {
+    const digit = document.createElement('span');
+    digit.className = 't-digit';
+    digit.textContent = character;
+    if (index < same) digit.dataset.same = '';
+    if (index === characters.length - 2) digit.dataset.stagger = '1';
+    else if (index === characters.length - 1) digit.dataset.stagger = '2';
+    group.appendChild(digit);
+  });
 
-    if (progress < 1) {
-      resultAnimationFrames.set(element, requestAnimationFrame(renderFrame));
-    } else {
-      element.textContent = money(to);
-      resultAnimationFrames.delete(element);
-    }
-  };
+  element.replaceChildren(group);
+  void group.offsetHeight;
+  group.classList.add('is-animating');
+}
 
-  resultAnimationFrames.set(element, requestAnimationFrame(renderFrame));
+function setPopInputValue(input, value) {
+  const nextValue = value === null || value === undefined ? '' : String(value);
+  const previousValue = input.value;
+  input.value = nextValue;
+
+  if (!nextValue || previousValue === nextValue || prefersReducedMotion()) {
+    if (input._digitPopTimer) window.clearTimeout(input._digitPopTimer);
+    input._digitPopTimer = null;
+    input.classList.remove('t-number-field-pop');
+    return;
+  }
+
+  if (input._digitPopTimer) window.clearTimeout(input._digitPopTimer);
+  input.classList.remove('t-number-field-pop');
+  void input.offsetWidth;
+  input.classList.add('t-number-field-pop');
+  input._digitPopTimer = window.setTimeout(() => {
+    input.classList.remove('t-number-field-pop');
+    input._digitPopTimer = null;
+  }, motionMilliseconds('--digit-dur', 320) + 40);
+}
+
+function animateMoney(element, from, to) {
+  if (from === to) {
+    element.textContent = money(to);
+    return;
+  }
+  setDigitDisplay(element, money(to));
 }
 
 function updateResults(data) {
