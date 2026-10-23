@@ -181,7 +181,10 @@ try {
 
   const emptyAmountCopy = rows.nth(0).locator('.adj-copy-btn[aria-label="Copy Amount"]');
   await emptyAmountCopy.click();
-  assert.equal((await emptyAmountCopy.textContent()).trim(), 'Empty',
+  await page.waitForFunction(() =>
+    document.querySelector('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Amount"] .t-text-swap')?.textContent.trim() === 'Empty'
+  );
+  assert.equal((await emptyAmountCopy.locator('.t-text-swap').textContent()).trim(), 'Empty',
     'Copy Amount should show Empty when the field has no value');
 
   const prices = ['100', '200', '300', '400'];
