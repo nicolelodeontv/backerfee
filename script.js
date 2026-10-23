@@ -401,6 +401,9 @@ function applyBatchAdjustment(row, data) {
     taxOut.value = '';
     subtotalOut.value = '';
     totalOut.value = '';
+    totalOut.classList.remove('t-number-field-pop');
+    if (totalOut._digitPopTimer) window.clearTimeout(totalOut._digitPopTimer);
+    totalOut._digitPopTimer = null;
     status.textContent = message;
     status.classList.remove('is-success', 'is-warning');
     if (warn) status.classList.add('is-warning');
@@ -411,6 +414,8 @@ function applyBatchAdjustment(row, data) {
   const ship = readAdjustmentField(shipInput);
   amountInput.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
   shipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
+  setInputMotionError(amountInput, !amount.ok);
+  setInputMotionError(shipInput, !ship.ok);
 
   if (!data || amount.empty) return clear('Enter a price and discount to see the Minted adjustment.');
   if (!amount.ok || !ship.ok) return clear('Fix the highlighted values (up to 2 decimals).', true);
@@ -418,7 +423,7 @@ function applyBatchAdjustment(row, data) {
   const adj = adjustmentCents(amount.value, ship.value);
   taxOut.value = (adj.taxCents / 100).toFixed(2);
   subtotalOut.value = (adj.subtotalCents / 100).toFixed(2);
-  totalOut.value = (adj.totalCents / 100).toFixed(2);
+  setPopInputValue(totalOut, (adj.totalCents / 100).toFixed(2));
   status.textContent = 'Enter ' + money(adj.amountCents / 100) + ' as the Amount in Minted. Total Adjustment: ' +
     money(adj.totalCents / 100) + '.';
   status.classList.remove('is-warning');
@@ -431,6 +436,9 @@ function clearAdjustmentResults() {
   adjTax.value = '';
   adjSubtotal.value = '';
   adjTotal.value = '';
+  adjTotal.classList.remove('t-number-field-pop');
+  if (adjTotal._digitPopTimer) window.clearTimeout(adjTotal._digitPopTimer);
+  adjTotal._digitPopTimer = null;
 }
 
 // Live: runs whenever Amount or Shipping changes.
@@ -440,6 +448,8 @@ function computeAdjustment() {
 
   adjAmount.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
   adjShipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
+  setInputMotionError(adjAmount, !amount.ok);
+  setInputMotionError(adjShipInput, !ship.ok);
   adjStatus.classList.remove('is-success', 'is-warning');
 
   const stop = (message, warn = false) => {
@@ -457,7 +467,7 @@ function computeAdjustment() {
 
   adjTax.value = (taxCents / 100).toFixed(2);
   adjSubtotal.value = (subtotalCents / 100).toFixed(2);
-  adjTotal.value = (totalCents / 100).toFixed(2);
+  setPopInputValue(adjTotal, (totalCents / 100).toFixed(2));
   adjStatus.textContent = 'Enter ' + money(amountCents / 100) + ' as the Amount in Minted. Total Adjustment: ' +
     money(totalCents / 100) + '.';
   adjStatus.classList.add('is-success');
@@ -840,8 +850,8 @@ function calculateBatch() {
 
     try {
       const resultData = calculateFee(values.backer, values.discount);
-      discountBox.textContent = money(resultData.discountAmount);
-      finalBox.textContent = money(resultData.discountedPrice);
+      setDigitDisplay(discountBox, money(resultData.discountAmount));
+      setDigitDisplay(finalBox, money(resultData.discountedPrice));
       if (row.dataset.amountEdited !== '1') amountInput.value = resultData.discountedPrice.toFixed(2);
       const adjustment = applyBatchAdjustment(row, resultData);
       const typedName = row.querySelector('.batch-name').value.trim();
