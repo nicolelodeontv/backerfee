@@ -2,6 +2,7 @@ import { buildCustomerNote, calculateAdjustment, calculateFee, formatMoney } fro
 
 const STORAGE_KEYS = {
   settings: 'backerfee-settings-v3',
+  batchDraft: 'backerfee-batch-draft-v1',
 };
 
 const TAX_RATE = 9.75; // % fixed, matches Minted's shipping ZIP tax
@@ -690,6 +691,65 @@ function batchRowsData() {
   }));
 }
 
+function saveBatchDraft(rows = batchRowsData()) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.batchDraft, JSON.stringify(rows.map((rowData) => ({
+      id: rowData.id,
+      name: rowData.name ?? '',
+      backer: rowData.backer ?? '',
+      discount: rowData.discount ?? '',
+      amount: rowData.amount ?? '',
+      ship: rowData.ship ?? '',
+      amountEdited: rowData.amountEdited === true
+    }))));
+  } catch (_) {}
+}
+
+function loadBatchDraft() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.batchDraft);
+    if (!raw) return null;
+
+    const savedRows = JSON.parse(raw);
+    if (!Array.isArray(savedRows) || savedRows.length === 0) {
+      throw new Error('Invalid Batch draft');
+    }
+
+    const usedIds = new Set();
+    const rows = savedRows.map((rowData, index) => {
+      if (!rowData || typeof rowData !== 'object' || Array.isArray(rowData)) {
+        throw new Error('Invalid Batch draft row');
+      }
+
+      let id = Number(rowData.id);
+      if (!Number.isSafeInteger(id) || id < 1 || usedIds.has(id)) {
+        id = index + 1;
+        while (usedIds.has(id)) id += 1;
+      }
+      usedIds.add(id);
+
+      const textValue = (value, maxLength = 64) =>
+        typeof value === 'string' ? value.slice(0, maxLength) : '';
+
+      return {
+        id,
+        name: textValue(rowData.name, 60),
+        backer: textValue(rowData.backer),
+        discount: textValue(rowData.discount),
+        amount: textValue(rowData.amount),
+        ship: textValue(rowData.ship),
+        amountEdited: rowData.amountEdited === true
+      };
+    });
+
+    batchRowId = rows.reduce((maxId, rowData) => Math.max(maxId, rowData.id), batchRowId);
+    return rows;
+  } catch (_) {
+    safeRemoveStorage(STORAGE_KEYS.batchDraft);
+    return null;
+  }
+}
+
 function getBatchInputValues(row) {
   const priceInput = row.querySelector('.batch-price');
   const discountInput = row.querySelector('.batch-discount');
@@ -963,6 +1023,7 @@ function calculateBatch() {
       ? results.length + ' row' + (results.length === 1 ? '' : 's') + ' calculated.'
       : 'Enter details in at least one row.');
 
+  saveBatchDraft();
   return results;
 }
 
@@ -1462,7 +1523,7 @@ loadSettings();
 applyUrlParams();
 renderCustomPreset();
 updatePresetState();
-renderBatchRows([createEmptyBatchRow(), createEmptyBatchRow()]);
+renderBatchRows(loadBatchDraft() ?? [createEmptyBatchRow(), createEmptyBatchRow()]);
 setMode('single');
 calculateBatch();
 
