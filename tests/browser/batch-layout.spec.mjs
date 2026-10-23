@@ -147,8 +147,109 @@ try {
   assert.equal(await restoredDraftRows.nth(1).locator('.batch-discount').inputValue(), '',
     'Refresh should keep an incomplete discount blank');
 
-  // Keep the rest of the layout suite's Batch state clean.
-  await page.evaluate(() => localStorage.removeItem('backerfee-batch-draft-v1'));
+  // Reset must persist an empty Batch draft across refreshes.
+  await page.locator('#resetBtn').click();
+  assert.equal(await page.locator('#confirmModal').isVisible(), true, 'Reset should ask for confirmation');
+  await page.locator('#confirmActionBtn').click();
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
+  await page.locator('#modeBatchBtn').click();
+  const resetRows = page.locator('#batchRows .batch-row');
+  assert.equal(await resetRows.count(), 2, 'Reset should leave the default two empty rows');
+  assert.equal(await resetRows.nth(0).locator('.batch-name').inputValue(), '', 'Reset should clear saved card names');
+  assert.equal(await resetRows.nth(0).locator('.batch-price').inputValue(), '', 'Reset should clear saved prices');
+  assert.equal(await resetRows.nth(0).locator('.batch-discount').inputValue(), '', 'Reset should clear saved discounts');
+  assert.equal(await page.locator('#batchNoteState').innerText(), 'Waiting for valid details',
+    'Reset should clear the generated customer note');
+
+  // Adding a row preserves the exact row count after refresh.
+  await resetRows.nth(0).locator('.batch-name').fill('Keep first');
+  await resetRows.nth(0).locator('.batch-price').fill('50');
+  await resetRows.nth(0).locator('.batch-discount').fill('15');
+  await resetRows.nth(1).locator('.batch-name').fill('Delete me');
+  await resetRows.nth(1).locator('.batch-price').fill('100');
+  await resetRows.nth(1).locator('.batch-discount').fill('20');
+  await page.locator('#addBatchRowBtn').click();
+  const threeDraftRows = page.locator('#batchRows .batch-row');
+  await threeDraftRows.nth(2).locator('.batch-name').fill('Keep third');
+  await threeDraftRows.nth(2).locator('.batch-price').fill('75');
+  await threeDraftRows.nth(2).locator('.batch-discount').fill('10');
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 3, null, { timeout: 15000 });
+  await page.locator('#modeBatchBtn').click();
+  const afterAddRows = page.locator('#batchRows .batch-row');
+  assert.equal(await afterAddRows.count(), 3, 'A newly added third row should survive refresh');
+  assert.equal(await afterAddRows.nth(2).locator('.batch-name').inputValue(), 'Keep third',
+    'The added row data should survive refresh');
+
+  // Removing a row also persists, without restoring the removed entry.
+  await afterAddRows.nth(1).locator('.batch-remove').click();
+  assert.equal(await page.locator('#batchRows .batch-row').count(), 2, 'Removing one of three rows should leave two');
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
+  await page.locator('#modeBatchBtn').click();
+  const afterRemoveRows = page.locator('#batchRows .batch-row');
+  assert.deepEqual(await afterRemoveRows.locator('.batch-name').evaluateAll((els) => els.map((el) => el.value)),
+    ['Keep first', 'Keep third'], 'Refresh should not bring back the removed row');
+
+  // Single-mode settings persist separately from Batch draft data.
+  await page.locator('#modeSingleBtn').click();
+  await page.locator('#backer').fill('100');
+  await page.locator('#discount').fill('20');
+  await page.locator('#adjShip').fill('2.00');
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
+  assert.equal(await page.locator('#backer').inputValue(), '100', 'Single original price should restore after refresh');
+  assert.equal(await page.locator('#discount').inputValue(), '20', 'Single discount should restore after refresh');
+  assert.equal(Number(await page.locator('#adjShip').inputValue()), 2, 'Single Shipping Adjustment should restore separately');
+  await page.locator('#modeBatchBtn').click();
+  const afterSingleRestoreRows = page.locator('#batchRows .batch-row');
+  assert.deepEqual(await afterSingleRestoreRows.locator('.batch-name').evaluateAll((els) => els.map((el) => el.value)),
+    ['Keep first', 'Keep third'], 'Restoring Single mode must not overwrite the saved Batch draft');
+
+  // Invalid saved data must be discarded without breaking page startup.
+  const errorsBeforeBadDraft = errors.length;
+  await page.evaluate(() => localStorage.setItem('backerfee-batch-draft-v1', 'garbage'));
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
+  await page.locator('#modeBatchBtn').click();
+  const afterBadDraftRows = page.locator('#batchRows .batch-row');
+  assert.equal(await afterBadDraftRows.count(), 2, 'Invalid saved data should fall back to two empty rows');
+  assert.equal(await afterBadDraftRows.nth(0).locator('.batch-name').inputValue(), '',
+    'Invalid saved data should not restore old names');
+  assert.equal(await afterBadDraftRows.nth(0).locator('.batch-price').inputValue(), '',
+    'Invalid saved data should not restore old prices');
+  assert.equal(await page.locator('#batchNoteState').innerText(), 'Waiting for valid details',
+    'Invalid saved data should not break note initialization');
+  assert.equal(errors.length, errorsBeforeBadDraft, 'Invalid saved data should not create a browser runtime error');
+  const repairedDraft = await page.evaluate(() => {
+    try { return Array.isArray(JSON.parse(localStorage.getItem('backerfee-batch-draft-v1'))); }
+    catch (_) { return false; }
+  });
+  assert.equal(repairedDraft, true, 'The malformed draft should be replaced by valid saved data');
+
+  // An unnamed card's warning and generated note survive refresh.
+  await afterBadDraftRows.nth(0).locator('.batch-price').fill('50');
+  await afterBadDraftRows.nth(0).locator('.batch-discount').fill('15');
+  assert.equal(await page.locator('#batchNoteState').innerText(), '1 card name missing',
+    'A calculated card with no name should show the missing-name warning');
+  assert.match(await page.locator('#batchNoteText').inputValue(), /"Card 1" cards: \$46\.64/,
+    'The generated note should include the fallback card name and recomputed Total');
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
+  await page.locator('#modeBatchBtn').click();
+  assert.equal(await page.locator('#batchNoteState').innerText(), '1 card name missing',
+    'The missing-name warning should return after refresh');
+  assert.equal(await page.locator('#batchRows .batch-row').first().locator('.batch-name').evaluate((el) =>
+    el.classList.contains('needs-name')), true, 'The restored unnamed card should be highlighted');
+  assert.match(await page.locator('#batchNoteText').inputValue(), /"Card 1" cards: \$46\.64/,
+    'The restored note should contain the recomputed fee after refresh');
+
+  // Keep the rest of the layout suite's state clean.
+  await page.evaluate(() => {
+    localStorage.removeItem('backerfee-batch-draft-v1');
+    localStorage.removeItem('backerfee-settings-v3');
+  });
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
 
