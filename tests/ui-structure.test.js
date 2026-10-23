@@ -293,3 +293,14 @@ test('installs transitions.dev motion recipes with reduced-motion support', () =
   assert.match(html, /data-copy-from="#adjAmount"[^>]*><span class="t-text-swap">Copy<\/span>/);
   assert.match(html, /data-copy-from="#adjTotal"[^>]*><span class="t-text-swap">Copy<\/span>/);
 });
+
+
+test('persists Batch draft rows locally across refreshes', () => {
+  assert.match(script, /batchDraft:\s*'backerfee-batch-draft-v1'/);
+  assert.match(script, /function saveBatchDraft\(rows = batchRowsData\(\)\)/);
+  assert.match(script, /function loadBatchDraft\(\)/);
+  assert.match(script, /localStorage\.setItem\(STORAGE_KEYS\.batchDraft/);
+  assert.match(script, /localStorage\.getItem\(STORAGE_KEYS\.batchDraft\)/);
+  assert.match(script, /saveBatchDraft\(\);\s*return results;/);
+  assert.match(script, /renderBatchRows\(loadBatchDraft\(\) \?\? \[createEmptyBatchRow\(\), createEmptyBatchRow\(\)\]\)/);
+});
