@@ -188,8 +188,11 @@ try {
   }
   assert.ok(singleResultMetrics['#total'].parentBackgroundImage.includes('linear-gradient'),
     'Final Backer Fee should retain its purple gradient background');
-  assert.match(singleResultMetrics['#total'].parentWebkitTextFillColor, /transparent|rgba\\(0, 0, 0, 0\\)/,
+  assert.equal(singleResultMetrics['#total'].parentWebkitTextFillColor, 'rgba(0, 0, 0, 0)',
     'Final Backer Fee should retain transparent text fill for the gradient');
+  assert.equal(singleResultMetrics['#total'].digitWebkitTextFillColor,
+    singleResultMetrics['#total'].parentWebkitTextFillColor,
+    'Animated digits should inherit the gradient-compatible text fill');
   await page.screenshot({ path: screenshotName('single-mode-digit-layout-dark'), fullPage: true });
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   assert.equal(await page.locator('#adjTotal').inputValue(), '87.80',
