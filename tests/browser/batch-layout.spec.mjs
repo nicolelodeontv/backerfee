@@ -138,8 +138,14 @@ try {
     'Refresh should preserve a manually adjusted Amount');
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-ship').inputValue()), 1.25,
     'Refresh should preserve Shipping Adjustment');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.9,
+    'Refresh should recompute Tax from the restored manual Amount');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-subtotal').inputValue()), 43.9,
+    'Refresh should recompute Subtotal from the restored manual Amount and tax');
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 45.15,
-    'Refresh should recompute tax and Total Adjustment from the restored values');
+    'Refresh should recompute Total Adjustment from the restored values');
+  assert.ok((await page.locator('#batchNoteText').inputValue()).includes('"Invitation" cards: $45.15'),
+    'The restored customer note should use the recomputed Total Adjustment');
   assert.equal(await restoredDraftRows.nth(1).locator('.batch-name').inputValue(), 'Draft RSVP',
     'Refresh should preserve the card name in a partially entered row');
   assert.equal(Number(await restoredDraftRows.nth(1).locator('.batch-price').inputValue()), 100,
@@ -159,6 +165,12 @@ try {
   assert.equal(await resetRows.nth(0).locator('.batch-name').inputValue(), '', 'Reset should clear saved card names');
   assert.equal(await resetRows.nth(0).locator('.batch-price').inputValue(), '', 'Reset should clear saved prices');
   assert.equal(await resetRows.nth(0).locator('.batch-discount').inputValue(), '', 'Reset should clear saved discounts');
+  assert.deepEqual(await resetRows.locator('.batch-name').evaluateAll((els) => els.map((el) => el.value)), ['', ''],
+    'Reset should clear names in every Batch row');
+  assert.deepEqual(await resetRows.locator('.batch-price').evaluateAll((els) => els.map((el) => el.value)), ['', ''],
+    'Reset should clear prices in every Batch row');
+  assert.deepEqual(await resetRows.locator('.batch-discount').evaluateAll((els) => els.map((el) => el.value)), ['', ''],
+    'Reset should clear discounts in every Batch row');
   assert.equal(await page.locator('#batchNoteState').innerText(), 'Waiting for valid details',
     'Reset should clear the generated customer note');
 
@@ -219,6 +231,12 @@ try {
     'Invalid saved data should not restore old names');
   assert.equal(await afterBadDraftRows.nth(0).locator('.batch-price').inputValue(), '',
     'Invalid saved data should not restore old prices');
+  assert.deepEqual(await afterBadDraftRows.locator('.batch-name').evaluateAll((els) => els.map((el) => el.value)), ['', ''],
+    'Invalid saved data should produce empty names in every row');
+  assert.deepEqual(await afterBadDraftRows.locator('.batch-price').evaluateAll((els) => els.map((el) => el.value)), ['', ''],
+    'Invalid saved data should produce empty prices in every row');
+  assert.deepEqual(await afterBadDraftRows.locator('.batch-discount').evaluateAll((els) => els.map((el) => el.value)), ['', ''],
+    'Invalid saved data should produce empty discounts in every row');
   assert.equal(await page.locator('#batchNoteState').innerText(), 'Waiting for valid details',
     'Invalid saved data should not break note initialization');
   assert.equal(errors.length, errorsBeforeBadDraft, 'Invalid saved data should not create a browser runtime error');
