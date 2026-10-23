@@ -132,9 +132,47 @@ try {
       `Production Poppins font face should finish loading: ${JSON.stringify(loadedPoppins)}`);
   }
 
+  // Validate the transitions.dev motion: count pop-in, accessible errors, and reduced-motion behavior.
+  const singlePrice = page.locator('#backer');
+  await singlePrice.fill('bad');
+  assert.equal(await singlePrice.getAttribute('aria-invalid'), 'true',
+    'Invalid Single price should remain identified accessibly');
+  assert.equal(await singlePrice.evaluate((el) => el.classList.contains('is-shaking')), true,
+    'First invalid Single price should receive a shake cue');
+
+  await singlePrice.fill('100');
+  await page.locator('#discount').fill('20');
+  assert.equal((await page.locator('#result').innerText()).replace(/\\s+/g, ''), '$20.00',
+    'Discount Amount should retain its expected formatted value');
+  assert.equal((await page.locator('#total').innerText()).replace(/\\s+/g, ''), '$80.00',
+    'Final Backer Fee should retain its expected formatted value');
+  assert.ok(await page.locator('#result .t-digit-group').count(),
+    'Discount Amount should use the number pop-in markup');
+  assert.ok(await page.locator('#total .t-digit-group').count(),
+    'Final Backer Fee should use the number pop-in markup');
+  assert.equal(await page.locator('#adjTotal').inputValue(), '87.80',
+    'Total Adjustment value and tax math must remain unchanged');
+  assert.equal(await page.locator('#adjTotal').evaluate((el) => el.classList.contains('t-number-field-pop')), true,
+    'Total Adjustment input should receive its pop-in cue');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.locator('#discount').fill('25');
+  assert.equal((await page.locator('#total').innerText()).replace(/\\s+/g, ''), '$75.00',
+    'Reduced-motion calculation should still update the final fee');
+  assert.equal(await page.locator('#total .t-digit-group').count(), 0,
+    'Reduced-motion preference should bypass digit animations');
+  assert.equal(await page.locator('#adjTotal').evaluate((el) => el.classList.contains('t-number-field-pop')), false,
+    'Reduced-motion preference should bypass Total Adjustment pop-in');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.locator('#discount').fill('20');
+
   // Switch to Batch, add rows 3 and 4, and fill distinct values in all rows.
   await page.locator('#modeBatchBtn').click();
   await page.waitForFunction(() => !document.querySelector('#batchPanel').hidden);
+  assert.equal(await page.locator('.dashboard-card').getAttribute('data-open'), 'true',
+    'Dashboard panel should be open after switching to Batch');
+  assert.ok((await page.locator('.dashboard-card').evaluate((el) => getComputedStyle(el).transitionDuration)).includes('0.3s'),
+    'Dashboard panel reveal should keep its configured motion duration');
   await page.locator('#addBatchRowBtn').click();
   await page.locator('#addBatchRowBtn').click();
 
@@ -265,6 +303,9 @@ try {
   await page.screenshot({ path: screenshotName('desktop-1440-four-rows'), fullPage: true });
   await page.locator('#copyAllNotesBtn').click();
   await page.waitForFunction(() => document.querySelector('#batchStatus').textContent.includes('Customer note copied.'), null, { timeout: 8000 });
+  await page.waitForFunction(() => document.querySelector('#copyAllNotesBtn .t-text-swap')?.textContent === '✓ Copied', null, { timeout: 8000 });
+  assert.equal(await page.locator('#copyAllNotesBtn .t-text-swap').innerText(), '✓ Copied',
+    'Batch Copy Note should use the text-swap feedback label');
   const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
   assert.equal(clipboardText, noteText, 'Copy Note should copy the complete generated note');
 
@@ -470,6 +511,8 @@ try {
   await page.waitForTimeout(150);
   await page.locator('#modeSingleBtn').click();
   await page.waitForFunction(() => document.querySelector('#batchPanel').hidden);
+  assert.equal(await page.locator('.dashboard-card').getAttribute('data-open'), 'true',
+    'Dashboard panel should be open after switching back to Single');
   assert.equal(await page.locator('#modeSingleBtn').getAttribute('aria-selected'), 'true',
     'Single tab should be marked selected after returning from Batch');
   assert.equal(await page.locator('#modeBatchBtn').getAttribute('aria-selected'), 'false',
