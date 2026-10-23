@@ -185,7 +185,7 @@ test('automatically formats and recalculates Batch on restore and removes Calcul
   assert.doesNotMatch(html, /id="calculateBatchBtn"|Calculate all/);
   assert.doesNotMatch(script, /calculateBatchBtn/);
   assert.match(script, /if \(isBatch\) \{\s*batchRows\.querySelectorAll\('\.batch-price'\)\.forEach\(formatBatchPrice\);\s*calculateBatch\(\);\s*\}/);
-  assert.match(script, /renderBatchRows\(\[createEmptyBatchRow\(\), createEmptyBatchRow\(\)\]\);\s*setMode\('single'\);\s*calculateBatch\(\);/);
+  assert.match(script, /renderBatchRows\((?:loadBatchDraft\(\) \?\? )?\[createEmptyBatchRow\(\), createEmptyBatchRow\(\)\]\);\s*setMode\('single'\);\s*calculateBatch\(\);/);
 });
 
 
