@@ -110,6 +110,48 @@ try {
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length >= 2, null, { timeout: 15000 });
 
+  // Batch row fields and manual Amount/Shipping edits survive a full page refresh.
+  await page.locator('#modeBatchBtn').click();
+  const draftRows = page.locator('#batchRows .batch-row');
+  const invitationDraft = draftRows.nth(0);
+  await invitationDraft.locator('.batch-name').fill('Invitation');
+  await invitationDraft.locator('.batch-price').fill('50');
+  await invitationDraft.locator('.batch-discount').fill('15');
+  await invitationDraft.locator('.batch-adj-amount').fill('40.00');
+  await invitationDraft.locator('.batch-adj-ship').fill('1.25');
+  await draftRows.nth(1).locator('.batch-name').fill('Draft RSVP');
+  await draftRows.nth(1).locator('.batch-price').fill('100');
+
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
+  await page.locator('#modeBatchBtn').click();
+
+  const restoredDraftRows = page.locator('#batchRows .batch-row');
+  assert.equal(await restoredDraftRows.count(), 2, 'Refresh should preserve the number of Batch rows');
+  assert.equal(await restoredDraftRows.nth(0).locator('.batch-name').inputValue(), 'Invitation',
+    'Refresh should restore each card name');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-price').inputValue()), 50,
+    'Refresh should restore the original price');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-discount').inputValue()), 15,
+    'Refresh should restore the discount');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-amount').inputValue()), 40,
+    'Refresh should preserve a manually adjusted Amount');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-ship').inputValue()), 1.25,
+    'Refresh should preserve Shipping Adjustment');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 45.15,
+    'Refresh should recompute tax and Total Adjustment from the restored values');
+  assert.equal(await restoredDraftRows.nth(1).locator('.batch-name').inputValue(), 'Draft RSVP',
+    'Refresh should preserve the card name in a partially entered row');
+  assert.equal(Number(await restoredDraftRows.nth(1).locator('.batch-price').inputValue()), 100,
+    'Refresh should preserve a partially entered price');
+  assert.equal(await restoredDraftRows.nth(1).locator('.batch-discount').inputValue(), '',
+    'Refresh should keep an incomplete discount blank');
+
+  // Keep the rest of the layout suite's Batch state clean.
+  await page.evaluate(() => localStorage.removeItem('backerfee-batch-draft-v1'));
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
+
   if (isProduction) {
     for (const path of ['mascots/afro-directions.webp', 'mascots/afro-reactions.webp']) {
       const asset = await page.request.get(new URL(path, baseUrl).toString(), { timeout: 20000 });
