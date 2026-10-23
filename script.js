@@ -941,12 +941,7 @@ async function copyAllNotes() {
     }
   }
 
-  copyAllNotesBtn.textContent = '✓ Copied';
-  copyAllNotesBtn.classList.add('is-copied');
-  window.setTimeout(() => {
-    copyAllNotesBtn.textContent = 'Copy Note';
-    copyAllNotesBtn.classList.remove('is-copied');
-  }, 1500);
+  flashCopyButton(copyAllNotesBtn, '✓ Copied');
   batchStatus.textContent = 'Customer note copied.';
 }
 
@@ -958,8 +953,17 @@ function removeBatchRow(row) {
   calculateBatch();
 }
 
+function replayPanelReveal(panel) {
+  if (!panel || prefersReducedMotion()) return;
+  panel.dataset.open = 'false';
+  void panel.offsetHeight;
+  panel.dataset.open = 'true';
+}
+
 function setMode(mode) {
-  currentMode = mode === 'batch' ? 'batch' : 'single';
+  const nextMode = mode === 'batch' ? 'batch' : 'single';
+  const modeChanged = currentMode !== nextMode;
+  currentMode = nextMode;
   const isBatch = currentMode === 'batch';
 
   modeSingleBtn.setAttribute('aria-selected', isBatch ? 'false' : 'true');
@@ -989,6 +993,7 @@ function setMode(mode) {
 
   if (!isBatch) fitNote(noteText);
   if (isBatch) fitNote(batchNoteText);
+  if (modeChanged) replayPanelReveal(dashboardCard);
 }
 
 function showResetUndoToast() {
@@ -1037,16 +1042,47 @@ function fallbackCopy(text) {
   return copied;
 }
 
+function setCopyButtonText(button, nextText) {
+  const label = button.querySelector('.t-text-swap');
+  if (!label) {
+    button.textContent = nextText;
+    return;
+  }
+
+  const pending = textSwapTimers.get(label);
+  if (pending) window.clearTimeout(pending);
+  label.classList.remove('is-exit', 'is-enter-start');
+  if (label.textContent === nextText) return;
+  if (prefersReducedMotion()) {
+    label.textContent = nextText;
+    return;
+  }
+
+  label.classList.add('is-exit');
+  const duration = motionMilliseconds('--text-swap-dur', 150);
+  const timer = window.setTimeout(() => {
+    if (label.isConnected) {
+      label.textContent = nextText;
+      label.classList.remove('is-exit');
+      label.classList.add('is-enter-start');
+      void label.offsetHeight;
+      label.classList.remove('is-enter-start');
+    }
+    textSwapTimers.delete(label);
+  }, duration);
+  textSwapTimers.set(label, timer);
+}
+
 function restoreCopyButton() {
   if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
   copyFeedbackTimer = null;
-  copyBtn.textContent = 'Copy Note';
+  setCopyButtonText(copyBtn, 'Copy Note');
   copyBtn.classList.remove('is-copied');
 }
 
 function showCopyFeedback() {
   restoreCopyButton();
-  copyBtn.textContent = '✓ Copied';
+  setCopyButtonText(copyBtn, '✓ Copied');
   copyBtn.classList.add('is-copied');
   copyFeedbackTimer = window.setTimeout(() => {
     restoreCopyButton();
@@ -1287,13 +1323,19 @@ document.addEventListener('keydown', (event) => {
 
 
 function flashCopyButton(button, text, ok = true) {
-  if (!button.dataset.label) button.dataset.label = button.textContent;
-  button.textContent = text;
+  if (!button.dataset.label) {
+    button.dataset.label = button.querySelector('.t-text-swap')?.textContent ?? button.textContent;
+  }
+  setCopyButtonText(button, text);
   button.classList.toggle('is-copied', ok);
-  window.setTimeout(() => {
-    button.textContent = button.dataset.label;
+  const pending = copyFeedbackTimers.get(button);
+  if (pending) window.clearTimeout(pending);
+  const timer = window.setTimeout(() => {
+    setCopyButtonText(button, button.dataset.label);
     button.classList.remove('is-copied');
+    copyFeedbackTimers.delete(button);
   }, 1200);
+  copyFeedbackTimers.set(button, timer);
 }
 
 document.addEventListener('click', async (event) => {
