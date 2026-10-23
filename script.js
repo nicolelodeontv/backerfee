@@ -773,9 +773,11 @@ function calculateBatch() {
       finalBox.textContent = money(resultData.discountedPrice);
       if (row.dataset.amountEdited !== '1') amountInput.value = resultData.discountedPrice.toFixed(2);
       const adjustment = applyBatchAdjustment(row, resultData);
+      const typedName = row.querySelector('.batch-name').value.trim();
       results.push({
         rowId: Number(row.dataset.id),
-        name: row.querySelector('.batch-name').value.trim() || 'Card ' + (index + 1),
+        name: typedName || 'Card ' + (index + 1),
+        named: Boolean(typedName),
         data: resultData,
         adjustment
       });
@@ -817,6 +819,15 @@ function buildBatchNote(items) {
 }
 
 function updateBatchNote(results) {
+  const missing = results.filter((item) => !item.named).length;
+
+  document.querySelectorAll('.batch-row').forEach((row) => {
+    const input = row.querySelector('.batch-name');
+    const hasResult = results.some((item) => item.rowId === Number(row.dataset.id));
+    input.classList.toggle('needs-name', hasResult && !input.value.trim());
+  });
+  batchNoteState.classList.toggle('is-warning', missing > 0);
+
   if (!results.length) {
     batchNoteText.value = '';
     batchNoteState.textContent = 'Waiting for valid details';
@@ -828,7 +839,9 @@ function updateBatchNote(results) {
     name,
     feeCents: adjustment ? adjustment.totalCents : Math.round(data.discountedPrice * 100)
   })));
-  batchNoteState.textContent = 'Updated automatically';
+  batchNoteState.textContent = missing
+    ? missing + ' card name' + (missing === 1 ? '' : 's') + ' missing'
+    : 'Updated automatically';
   fitNote(batchNoteText);
 }
 
