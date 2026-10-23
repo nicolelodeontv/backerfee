@@ -199,7 +199,7 @@ try {
   await page.locator('#adjShip').fill('2.00');
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
-  assert.equal(await page.locator('#backer').inputValue(), '100', 'Single original price should restore after refresh');
+  assert.equal(Number(await page.locator('#backer').inputValue()), 100, 'Single original price should restore after refresh');
   assert.equal(await page.locator('#discount').inputValue(), '20', 'Single discount should restore after refresh');
   assert.equal(Number(await page.locator('#adjShip').inputValue()), 2, 'Single Shipping Adjustment should restore separately');
   await page.locator('#modeBatchBtn').click();
