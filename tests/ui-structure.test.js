@@ -138,7 +138,7 @@ test('builds one live Batch customer note with per-row names and fees', () => {
   assert.match(html, /class="note-panel batch-note"/);
   assert.match(html, /id="batchNoteText"[^>]*readonly/);
   assert.match(html, /id="batchNoteState"/);
-  assert.match(html, /id="copyAllNotesBtn"[^>]*>Copy Note</);
+  assert.match(html, /id="copyAllNotesBtn"[^>]*><span class="t-text-swap">Copy Note<\/span><\/);
   assert.match(script, /function buildBatchNote\(items\)/);
   assert.ok(script.includes("const names = quoted.length > 1"));
   assert.ok(script.includes("join(', ') + ' and '"));
