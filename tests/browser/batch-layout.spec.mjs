@@ -268,8 +268,36 @@ try {
   const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
   assert.equal(clipboardText, noteText, 'Copy Note should copy the complete generated note');
 
-  // Exercise a realistic large amount, blank Card names, and status text in the two-column Batch layout.
-  await rows.nth(0).locator('.batch-name').fill('');
+  // A calculated row with no name should be visibly flagged without blocking the note.
+  await rows.nth(1).locator('.batch-name').fill('Card Two');
+  await rows.nth(2).locator('.batch-name').fill('Premium');
+  await rows.nth(3).locator('.batch-name').fill('Card Four');
+  const firstCardName = rows.nth(0).locator('.batch-name');
+  await firstCardName.fill('');
+  assert.equal((await page.locator('#batchNoteState').textContent()).trim(), '1 card name missing',
+    'A single calculated row without a name should show a singular warning');
+  assert.equal(await page.locator('#batchNoteState').evaluate((el) => el.classList.contains('is-warning')), true,
+    'Missing card names should set warning styling on the note status');
+  assert.equal(await firstCardName.evaluate((el) => el.classList.contains('needs-name')), true,
+    'The calculated unnamed row should receive the amber warning class');
+  assert.equal(await firstCardName.evaluate((el) => getComputedStyle(el).borderColor), 'rgb(245, 158, 11)',
+    'The missing card name field should have an amber border');
+  for (let i = 1; i < 4; i += 1) {
+    assert.equal(await rows.nth(i).locator('.batch-name').evaluate((el) => el.classList.contains('needs-name')), false,
+      'Named rows should not receive the missing-name warning');
+  }
+  await firstCardName.fill('Standard');
+  assert.equal((await page.locator('#batchNoteState').textContent()).trim(), 'Updated automatically',
+    'Entering a card name should clear the warning status');
+  assert.equal(await page.locator('#batchNoteState').evaluate((el) => el.classList.contains('is-warning')), false,
+    'Warning styling should clear when every calculated row has a name');
+  assert.equal(await firstCardName.evaluate((el) => el.classList.contains('needs-name')), false,
+    'The amber field warning should clear after entering a name');
+  assert.ok((await note.inputValue()).includes('"Standard" cards:'),
+    'The generated note should immediately use the entered card name');
+
+  // Restore blank-name fixtures to ensure fallback placeholders remain supported.
+  await firstCardName.fill('');
   await rows.nth(1).locator('.batch-name').fill('');
   await rows.nth(2).locator('.batch-name').fill('Premium');
   await rows.nth(3).locator('.batch-name').fill('');

@@ -1854,3 +1854,10 @@ html[data-theme="dark"] .adjustment-callout-icon {
     align-items: center;
   }
 }
+
+/* Warn when a calculated Batch row still has a placeholder card name. */
+.note-state.is-warning { color: #fbbf24; }
+.batch-card-name input.needs-name {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .18);
+}
