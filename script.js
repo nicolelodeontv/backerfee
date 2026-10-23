@@ -50,6 +50,8 @@ const batchStatus = document.getElementById('batchStatus');
 const batchNoteText = document.getElementById('batchNoteText');
 const batchNoteState = document.getElementById('batchNoteState');
 const dashboardCard = document.querySelector('.dashboard-card');
+const textSwapTimers = new WeakMap();
+const copyFeedbackTimers = new WeakMap();
 
 let calculated = null;
 let currentAdjustment = null;
@@ -83,6 +85,39 @@ window.addEventListener('resize', () => {
 
 function prefersReducedMotion() {
   return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+}
+
+function motionMilliseconds(name, fallback) {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const value = Number.parseFloat(raw);
+  if (!Number.isFinite(value)) return fallback;
+  return raw.endsWith('s') && !raw.endsWith('ms') ? value * 1000 : value;
+}
+
+function setInputMotionError(input, hasError) {
+  if (!input) return;
+  if (hasError) input.classList.add('t-input');
+  const wasError = input.classList.contains('is-error');
+  input.classList.toggle('is-error', Boolean(hasError));
+
+  if (!hasError) {
+    if (input._shakeTimer) window.clearTimeout(input._shakeTimer);
+    input._shakeTimer = null;
+    input.classList.remove('is-shaking');
+    return;
+  }
+  if (wasError || prefersReducedMotion()) return;
+
+  if (input._shakeTimer) window.clearTimeout(input._shakeTimer);
+  input.classList.remove('is-shaking');
+  void input.offsetWidth;
+  input.classList.add('is-shaking');
+  const shakeMs = motionMilliseconds('--shake-dur-a', 80) * 2 +
+    motionMilliseconds('--shake-dur-b', 60) * 2;
+  input._shakeTimer = window.setTimeout(() => {
+    input.classList.remove('is-shaking');
+    input._shakeTimer = null;
+  }, shakeMs + 20);
 }
 
 function safeRemoveStorage(key) {
@@ -128,8 +163,10 @@ function loadSettings() {
 }
 
 function setCustomDiscountError(message) {
-  customDiscountInput.setAttribute('aria-invalid', message ? 'true' : 'false');
+  const hasError = Boolean(message);
+  customDiscountInput.setAttribute('aria-invalid', hasError ? 'true' : 'false');
   customDiscountError.textContent = message;
+  setInputMotionError(customDiscountInput, hasError);
 }
 
 function renderCustomPreset() {
@@ -204,11 +241,13 @@ function applyTheme(theme, { animate = false } = {}) {
 }
 
 function setFieldError(input, errorId, message) {
+  const hasError = Boolean(message);
   const field = input.closest('.field');
   const error = document.getElementById(errorId);
-  field.classList.toggle('invalid', Boolean(message));
+  field.classList.toggle('invalid', hasError);
   error.textContent = message;
-  input.setAttribute('aria-invalid', message ? 'true' : 'false');
+  input.setAttribute('aria-invalid', hasError ? 'true' : 'false');
+  setInputMotionError(input, hasError);
 }
 
 function readValues() {
@@ -575,9 +614,11 @@ function formatBatchPrice(input) {
 }
 
 function setBatchFieldError(input, errorElement, message) {
-  input.setAttribute('aria-invalid', message ? 'true' : 'false');
+  const hasError = Boolean(message);
+  input.setAttribute('aria-invalid', hasError ? 'true' : 'false');
   errorElement.textContent = message;
-  input.closest('.batch-field')?.classList.toggle('invalid', Boolean(message));
+  input.closest('.batch-field')?.classList.toggle('invalid', hasError);
+  setInputMotionError(input, hasError);
 }
 
 function clampBatchDiscount(input) {
