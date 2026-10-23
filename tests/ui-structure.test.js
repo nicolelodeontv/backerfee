@@ -138,7 +138,7 @@ test('builds one live Batch customer note with per-row names and fees', () => {
   assert.match(html, /class="note-panel batch-note"/);
   assert.match(html, /id="batchNoteText"[^>]*readonly/);
   assert.match(html, /id="batchNoteState"/);
-  assert.match(html, /id="copyAllNotesBtn"[^>]*>Copy Note</);
+  assert.ok(html.includes('<button class="copy-btn" id="copyAllNotesBtn" type="button" disabled><span class="t-text-swap">Copy Note</span></button>'));
   assert.match(script, /function buildBatchNote\(items\)/);
   assert.ok(script.includes("const names = quoted.length > 1"));
   assert.ok(script.includes("join(', ') + ' and '"));
@@ -257,4 +257,35 @@ test('omits the optional sprite mascot from the Single note and safely skips its
   assert.equal(html.includes('class="mascot"'), false, 'No mascot placeholder should remain in the page');
   assert.match(enhancements, /const el = document\.getElementById\('mascot'\);\s*if \(!el\) return;/,
     'Optional mascot behavior should exit safely when the element is absent');
+});
+
+
+test('installs transitions.dev motion recipes with reduced-motion support', () => {
+  const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  const skill = readFileSync(new URL('../.agents/skills/transitions-dev/SKILL.md', import.meta.url), 'utf8');
+  const lock = JSON.parse(readFileSync(new URL('../skills-lock.json', import.meta.url), 'utf8'));
+
+  assert.match(skill, /name: transitions-dev/);
+  assert.equal(lock.skills['transitions-dev'].source, 'Jakubantalik/transitions.dev');
+  assert.match(script, /function setDigitDisplay\(element, value\)/);
+  assert.match(script, /function setPopInputValue\(input, value\)/);
+  assert.match(script, /function setCopyButtonText\(button, nextText\)/);
+  assert.match(script, /function setInputMotionError\(input, hasError\)/);
+  assert.match(script, /function replayPanelReveal\(panel\)/);
+
+  for (const selector of [
+    '.t-digit-group.is-animating .t-digit',
+    '.t-number-field-pop',
+    '.t-text-swap.is-exit',
+    '.t-panel-slide[data-open="true"]',
+    '.t-input.is-shaking'
+  ]) {
+    assert.ok(css.includes(selector), 'Motion stylesheet should include ' + selector);
+  }
+  assert.ok((css.match(/prefers-reduced-motion: reduce/g) || []).length >= 4,
+    'Each motion recipe should preserve prefers-reduced-motion support');
+  assert.match(html, /class="dashboard-card t-panel-slide" data-open="true"/);
+  assert.match(html, /id="copyBtn"[^>]*><span class="t-text-swap">Copy Note<\/span>/);
+  assert.match(html, /data-copy-from="#adjAmount"[^>]*><span class="t-text-swap">Copy<\/span>/);
+  assert.match(html, /data-copy-from="#adjTotal"[^>]*><span class="t-text-swap">Copy<\/span>/);
 });

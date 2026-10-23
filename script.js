@@ -50,6 +50,8 @@ const batchStatus = document.getElementById('batchStatus');
 const batchNoteText = document.getElementById('batchNoteText');
 const batchNoteState = document.getElementById('batchNoteState');
 const dashboardCard = document.querySelector('.dashboard-card');
+const textSwapTimers = new WeakMap();
+const copyFeedbackTimers = new WeakMap();
 
 let calculated = null;
 let currentAdjustment = null;
@@ -63,7 +65,6 @@ let batchRowId = 0;
 let batchResults = [];
 let lastResetSnapshot = null;
 let resultsAnimationTimer = null;
-const resultAnimationFrames = new Map();
 let displayedResults = {
   discountAmount: 0,
   discountedPrice: 0
@@ -83,6 +84,39 @@ window.addEventListener('resize', () => {
 
 function prefersReducedMotion() {
   return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+}
+
+function motionMilliseconds(name, fallback) {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const value = Number.parseFloat(raw);
+  if (!Number.isFinite(value)) return fallback;
+  return raw.endsWith('s') && !raw.endsWith('ms') ? value * 1000 : value;
+}
+
+function setInputMotionError(input, hasError) {
+  if (!input) return;
+  if (hasError) input.classList.add('t-input');
+  const wasError = input.classList.contains('is-error');
+  input.classList.toggle('is-error', Boolean(hasError));
+
+  if (!hasError) {
+    if (input._shakeTimer) window.clearTimeout(input._shakeTimer);
+    input._shakeTimer = null;
+    input.classList.remove('is-shaking');
+    return;
+  }
+  if (wasError || prefersReducedMotion()) return;
+
+  if (input._shakeTimer) window.clearTimeout(input._shakeTimer);
+  input.classList.remove('is-shaking');
+  void input.offsetWidth;
+  input.classList.add('is-shaking');
+  const shakeMs = motionMilliseconds('--shake-dur-a', 80) * 2 +
+    motionMilliseconds('--shake-dur-b', 60) * 2;
+  input._shakeTimer = window.setTimeout(() => {
+    input.classList.remove('is-shaking');
+    input._shakeTimer = null;
+  }, shakeMs + 20);
 }
 
 function safeRemoveStorage(key) {
@@ -128,8 +162,10 @@ function loadSettings() {
 }
 
 function setCustomDiscountError(message) {
-  customDiscountInput.setAttribute('aria-invalid', message ? 'true' : 'false');
+  const hasError = Boolean(message);
+  customDiscountInput.setAttribute('aria-invalid', hasError ? 'true' : 'false');
   customDiscountError.textContent = message;
+  setInputMotionError(customDiscountInput, hasError);
 }
 
 function renderCustomPreset() {
@@ -204,11 +240,13 @@ function applyTheme(theme, { animate = false } = {}) {
 }
 
 function setFieldError(input, errorId, message) {
+  const hasError = Boolean(message);
   const field = input.closest('.field');
   const error = document.getElementById(errorId);
-  field.classList.toggle('invalid', Boolean(message));
+  field.classList.toggle('invalid', hasError);
   error.textContent = message;
-  input.setAttribute('aria-invalid', message ? 'true' : 'false');
+  input.setAttribute('aria-invalid', hasError ? 'true' : 'false');
+  setInputMotionError(input, hasError);
 }
 
 function readValues() {
@@ -258,34 +296,65 @@ function validate({ showErrors = false } = {}) {
     : null;
 }
 
-function animateMoney(element, from, to) {
-  const existingFrame = resultAnimationFrames.get(element);
-  if (existingFrame) cancelAnimationFrame(existingFrame);
-
-  if (prefersReducedMotion() || from === to) {
-    element.textContent = money(to);
-    resultAnimationFrames.delete(element);
+function setDigitDisplay(element, value) {
+  const nextText = String(value);
+  const previousText = element.textContent.replace(/\s+/g, '');
+  if (previousText === nextText) return;
+  if (prefersReducedMotion()) {
+    element.textContent = nextText;
     return;
   }
 
-  const startTime = performance.now();
-  const duration = 300;
+  let same = 0;
+  while (same < previousText.length && same < nextText.length && previousText[same] === nextText[same]) {
+    same += 1;
+  }
 
-  const renderFrame = (now) => {
-    const progress = Math.min((now - startTime) / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    const value = from + ((to - from) * eased);
-    element.textContent = money(value);
+  const group = document.createElement('span');
+  group.className = 't-digit-group';
+  nextText.split('').forEach((character, index, characters) => {
+    const digit = document.createElement('span');
+    digit.className = 't-digit';
+    digit.textContent = character;
+    if (index < same) digit.dataset.same = '';
+    if (index === characters.length - 2) digit.dataset.stagger = '1';
+    else if (index === characters.length - 1) digit.dataset.stagger = '2';
+    group.appendChild(digit);
+  });
 
-    if (progress < 1) {
-      resultAnimationFrames.set(element, requestAnimationFrame(renderFrame));
-    } else {
-      element.textContent = money(to);
-      resultAnimationFrames.delete(element);
-    }
-  };
+  element.replaceChildren(group);
+  void group.offsetHeight;
+  group.classList.add('is-animating');
+}
 
-  resultAnimationFrames.set(element, requestAnimationFrame(renderFrame));
+function setPopInputValue(input, value) {
+  const nextValue = value === null || value === undefined ? '' : String(value);
+  const previousValue = input.value;
+  input.value = nextValue;
+
+  if (!nextValue || previousValue === nextValue || prefersReducedMotion()) {
+    if (input._digitPopTimer) window.clearTimeout(input._digitPopTimer);
+    input._digitPopTimer = null;
+    input.classList.remove('t-number-field-pop');
+    return;
+  }
+
+  if (input._digitPopTimer) window.clearTimeout(input._digitPopTimer);
+  input.classList.remove('t-number-field-pop');
+  void input.offsetWidth;
+  input.classList.add('t-number-field-pop');
+  input._digitPopTimer = window.setTimeout(() => {
+    input.classList.remove('t-number-field-pop');
+    input._digitPopTimer = null;
+  }, motionMilliseconds('--digit-dur', 320) + 40);
+}
+
+function animateMoney(element, from, to) {
+  if (from === to) {
+    element.textContent = money(to);
+    return;
+  }
+  setDigitDisplay(element, money(to));
 }
 
 function updateResults(data) {
@@ -332,6 +401,9 @@ function applyBatchAdjustment(row, data) {
     taxOut.value = '';
     subtotalOut.value = '';
     totalOut.value = '';
+    totalOut.classList.remove('t-number-field-pop');
+    if (totalOut._digitPopTimer) window.clearTimeout(totalOut._digitPopTimer);
+    totalOut._digitPopTimer = null;
     status.textContent = message;
     status.classList.remove('is-success', 'is-warning');
     if (warn) status.classList.add('is-warning');
@@ -342,6 +414,8 @@ function applyBatchAdjustment(row, data) {
   const ship = readAdjustmentField(shipInput);
   amountInput.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
   shipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
+  setInputMotionError(amountInput, !amount.ok);
+  setInputMotionError(shipInput, !ship.ok);
 
   if (!data || amount.empty) return clear('Enter a price and discount to see the Minted adjustment.');
   if (!amount.ok || !ship.ok) return clear('Fix the highlighted values (up to 2 decimals).', true);
@@ -349,7 +423,7 @@ function applyBatchAdjustment(row, data) {
   const adj = adjustmentCents(amount.value, ship.value);
   taxOut.value = (adj.taxCents / 100).toFixed(2);
   subtotalOut.value = (adj.subtotalCents / 100).toFixed(2);
-  totalOut.value = (adj.totalCents / 100).toFixed(2);
+  setPopInputValue(totalOut, (adj.totalCents / 100).toFixed(2));
   status.textContent = 'Enter ' + money(adj.amountCents / 100) + ' as the Amount in Minted. Total Adjustment: ' +
     money(adj.totalCents / 100) + '.';
   status.classList.remove('is-warning');
@@ -362,6 +436,9 @@ function clearAdjustmentResults() {
   adjTax.value = '';
   adjSubtotal.value = '';
   adjTotal.value = '';
+  adjTotal.classList.remove('t-number-field-pop');
+  if (adjTotal._digitPopTimer) window.clearTimeout(adjTotal._digitPopTimer);
+  adjTotal._digitPopTimer = null;
 }
 
 // Live: runs whenever Amount or Shipping changes.
@@ -371,6 +448,8 @@ function computeAdjustment() {
 
   adjAmount.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
   adjShipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
+  setInputMotionError(adjAmount, !amount.ok);
+  setInputMotionError(adjShipInput, !ship.ok);
   adjStatus.classList.remove('is-success', 'is-warning');
 
   const stop = (message, warn = false) => {
@@ -388,7 +467,7 @@ function computeAdjustment() {
 
   adjTax.value = (taxCents / 100).toFixed(2);
   adjSubtotal.value = (subtotalCents / 100).toFixed(2);
-  adjTotal.value = (totalCents / 100).toFixed(2);
+  setPopInputValue(adjTotal, (totalCents / 100).toFixed(2));
   adjStatus.textContent = 'Enter ' + money(amountCents / 100) + ' as the Amount in Minted. Total Adjustment: ' +
     money(totalCents / 100) + '.';
   adjStatus.classList.add('is-success');
@@ -575,9 +654,11 @@ function formatBatchPrice(input) {
 }
 
 function setBatchFieldError(input, errorElement, message) {
-  input.setAttribute('aria-invalid', message ? 'true' : 'false');
+  const hasError = Boolean(message);
+  input.setAttribute('aria-invalid', hasError ? 'true' : 'false');
   errorElement.textContent = message;
-  input.closest('.batch-field')?.classList.toggle('invalid', Boolean(message));
+  input.closest('.batch-field')?.classList.toggle('invalid', hasError);
+  setInputMotionError(input, hasError);
 }
 
 function clampBatchDiscount(input) {
@@ -655,13 +736,13 @@ function renderBatchRows(rows) {
         '<span class="adjustment-target-label">Fixed tax: 9.75%</span></div>' +
         '<div class="batch-adjust-grid">' +
           adjField('Amount (enter in Minted)', '<input class="batch-adj-amount" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Amount to enter in Minted">',
-            '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-amount" aria-label="Copy Amount">Copy</button>') +
+            '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-amount" aria-label="Copy Amount"><span class="t-text-swap">Copy</span></button>') +
           adjField('Tax Based on Shipping Zip', '<input class="batch-adj-tax" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Tax based on fixed 9.75% rate">',
             '<label class="adj-check">Include Tax: <input type="checkbox" checked disabled></label>') +
           adjField('Subtotal', '<input class="batch-adj-subtotal" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated subtotal">') +
           adjField('Shipping Adjustment', '<input class="batch-adj-ship" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Shipping adjustment">') +
           adjField('Total Adjustment', '<input class="batch-adj-total" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated total adjustment">',
-            '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-total" aria-label="Copy Total Adjustment">Copy</button>') +
+            '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-total" aria-label="Copy Total Adjustment"><span class="t-text-swap">Copy</span></button>') +
         '</div>' +
         '<p class="adjustment-status batch-adj-status" role="status" aria-live="polite">Enter a price and discount to see the Minted adjustment.</p>' +
       '</div>';
@@ -769,8 +850,8 @@ function calculateBatch() {
 
     try {
       const resultData = calculateFee(values.backer, values.discount);
-      discountBox.textContent = money(resultData.discountAmount);
-      finalBox.textContent = money(resultData.discountedPrice);
+      setDigitDisplay(discountBox, money(resultData.discountAmount));
+      setDigitDisplay(finalBox, money(resultData.discountedPrice));
       if (row.dataset.amountEdited !== '1') amountInput.value = resultData.discountedPrice.toFixed(2);
       const adjustment = applyBatchAdjustment(row, resultData);
       const typedName = row.querySelector('.batch-name').value.trim();
@@ -860,12 +941,7 @@ async function copyAllNotes() {
     }
   }
 
-  copyAllNotesBtn.textContent = '✓ Copied';
-  copyAllNotesBtn.classList.add('is-copied');
-  window.setTimeout(() => {
-    copyAllNotesBtn.textContent = 'Copy Note';
-    copyAllNotesBtn.classList.remove('is-copied');
-  }, 1500);
+  flashCopyButton(copyAllNotesBtn, '✓ Copied');
   batchStatus.textContent = 'Customer note copied.';
 }
 
@@ -877,8 +953,17 @@ function removeBatchRow(row) {
   calculateBatch();
 }
 
+function replayPanelReveal(panel) {
+  if (!panel || prefersReducedMotion()) return;
+  panel.dataset.open = 'false';
+  void panel.offsetHeight;
+  panel.dataset.open = 'true';
+}
+
 function setMode(mode) {
-  currentMode = mode === 'batch' ? 'batch' : 'single';
+  const nextMode = mode === 'batch' ? 'batch' : 'single';
+  const modeChanged = currentMode !== nextMode;
+  currentMode = nextMode;
   const isBatch = currentMode === 'batch';
 
   modeSingleBtn.setAttribute('aria-selected', isBatch ? 'false' : 'true');
@@ -908,6 +993,7 @@ function setMode(mode) {
 
   if (!isBatch) fitNote(noteText);
   if (isBatch) fitNote(batchNoteText);
+  if (modeChanged) replayPanelReveal(dashboardCard);
 }
 
 function showResetUndoToast() {
@@ -956,16 +1042,47 @@ function fallbackCopy(text) {
   return copied;
 }
 
+function setCopyButtonText(button, nextText) {
+  const label = button.querySelector('.t-text-swap');
+  if (!label) {
+    button.textContent = nextText;
+    return;
+  }
+
+  const pending = textSwapTimers.get(label);
+  if (pending) window.clearTimeout(pending);
+  label.classList.remove('is-exit', 'is-enter-start');
+  if (label.textContent === nextText) return;
+  if (prefersReducedMotion()) {
+    label.textContent = nextText;
+    return;
+  }
+
+  label.classList.add('is-exit');
+  const duration = motionMilliseconds('--text-swap-dur', 150);
+  const timer = window.setTimeout(() => {
+    if (label.isConnected) {
+      label.textContent = nextText;
+      label.classList.remove('is-exit');
+      label.classList.add('is-enter-start');
+      void label.offsetHeight;
+      label.classList.remove('is-enter-start');
+    }
+    textSwapTimers.delete(label);
+  }, duration);
+  textSwapTimers.set(label, timer);
+}
+
 function restoreCopyButton() {
   if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
   copyFeedbackTimer = null;
-  copyBtn.textContent = 'Copy Note';
+  setCopyButtonText(copyBtn, 'Copy Note');
   copyBtn.classList.remove('is-copied');
 }
 
 function showCopyFeedback() {
   restoreCopyButton();
-  copyBtn.textContent = '✓ Copied';
+  setCopyButtonText(copyBtn, '✓ Copied');
   copyBtn.classList.add('is-copied');
   copyFeedbackTimer = window.setTimeout(() => {
     restoreCopyButton();
@@ -1206,13 +1323,19 @@ document.addEventListener('keydown', (event) => {
 
 
 function flashCopyButton(button, text, ok = true) {
-  if (!button.dataset.label) button.dataset.label = button.textContent;
-  button.textContent = text;
+  if (!button.dataset.label) {
+    button.dataset.label = button.querySelector('.t-text-swap')?.textContent ?? button.textContent;
+  }
+  setCopyButtonText(button, text);
   button.classList.toggle('is-copied', ok);
-  window.setTimeout(() => {
-    button.textContent = button.dataset.label;
+  const pending = copyFeedbackTimers.get(button);
+  if (pending) window.clearTimeout(pending);
+  const timer = window.setTimeout(() => {
+    setCopyButtonText(button, button.dataset.label);
     button.classList.remove('is-copied');
+    copyFeedbackTimers.delete(button);
   }, 1200);
+  copyFeedbackTimers.set(button, timer);
 }
 
 document.addEventListener('click', async (event) => {
