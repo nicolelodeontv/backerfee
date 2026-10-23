@@ -142,9 +142,9 @@ try {
 
   await singlePrice.fill('100');
   await page.locator('#discount').fill('20');
-  assert.equal((await page.locator('#result').innerText()).replace(/\\s+/g, ''), '$20.00',
+  assert.equal(await page.locator('#result').textContent(), '$20.00',
     'Discount Amount should retain its expected formatted value');
-  assert.equal((await page.locator('#total').innerText()).replace(/\\s+/g, ''), '$80.00',
+  assert.equal(await page.locator('#total').textContent(), '$80.00',
     'Final Backer Fee should retain its expected formatted value');
   assert.ok(await page.locator('#result .t-digit-group').count(),
     'Discount Amount should use the number pop-in markup');
