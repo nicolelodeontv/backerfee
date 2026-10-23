@@ -145,11 +145,11 @@ test('builds one live Batch customer note with per-row names and fees', () => {
   assert.ok(script.includes("const sameFee = new Set(items.map((item) => item.feeCents)).size === 1;"));
   assert.ok(script.includes("feeText + ' per card, based on the quantity"));
   assert.match(script, /name: row\.querySelector\('\.batch-name'\)\?\.value \?\? ''/);
-  assert.match(script, /const typedName = row\\.querySelector\\('\.batch-name'\\)\\.value\\.trim\\(\\);/);
-  assert.match(script, /name: typedName \\|\\| 'Card ' \\+ \\(index \\+ 1\\)/);
-  assert.match(script, /named: Boolean\\(typedName\\)/);
-  assert.match(script, /input\\.classList\\.toggle\\('needs-name', hasResult && !input\\.value\\.trim\\(\\)\\)/);
-  assert.match(script, /batchNoteState\\.classList\\.toggle\\('is-warning', missing > 0\\)/);
+  assert.ok(script.includes("const typedName = row.querySelector('.batch-name').value.trim();"));
+  assert.ok(script.includes("name: typedName || 'Card ' + (index + 1),"));
+  assert.ok(script.includes("named: Boolean(typedName),"));
+  assert.ok(script.includes("input.classList.toggle('needs-name', hasResult && !input.value.trim());"));
+  assert.ok(script.includes("batchNoteState.classList.toggle('is-warning', missing > 0);"));
   assert.match(script, /nameInput\.addEventListener\(['"]input['"], \(\) => calculateBatch\(\)\)/);
   assert.match(script, /function updateBatchNote\(results\)[\s\S]*batchNoteText\.value = buildBatchNote/);
   assert.match(script, /async function copyAllNotes\(\)[\s\S]*const notes = batchNoteText\.value/);
@@ -158,11 +158,13 @@ test('builds one live Batch customer note with per-row names and fees', () => {
 
 test('warns about missing Batch card names without disabling copying', () => {
   const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
-  assert.match(script, /const missing = results\\.filter\\(\\(item\\) => !item\\.named\\)\\.length/);
-  assert.match(script, /missing \\+ ' card name' \\+ \\(missing === 1 \\? '' : 's'\\) \\+ ' missing'/);
-  assert.match(css, /\\.note-state\\.is-warning \\{\\s*color: #fbbf24;\\s*\\}/);
-  assert.match(css, /\\.batch-card-name input\\.needs-name\\s*\\{[\\s\\S]*border-color: #f59e0b;[\\s\\S]*box-shadow:/);
-  assert.match(script, /async function copyAllNotes\\(\\)[\\s\\S]*const notes = batchNoteText\\.value/);
+  assert.ok(script.includes('const missing = results.filter((item) => !item.named).length;'));
+  assert.ok(script.includes("missing + ' card name' + (missing === 1 ? '' : 's') + ' missing'"));
+  assert.ok(css.includes('.note-state.is-warning { color: #fbbf24; }'));
+  assert.ok(css.includes('.batch-card-name input.needs-name {'));
+  assert.ok(css.includes('border-color: #f59e0b;'));
+  assert.ok(css.includes('box-shadow: 0 0 0 3px rgba(245, 158, 11, .18);'));
+  assert.ok(script.includes('async function copyAllNotes() {'));
 });
 
 test('gives Batch adjustment cards the full desktop width and a mobile-friendly layout', () => {
