@@ -132,26 +132,86 @@ try {
       `Production Poppins font face should finish loading: ${JSON.stringify(loadedPoppins)}`);
   }
 
-  // Validate the transitions.dev motion: count pop-in, accessible errors, and reduced-motion behavior.
+  // Invalid values show the error immediately, but only shake on blur.
   const singlePrice = page.locator('#backer');
-  await singlePrice.fill('bad');
+  await singlePrice.fill('12.345');
   assert.equal(await singlePrice.getAttribute('aria-invalid'), 'true',
-    'Invalid Single price should remain identified accessibly');
+    'Invalid Single price should remain identified accessibly while typing');
+  assert.ok((await page.locator('#backerError').textContent()).trim(),
+    'The invalid-price message should appear before blur');
+  assert.equal(await singlePrice.evaluate((el) => el.classList.contains('is-shaking')), false,
+    'Invalid Single price must not shake during typing');
+  await singlePrice.evaluate((el) => el.blur());
   assert.equal(await singlePrice.evaluate((el) => el.classList.contains('is-shaking')), true,
-    'First invalid Single price should receive a shake cue');
-
+    'Invalid Single price should shake when it loses focus');
   await singlePrice.fill('100');
   await page.locator('#discount').fill('20');
   assert.equal(await page.locator('#result').textContent(), '$20.00',
-    'Discount Amount should retain its expected formatted value');
+    'Discount Amount text should update immediately without waiting for animation');
   assert.equal(await page.locator('#total').textContent(), '$80.00',
-    'Final Backer Fee should retain its expected formatted value');
+    'Final Backer Fee text should update immediately without waiting for animation');
+  assert.equal(await page.locator('#result .t-digit-group').count(), 0,
+    'Discount Amount should not animate while input changes are in the debounce window');
+  assert.equal(await page.locator('#total .t-digit-group').count(), 0,
+    'Final Backer Fee should not animate while input changes are in the debounce window');
+  assert.equal(await page.locator('#adjTotal').inputValue(), '87.80',
+    'Total Adjustment should update immediately while its pop-in waits for a pause');
+  assert.equal(await page.locator('#adjTotal').evaluate((el) => el.classList.contains('t-number-field-pop')), false,
+    'Total Adjustment should not pop while input changes are still arriving');
+  await page.waitForTimeout(240);
   assert.ok(await page.locator('#result .t-digit-group').count(),
-    'Discount Amount should use the number pop-in markup');
+    'Discount Amount should animate after the typing pause');
   assert.ok(await page.locator('#total .t-digit-group').count(),
-    'Final Backer Fee should use the number pop-in markup');
+    'Final Backer Fee should animate after the typing pause');
   assert.equal(await page.locator('#adjTotal').evaluate((el) => el.classList.contains('t-number-field-pop')), true,
-    'Total Adjustment input should receive its pop-in cue');
+    'Total Adjustment input should pop after the typing pause');
+  await page.waitForTimeout(400);
+
+  // Rapid changes produce at most one pop-in per visible amount.
+  await page.evaluate(() => {
+    const counts = { result: 0, total: 0, adjustment: 0 };
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === 'childList') {
+          for (const node of record.addedNodes) {
+            if (node.nodeType !== 1 || !node.matches('.t-digit-group.is-animating')) continue;
+            if (record.target.id === 'result') counts.result += 1;
+            if (record.target.id === 'total') counts.total += 1;
+          }
+        }
+      }
+    });
+    observer.observe(document.querySelector('#results'), {
+      subtree: true, childList: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true
+    });
+    document.querySelector('#adjTotal').addEventListener('animationstart', (event) => {
+      if (event.animationName === 't-digit-pop-in') counts.adjustment += 1;
+    });
+    window.__singleMotionCounts = counts;
+    window.__singleMotionObserver = observer;
+  });
+  await singlePrice.focus();
+  await singlePrice.press('Control+A');
+  await singlePrice.pressSequentially('12345', { delay: 20 });
+  assert.equal(await page.locator('#result').textContent(), '$2,469.00',
+    'Discount Amount should recalculate live during a rapid five-digit price entry');
+  assert.equal(await page.locator('#total').textContent(), '$9,876.00',
+    'Final Backer Fee should recalculate live during a rapid five-digit price entry');
+  assert.equal(await page.locator('#result .t-digit-group').count(), 0,
+    'Discount Amount stays unwrapped during rapid typing');
+  assert.equal(await page.locator('#total .t-digit-group').count(), 0,
+    'Final Backer Fee stays unwrapped during rapid typing');
+  await page.waitForTimeout(320);
+  const singleMotionCounts = await page.evaluate(() => {
+    window.__singleMotionObserver.disconnect();
+    return { ...window.__singleMotionCounts };
+  });
+  assert.deepEqual(singleMotionCounts, { result: 1, total: 1, adjustment: 1 },
+    'Five quick digits should cause one animation per Single result after the pause: ' + JSON.stringify(singleMotionCounts));
+
+  await singlePrice.fill('100');
+  await page.locator('#discount').fill('20');
+  await page.waitForTimeout(240);
   // Guard against digit spans being restyled as the result label and making the boxes multi-line.
   await page.waitForTimeout(360);
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
@@ -175,7 +235,9 @@ try {
         digitFontSize: digitStyles?.fontSize,
         digitColor: digitStyles?.color,
         digitWebkitTextFillColor: digitStyles?.webkitTextFillColor,
+        digitBackgroundImage: digitStyles?.backgroundImage,
         parentBackgroundImage: styles.backgroundImage,
+        parentColor: styles.color,
         parentWebkitTextFillColor: styles.webkitTextFillColor
       };
     });
@@ -188,13 +250,18 @@ try {
     assert.equal(metrics.digitFontSize, metrics.fontSize + 'px',
       `${selector} digits should inherit the full-sized amount font`);
   }
-  assert.ok(singleResultMetrics['#total'].parentBackgroundImage.includes('linear-gradient'),
-    'Final Backer Fee should retain its purple gradient background');
-  assert.equal(singleResultMetrics['#total'].parentWebkitTextFillColor, 'rgba(0, 0, 0, 0)',
-    'Final Backer Fee should retain transparent text fill for the gradient');
-  assert.equal(singleResultMetrics['#total'].digitWebkitTextFillColor,
-    singleResultMetrics['#total'].parentWebkitTextFillColor,
-    'Animated digits should inherit the gradient-compatible text fill');
+  assert.equal(singleResultMetrics['#total'].parentBackgroundImage, 'none',
+    'Final Backer Fee should use a solid fill rather than a clipped gradient');
+  assert.equal(singleResultMetrics['#total'].parentWebkitTextFillColor, 'rgb(251, 233, 255)',
+    'Final Backer Fee text fill should be visibly lavender, not transparent');
+  assert.equal(singleResultMetrics['#total'].parentColor, 'rgb(251, 233, 255)',
+    'Final Backer Fee should have a visible solid text color');
+  assert.equal(singleResultMetrics['#total'].digitColor, 'rgb(251, 233, 255)',
+    'Animated Final Backer Fee digits should inherit the visible solid text color');
+  assert.equal(singleResultMetrics['#total'].digitWebkitTextFillColor, 'rgb(251, 233, 255)',
+    'Animated Final Backer Fee digits must not use transparent text fill');
+  assert.equal(singleResultMetrics['#total'].digitBackgroundImage, 'none',
+    'Animated Final Backer Fee digits should not depend on the parent gradient background');
   await page.screenshot({ path: screenshotName('single-mode-digit-layout-dark'), fullPage: true });
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   assert.equal(await page.locator('#adjTotal').inputValue(), '87.80',
@@ -253,6 +320,23 @@ try {
       `Row ${i + 1} Amount should follow its own final fee`);
   }
 
+  // Batch field errors are live, but shaking is reserved for blur.
+  const secondRowPrice = rows.nth(1).locator('.batch-price');
+  await secondRowPrice.fill('12.345');
+  assert.equal(await secondRowPrice.getAttribute('aria-invalid'), 'true',
+    'Invalid Batch price should be identified while typing');
+  assert.ok((await rows.nth(1).locator('.batch-error').textContent()).trim(),
+    'Batch price error message should appear before blur');
+  assert.equal(await secondRowPrice.evaluate((el) => el.classList.contains('is-shaking')), false,
+    'Invalid Batch price must not shake during typing');
+  await secondRowPrice.evaluate((el) => el.blur());
+  assert.equal(await secondRowPrice.evaluate((el) => el.classList.contains('is-shaking')), true,
+    'Invalid Batch price should shake on blur');
+  await secondRowPrice.fill('200');
+  await secondRowPrice.evaluate((el) => el.blur());
+  assert.equal(await rows.nth(1).locator('.batch-result-final').textContent(), '$160.00',
+    'Batch price validation should recover and recalculate after correction');
+
   let boxes = await positions(rows);
   assertSameLine(boxes[0], boxes[1], 'Rows 1 and 2 should be on the top line');
   assert.ok(boxes[1].x > boxes[0].x + 100, 'Row 2 should sit to the right of row 1');
@@ -306,15 +390,51 @@ try {
     taxLabelBox.x + taxLabelBox.width <= adjustmentBox.x + adjustmentBox.width + 1,
   'Tax label should stay inside the Financial Adjustment box');
 
-  // Keep focus in the price input while live calculation updates its own row.
-  const firstPrice = rows.nth(0).locator('.batch-price');
-  await firstPrice.fill('123');
-  await firstPrice.pressSequentially('.45');
-  assert.equal(await firstPrice.inputValue(), '123.45', 'Typing should not lose or reorder characters');
+  // Rapid five-digit typing in Batch remains live and debounces every amount's animation.
+  const firstRow = rows.nth(0);
+  const firstPrice = firstRow.locator('.batch-price');
+  await page.waitForTimeout(600);
+  await page.evaluate(() => {
+    const counts = { discount: 0, fee: 0, adjustment: 0 };
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === 'childList') {
+          for (const node of record.addedNodes) {
+            if (node.nodeType !== 1 || !node.matches('.t-digit-group.is-animating')) continue;
+            if (record.target.matches('.batch-result:not(.batch-result-final)')) counts.discount += 1;
+            if (record.target.matches('.batch-result-final')) counts.fee += 1;
+          }
+        }
+      }
+    });
+    observer.observe(document.querySelector('#batchRows'), {
+      subtree: true, childList: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true
+    });
+    document.querySelector('#batchRows .batch-adj-total').addEventListener('animationstart', (event) => {
+      if (event.animationName === 't-digit-pop-in') counts.adjustment += 1;
+    });
+    window.__batchMotionCounts = counts;
+    window.__batchMotionObserver = observer;
+  });
+  await firstPrice.focus();
+  await firstPrice.press('Control+A');
+  await firstPrice.pressSequentially('12345', { delay: 20 });
+  assert.equal(await firstPrice.inputValue(), '12345', 'Typing should not lose or reorder characters');
   assert.equal(await page.evaluate(() => document.activeElement === document.querySelector('#batchRows .batch-row:first-child .batch-price')),
     true, 'The price input should keep focus during recalculation');
-  assert.equal(await rows.nth(0).locator('.batch-result-final').textContent(), '$111.10',
-    'Typing a price should recalculate the same row immediately');
+  assert.equal(await firstRow.locator('.batch-result-final').textContent(), '$11,110.50',
+    'Batch Final Fee should recalculate live during rapid typing');
+  assert.equal(await firstRow.locator('.batch-result .t-digit-group').count(), 0,
+    'Batch Discount Amount should remain unwrapped while typing');
+  assert.equal(await firstRow.locator('.batch-result-final .t-digit-group').count(), 0,
+    'Batch Final Fee should remain unwrapped while typing');
+  await page.waitForTimeout(320);
+  const batchMotionCounts = await page.evaluate(() => {
+    window.__batchMotionObserver.disconnect();
+    return { ...window.__batchMotionCounts };
+  });
+  assert.deepEqual(batchMotionCounts, { discount: 1, fee: 1, adjustment: 1 },
+    'Five quick digits should cause one animation per Batch result after the pause: ' + JSON.stringify(batchMotionCounts));
 
   // Restore row 1 and test that Amount and Shipping change only that row.
   await firstPrice.fill('100');

@@ -2038,3 +2038,14 @@ html[data-theme="dark"] .adjustment-callout-icon {
   font-size: inherit;
   font-weight: inherit;
 }
+
+
+/* The animated digits need a solid fill on the clipped gradient result. */
+html[data-theme="dark"] .highlighted strong,
+html[data-theme="dark"] .highlighted strong span {
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  -webkit-text-fill-color: #fbe9ff;
+  color: #fbe9ff;
+}
