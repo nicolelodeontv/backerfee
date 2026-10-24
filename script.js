@@ -1589,7 +1589,7 @@ function closeResetConfirmation({ restoreFocus = true } = {}) {
   document.body.classList.remove('reset-modal-open');
   document.body.style.removeProperty('--reset-scrollbar-compensation');
   resetBtn.setAttribute('aria-expanded', 'false');
-  if (restoreFocus) resetBtn.focus();
+  if (restoreFocus) resetBtn.focus({ preventScroll: true });
 }
 
 function requestReset() {
@@ -1605,7 +1605,7 @@ function requestReset() {
   document.documentElement.classList.add('reset-modal-open');
   document.body.classList.add('reset-modal-open');
   resetBtn.setAttribute('aria-expanded', 'true');
-  cancelResetBtn.focus();
+  cancelResetBtn.focus({ preventScroll: true });
 }
 
 function formatBackerInput() {
@@ -1737,7 +1737,7 @@ cancelResetBtn.addEventListener('click', () => closeResetConfirmation());
 confirmResetBtn.addEventListener('click', () => {
   closeResetConfirmation({ restoreFocus: false });
   resetCalculator();
-  resetBtn.focus();
+  resetBtn.focus({ preventScroll: true });
 });
 resetConfirmation.addEventListener('click', (event) => {
   if (event.target === resetConfirmation) closeResetConfirmation();
