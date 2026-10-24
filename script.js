@@ -24,6 +24,7 @@ const total = document.getElementById('total');
 const resultsSection = document.getElementById('results');
 const adjAmount = document.getElementById('adjAmount');
 const adjTax = document.getElementById('adjTax');
+const adjTaxLabel = document.querySelector('label[for="adjTax"]');
 const adjUseTaxInput = document.getElementById('adjUseTax');
 const adjLimitWarning = document.getElementById('adjLimitWarning');
 const adjSubtotal = document.getElementById('adjSubtotal');
@@ -506,6 +507,9 @@ function applyBatchAdjustment(row, data) {
     row.dataset.taxEdited = '';
     taxEdited = false;
   }
+  const taxLabel = row.querySelector('.batch-adj-label > span');
+  taxLabel.textContent = !useTaxInput.checked ? 'Tax excluded'
+    : (taxEdited ? 'Tax from Minted' : 'Estimated tax - confirm in Minted');
   taxOut.disabled = !useTaxInput.checked;
   amountInput.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
   shipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
@@ -569,6 +573,8 @@ function computeAdjustment() {
   }
   const includeTax = adjUseTaxInput.checked;
   adjTax.disabled = !includeTax;
+  if (adjTaxLabel) adjTaxLabel.textContent = !includeTax ? 'Tax excluded'
+    : (taxEdited ? 'Tax from Minted' : 'Estimated tax - confirm in Minted');
 
   adjAmount.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
   adjShipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
