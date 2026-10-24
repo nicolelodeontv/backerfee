@@ -858,7 +858,10 @@ try {
     'Batch Discount Amount should remain unwrapped while typing');
   assert.equal(await firstRow.locator('.batch-result-final .t-digit-group').count(), 0,
     'Batch Final Fee should remain unwrapped while typing');
-  await page.waitForTimeout(320);
+  await page.waitForFunction(() => {
+    const counts = window.__batchMotionCounts;
+    return counts?.discount === 1 && counts?.fee === 1 && counts?.adjustment === 1;
+  }, null, { timeout: 1500 });
   const batchMotionCounts = await page.evaluate(() => {
     window.__batchMotionObserver.disconnect();
     return { ...window.__batchMotionCounts };
@@ -903,6 +906,8 @@ try {
   // Batch customer notes are blocked until every calculated row has confirmed tax and a matching Minted total.
   assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), true);
   assert.equal(await page.locator('#batchNoteGuard').isVisible(), true);
+  assert.match(await page.locator('#batchNoteGuard').innerText(), /Row 1/,
+    'The Batch guard should identify at least the first unconfirmed row');
   const noteReadyRows = page.locator('#batchRows .batch-row');
   for (let i = 0; i < await noteReadyRows.count(); i += 1) {
     const row = noteReadyRows.nth(i);
@@ -927,6 +932,33 @@ try {
   assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), false,
     'Batch Copy Note should enable when every calculated row is confirmed');
   assert.equal(await page.locator('#batchNoteGuard').isVisible(), false);
+
+  // One unconfirmed row should block the whole note and name that row in the warning.
+  const unconfirmedRow = noteReadyRows.nth(1);
+  await unconfirmedRow.locator('.batch-adj-minted-total').fill('');
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), true);
+  assert.match(await page.locator('#batchNoteGuard').innerText(), /Row 2/,
+    'Batch guard should identify the specific row whose Minted total is missing');
+  await unconfirmedRow.locator('.batch-adj-minted-total').fill(await unconfirmedRow.locator('.batch-adj-total').inputValue());
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), false,
+    'Confirming that row should re-enable Batch note copying');
+
+  // Include Tax off should not demand a tax entry if the row total matches Minted.
+  const taxExcludedRow = noteReadyRows.nth(2);
+  await taxExcludedRow.locator('.batch-adj-use-tax').uncheck();
+  const taxExcludedTotal = await taxExcludedRow.locator('.batch-adj-total').inputValue();
+  await taxExcludedRow.locator('.batch-adj-minted-total').fill(taxExcludedTotal);
+  assert.equal(await taxExcludedRow.locator('.batch-adj-total-check').innerText(), 'Matches Minted');
+  assert.equal(await taxExcludedRow.locator('.batch-adj-tax').isDisabled(), true);
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), false,
+    'Batch note should remain copyable when one row excludes tax but its total matches Minted');
+  assert.match(await note.inputValue(), /local taxes excluded/,
+    'Mixed Batch tax treatment should be clearly disclosed per row');
+  await taxExcludedRow.locator('.batch-adj-use-tax').check();
+  const restoredTaxField = taxExcludedRow.locator('.batch-adj-tax');
+  await restoredTaxField.fill(await restoredTaxField.inputValue());
+  await taxExcludedRow.locator('.batch-adj-minted-total').fill(await taxExcludedRow.locator('.batch-adj-total').inputValue());
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), false);
 
   await page.locator('#copyAllNotesBtn').click();
   await page.waitForFunction(() => document.querySelector('#batchStatus').textContent.includes('Customer note copied.'), null, { timeout: 8000 });
@@ -1235,6 +1267,14 @@ try {
   await page.keyboard.press('Control+Enter');
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'clipboard unchanged',
     'The keyboard copy shortcut must not bypass the unconfirmed-total guard');
+  assert.equal(await page.locator('#noteCopyGuard').isVisible(), true,
+    'The warning should remain visible after the blocked keyboard shortcut');
+  await page.locator('#copyBtn').evaluate((el) => el.click());
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'clipboard unchanged',
+    'Clicking the disabled Copy Note button must not copy an estimated note');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true);
+  assert.equal(await page.locator('#noteCopyGuard').isVisible(), true,
+    'The warning should remain visible after attempting the blocked button');
   await page.locator('#adjTax').fill('6.20');
   assert.equal(await page.locator('#copyBtn').isDisabled(), true,
     'Typing Minted tax alone is insufficient without the final-total comparison');
@@ -1281,6 +1321,15 @@ try {
   await page.locator('#adjShip').fill('5.00');
   assert.equal(Number(await page.locator('#adjTotal').inputValue()), 59.47,
     'Single Amount, typed tax, and $5 shipping should total $59.47');
+  await page.locator('#adjMintedTotal').fill('59.47');
+  assert.equal(await page.locator('#adjMintedTotalCheck').innerText(), 'Matches Minted',
+    'A Minted total that includes $5 shipping should match the calculator total');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), false,
+    'A matching total including shipping should allow the customer note');
+  await page.locator('#adjMintedTotal').fill('59.48');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
+    'A shipping-inclusive total mismatch should block the customer note');
+  await page.locator('#adjMintedTotal').fill('');
   await page.locator('#adjAmount').fill('50000');
   assert.equal(await page.locator('#adjLimitWarning').isVisible(), true,
     'Single Total Adjustment at or above $50,000 should show the Minted charge-limit warning');
@@ -1295,6 +1344,18 @@ try {
     'Single total without tax should equal Amount plus Shipping');
   assert.equal(await page.locator('#adjTax').isDisabled(), true,
     'Single tax input should be disabled when Include Tax is unchecked');
+  assert.equal(await page.locator('label[for="adjTax"]').innerText(), 'Tax excluded');
+  await page.locator('#adjMintedTotal').fill('55.55');
+  assert.equal(await page.locator('#adjMintedTotalCheck').innerText(), 'Matches Minted');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), false,
+    'Include Tax off should not require a tax value once the final total matches Minted');
+  assert.equal(await page.locator('#noteCopyGuard').isVisible(), false);
+  assert.match(await page.locator('#noteText').inputValue(), /local taxes are excluded/,
+    'The customer note must not claim local taxes are included when Include Tax is off');
+  await page.locator('#adjMintedTotal').fill('55.56');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
+    'Include Tax off should still block copying when the final total differs by one cent');
+  await page.locator('#adjMintedTotal').fill('');
   await page.locator('#adjUseTax').check();
   await page.locator('#adjShip').fill('0');
   assert.equal(Number(await page.locator('#adjTax').inputValue()), 3.92,

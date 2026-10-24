@@ -61,6 +61,14 @@ test('builds the note with paragraph breaks and the requested fee wording', () =
 });
 
 
+test('customer note accurately states when local taxes are excluded', () => {
+  const note = buildCustomerNote({ discountedPrice: 55.55, discount: 20, includesLocalTaxes: false });
+  assert.ok(note.includes('$55.55'));
+  assert.match(note, /20% discount/);
+  assert.match(note, /local taxes are excluded/);
+  assert.doesNotMatch(note, /any local taxes/);
+});
+
 test('backs a tax-inclusive fee into the exact pre-tax Minted Amount', () => {
   const adjustment = calculateAdjustment(19.24, 9.77);
   assert.equal(adjustment.amountCents, 1753);

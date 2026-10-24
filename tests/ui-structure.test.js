@@ -85,7 +85,7 @@ test('reproduces the supplied Minted tax arithmetic in cents with manual overrid
 test('keeps customer notes tied to Total Adjustment when available', () => {
   assert.match(script, /function noteFee\(data\)/);
   assert.match(script, /function refreshAdjustment\(\)/);
-  assert.match(script, /buildCustomerNote\(\{ \.\.\.data, discountedPrice: noteFee\(data\) \}\)/);
+  assert.match(script, /buildCustomerNote\(\{[\s\S]*?discountedPrice: noteFee\(data\),[\s\S]*?includesLocalTaxes: adjUseTaxInput\.checked[\s\S]*?\}\)/);
   assert.match(script, /typeof currentAdjustment\?\.totalCents === 'number'/);
   assert.match(script, /function updateAdjustment\(finalFee, \{ resetTax = true \} = \{\}\)/);
   assert.match(script, /adjAmount\.value = calculated \? \(Math\.round\(Number\(finalFee\) \* 100\) \/ 100\)\.toFixed\(2\) : ''/);
