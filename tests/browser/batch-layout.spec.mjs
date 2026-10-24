@@ -125,6 +125,7 @@ try {
   assert.equal(await invitationDraft.locator('.batch-adj-tax').isEditable(), true,
     'Batch tax must be an editable input, not a fixed-rate-only output');
   await invitationDraft.locator('.batch-adj-tax').fill('3.92');
+  await invitationDraft.locator('.batch-adj-minted-total').fill('54.47');
   await invitationDraft.locator('.batch-adj-ship').fill('0');
   await draftRows.nth(1).locator('.batch-name').fill('Draft RSVP');
   await draftRows.nth(1).locator('.batch-price').fill('100');
@@ -151,6 +152,10 @@ try {
     'Refresh should recompute Subtotal from Amount and the restored Minted tax');
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47,
     'Refresh should recompute Total Adjustment from restored values');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-minted-total').inputValue()), 54.47,
+    'Refresh should restore the optional Total from Minted reference');
+  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-total-check').innerText(), 'Matches Minted',
+    'Batch should compare the calculated total to the saved Minted total');
   assert.ok((await page.locator('#batchNoteText').inputValue()).includes('"Invitation" cards: $54.47'),
     'The restored customer note should use Minted tax and the resulting Total Adjustment');
   const typedTaxTotalCopy = restoredDraftRows.nth(0).locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]');
@@ -158,6 +163,12 @@ try {
   await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Total Adjustment"]')?.textContent.trim() === 'Copied ✓');
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '54.47',
     'The Total Adjustment Copy button should copy 54.47 for the entered Minted tax');
+
+  await restoredDraftRows.nth(0).locator('.batch-adj-minted-total').fill('54.48');
+  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-total-check').innerText(),
+    'Mismatch: app $54.47, Minted $54.48, difference $0.01',
+    'Batch should show the app total, Minted total, and cent difference when they mismatch');
+  await restoredDraftRows.nth(0).locator('.batch-adj-minted-total').fill('');
 
   // Include Tax is functional in every Batch row; excluding it uses zero tax.
   await restoredDraftRows.nth(0).locator('.batch-adj-ship').fill('5.00');
@@ -173,10 +184,10 @@ try {
     'Tax input should be disabled when Include Tax is unchecked');
   await batchUseTax.check();
   await restoredDraftRows.nth(0).locator('.batch-adj-ship').fill('0');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 4.93,
-    'Without a typed tax, Batch should show the 9.75% estimate');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 55.48,
-    'The estimated tax should total $55.48 on Amount $50.55');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.92,
+    'Without a typed tax, Batch should show the 7.75% estimate');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47,
+    'The estimated tax should total $54.47 on Amount $50.55');
   assert.equal((await restoredDraftRows.nth(0).locator('.batch-adj-status').innerText()),
     'Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.',
     'The estimated state should explain the Minted verification step');
@@ -401,7 +412,7 @@ try {
     'Discount Amount should not animate while input changes are in the debounce window');
   assert.equal(await page.locator('#total .t-digit-group').count(), 0,
     'Final Backer Fee should not animate while input changes are in the debounce window');
-  assert.equal(await page.locator('#adjTotal').inputValue(), '87.80',
+  assert.equal(await page.locator('#adjTotal').inputValue(), '86.20',
     'Total Adjustment should update immediately while its pop-in waits for a pause');
   assert.equal(await page.locator('#adjTotal').evaluate((el) => el.classList.contains('t-number-field-pop')), false,
     'Total Adjustment should not pop while input changes are still arriving');
@@ -511,7 +522,7 @@ try {
     'Animated Final Backer Fee digits should not depend on the parent gradient background');
   await page.screenshot({ path: screenshotName('single-mode-digit-layout-dark'), fullPage: true });
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
-  assert.equal(await page.locator('#adjTotal').inputValue(), '87.80',
+  assert.equal(await page.locator('#adjTotal').inputValue(), '86.20',
     'Total Adjustment value and tax math must remain unchanged');
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -695,8 +706,8 @@ try {
   assert.equal(await rowOneShipping.evaluate((el) => document.activeElement === el), true,
     'Shipping should retain focus while recalculating');
   assert.equal(await rows.nth(0).locator('.batch-adj-amount').inputValue(), '100');
-  assert.equal(await rows.nth(0).locator('.batch-adj-total').inputValue(), '113.25',
-    'Row 1 total should use its entered Amount and Shipping plus 9.75% tax');
+  assert.equal(await rows.nth(0).locator('.batch-adj-total').inputValue(), '111.25',
+    'Row 1 total should use its entered Amount and Shipping plus 7.75% tax');
   assert.equal(await rows.nth(1).locator('.batch-adj-amount').inputValue(), '160.00',
     'Editing row 1 must not change row 2 Amount');
 
@@ -996,7 +1007,7 @@ try {
     'Single-mode desktop note textarea should have a 260px minimum height');
   assert.equal(await page.locator('.history-card .note-actions').evaluate((el) => getComputedStyle(el).flexDirection), 'row-reverse',
     'Single-mode Copy Note action should be at the bottom right, with status on the left');
-  // Check that Single uses Minted's typed tax, Include Tax, and the 9.75% estimate only as fallback.
+  // Check that Single uses Minted's typed tax, Include Tax, and the 7.75% estimate only as fallback.
   await page.locator('#backer').fill('100');
   await page.locator('#discount').fill('20');
   await page.locator('#adjAmount').fill('50.55');
@@ -1008,6 +1019,14 @@ try {
     'Single Amount $50.55 and Minted tax $3.92 should subtotal to $54.47');
   assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.47,
     'Single total should match Minted when Shipping is zero');
+  await page.locator('#adjMintedTotal').fill('54.47');
+  assert.equal(await page.locator('#adjMintedTotalCheck').innerText(), 'Matches Minted',
+    'Single should report when calculated total matches Minted');
+  await page.locator('#adjMintedTotal').fill('54.48');
+  assert.equal(await page.locator('#adjMintedTotalCheck').innerText(),
+    'Mismatch: app $54.47, Minted $54.48, difference $0.01',
+    'Single should report the app total, Minted total, and cent difference');
+  await page.locator('#adjMintedTotal').fill('');
   assert.equal((await page.locator('#adjStatus').innerText()), 'Using tax from Minted.',
     'Single should report when user-entered Minted tax is being used');
   assert.ok((await page.locator('#noteText').inputValue()).includes('$54.47'),
@@ -1036,10 +1055,28 @@ try {
     'Single tax input should be disabled when Include Tax is unchecked');
   await page.locator('#adjUseTax').check();
   await page.locator('#adjShip').fill('0');
-  assert.equal(Number(await page.locator('#adjTax').inputValue()), 4.93,
-    'Single should use the 9.75% estimate when there is no typed Minted tax');
-  assert.equal(Number(await page.locator('#adjTotal').inputValue()), 55.48,
-    'Single estimate for Amount $50.55 should total $55.48');
+  assert.equal(Number(await page.locator('#adjTax').inputValue()), 3.92,
+    'Single should use the 7.75% estimate when there is no typed Minted tax');
+  assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.47,
+    'Single estimate for Amount $50.55 should total $54.47');
+  await page.locator('#adjAmount').fill('20');
+  assert.equal(Number(await page.locator('#adjTax').inputValue()), 1.55,
+    'A $20 Amount should estimate $1.55 tax at 7.75%');
+  assert.equal(Number(await page.locator('#adjTotal').inputValue()), 21.55,
+    'A $20 Amount should total $21.55 at the default rate');
+  await page.locator('#adjAmount').fill('50.55');
+  await page.locator('#taxRate').fill('8');
+  assert.equal(Number(await page.locator('#adjTax').inputValue()), 4.04,
+    'Changing the rate to 8% should update the $50.55 estimate');
+  assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.59,
+    'The changed rate should update Total Adjustment immediately');
+  await page.locator('#taxRate').fill('7.75');
+  assert.equal(Number(await page.locator('#adjTax').inputValue()), 3.92,
+    'Restoring 7.75% should restore the matching Minted estimate');
+  assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.47,
+    'Restoring 7.75% should restore Total Adjustment to $54.47');
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('backerfee-settings-v3')).taxRate), '7.75',
+    'The last tax rate should be stored with the browser settings');
   assert.equal((await page.locator('#adjStatus').innerText()),
     'Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.',
     'Single estimate status should explain how to confirm tax');
@@ -1055,22 +1092,22 @@ try {
   await page.locator('#backer').fill('101');
   assert.equal(Number(await page.locator('#adjAmount').inputValue()), 80.8,
     'Changing Single original price should refill Amount');
-  assert.equal(Number(await page.locator('#adjTax').inputValue()), 7.88,
+  assert.equal(Number(await page.locator('#adjTax').inputValue()), 6.26,
     'Changing Single original price should reset entered tax to the estimate');
   await page.locator('#backer').fill('100');
-  assert.equal(Number(await page.locator('#adjTax').inputValue()), 7.8,
-    'Restoring the price should recompute the 9.75% estimate');
+  assert.equal(Number(await page.locator('#adjTax').inputValue()), 7.75,
+    'Restoring the price should recompute the 7.75% estimate');
   await page.locator('#discount').fill('20');
   await page.waitForFunction(() =>
     document.querySelector('#adjAmount').value === '80.00' &&
-    document.querySelector('#adjTotal').value === '87.80'
+    document.querySelector('#adjTotal').value === '86.20'
   );
   // Check Single-mode copy buttons using a calculated fee and Total Adjustment.
   const singleInputBoxes = await page.locator('#adjustmentCard .adjustment-row').evaluateAll((rows) =>
     rows.map((row) => row.querySelector('.adjustment-value-input input')?.getBoundingClientRect()).filter(Boolean)
       .map((box) => ({ x: box.x, right: box.right, width: box.width }))
   );
-  assert.equal(singleInputBoxes.length, 5, 'Single mode should have all five Financial Adjustment inputs');
+  assert.equal(singleInputBoxes.length, 6, 'Single mode should have all six Financial Adjustment inputs');
   assert.ok(Math.max(...singleInputBoxes.map((box) => box.width)) - Math.min(...singleInputBoxes.map((box) => box.width)) <= 1,
     `Single Amount and Total Adjustment should be as wide as the other fields (boxes=${JSON.stringify(singleInputBoxes)})`);
   for (const selector of ['#adjAmount', '#adjTotal']) {
@@ -1089,7 +1126,7 @@ try {
     'Single Amount copy should copy a plain number');
   await singleTotalCopy.click();
   await page.waitForFunction(() => document.querySelector('.adj-copy-btn[data-copy-from="#adjTotal"]')?.textContent.trim() === 'Copied ✓');
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '87.80',
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '86.20',
     'Single Total Adjustment copy should copy a plain number');
 
   await page.screenshot({ path: screenshotName('single-mode-1440'), fullPage: true });
