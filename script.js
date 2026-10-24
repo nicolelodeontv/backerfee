@@ -1338,7 +1338,7 @@ function updateBatchNote(results) {
   })));
   batchNoteState.textContent = missing
     ? missing + ' card name' + (missing === 1 ? '' : 's') + ' missing'
-    : (areBatchCustomerNotesReady(results) ? 'Tax and total confirmed' : 'Tax and total not confirmed');
+    : 'Updated automatically';
   fitNote(batchNoteText);
   updateBatchNoteCopyState(results);
 }
