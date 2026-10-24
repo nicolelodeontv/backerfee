@@ -25,6 +25,7 @@ const resultsSection = document.getElementById('results');
 const adjAmount = document.getElementById('adjAmount');
 const adjTax = document.getElementById('adjTax');
 const adjTaxLabel = document.querySelector('label[for="adjTax"]');
+const adjTotalLabel = document.querySelector('label[for="adjTotal"]');
 const adjUseTaxInput = document.getElementById('adjUseTax');
 const adjLimitWarning = document.getElementById('adjLimitWarning');
 const adjSubtotal = document.getElementById('adjSubtotal');
@@ -508,8 +509,15 @@ function applyBatchAdjustment(row, data) {
     taxEdited = false;
   }
   const taxLabel = row.querySelector('.batch-adj-label > span');
+  const totalLabel = totalOut.closest('.batch-adj-field')?.querySelector('.batch-adj-label > span');
+  const taxUnconfirmed = useTaxInput.checked && !taxEdited;
   taxLabel.textContent = !useTaxInput.checked ? 'Tax excluded'
-    : (taxEdited ? 'Tax from Minted' : 'Estimate - replace with Minted tax');
+    : (taxEdited ? 'Tax from Minted' : 'Estimated tax');
+  if (totalLabel) totalLabel.textContent = taxUnconfirmed ? 'Total Adjustment (estimate)' : 'Total Adjustment';
+  totalOut.classList.toggle('is-unconfirmed', taxUnconfirmed);
+  totalOut.setAttribute('aria-label', taxUnconfirmed
+    ? 'Estimated total adjustment, not final until tax is replaced with Minted tax'
+    : 'Calculated total adjustment');
   taxOut.disabled = !useTaxInput.checked;
   amountInput.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
   shipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
@@ -543,7 +551,7 @@ function applyBatchAdjustment(row, data) {
     status.classList.remove('is-warning');
     status.classList.add('is-success');
   } else {
-    status.textContent = 'Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted\'s tax.';
+    status.textContent = 'Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.';
     status.classList.remove('is-success');
     status.classList.add('is-warning');
   }
@@ -573,8 +581,14 @@ function computeAdjustment() {
   }
   const includeTax = adjUseTaxInput.checked;
   adjTax.disabled = !includeTax;
+  const taxUnconfirmed = includeTax && !taxEdited;
   if (adjTaxLabel) adjTaxLabel.textContent = !includeTax ? 'Tax excluded'
-    : (taxEdited ? 'Tax from Minted' : 'Estimate - replace with Minted tax');
+    : (taxEdited ? 'Tax from Minted' : 'Estimated tax');
+  if (adjTotalLabel) adjTotalLabel.textContent = taxUnconfirmed ? 'Total Adjustment (estimate)' : 'Total Adjustment';
+  adjTotal.classList.toggle('is-unconfirmed', taxUnconfirmed);
+  adjTotal.setAttribute('aria-label', taxUnconfirmed
+    ? 'Estimated total adjustment, not final until tax is replaced with Minted tax'
+    : 'Calculated total adjustment');
 
   adjAmount.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
   adjShipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
@@ -615,7 +629,7 @@ function computeAdjustment() {
     adjStatus.textContent = 'Using tax from Minted.';
     adjStatus.classList.add('is-success');
   } else {
-    adjStatus.textContent = 'Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted\'s tax.';
+    adjStatus.textContent = 'Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.';
     adjStatus.classList.add('is-warning');
   }
   updateNote(calculated);
@@ -965,7 +979,7 @@ function renderBatchRows(rows) {
           adjField('Total Adjustment', '<input class="batch-adj-total" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated total adjustment">',
             '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-total" aria-label="Copy Total Adjustment"><span class="t-text-swap">Copy</span></button>') +
         '</div>' +
-        '<p class="adjustment-status batch-adj-status" role="status" aria-live="polite">Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted\'s tax.</p>' +
+        '<p class="adjustment-status batch-adj-status" role="status" aria-live="polite">Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.</p>' +
         '<p class="adjustment-limit-warning batch-adj-limit-warning" role="alert" hidden>Minted won\'t allow a charge of $50,000 or more.</p>' +
       '</div>';
 
