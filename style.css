@@ -1030,6 +1030,14 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   font-size: 10px;
   line-height: 1.5;
 }
+.tax-rate-setting .tax-rate-error {
+  display: block;
+  flex: none;
+  margin-top: 4px;
+  color: var(--danger);
+  font-size: 10px;
+  line-height: 1.4;
+}
 .tax-rate-setting input[aria-invalid="true"] { border-color: var(--danger); }
 .adjustment-rows { margin-top: 12px; }
 .adjustment-row {
