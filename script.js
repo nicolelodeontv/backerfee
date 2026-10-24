@@ -239,6 +239,98 @@ function applyUrlParams() {
   return applied;
 }
 
+
+function normalizeMintedBridgeMoney(raw) {
+  if (raw === null || raw === undefined) return null;
+  const value = String(raw).trim().replace(/,/g, '');
+  if (!value || !DECIMAL_PATTERN.test(value)) return null;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) return null;
+  return (Math.round(number * 100) / 100).toFixed(2);
+}
+
+function clearMintedBridgeParams(params) {
+  Array.from(params.keys()).forEach((key) => {
+    if (key.startsWith('minted_')) params.delete(key);
+  });
+  const query = params.toString();
+  const nextUrl = window.location.pathname + (query ? '?' + query : '') + window.location.hash;
+  window.history.replaceState(window.history.state, '', nextUrl);
+}
+
+function applyMintedBridgeParams() {
+  const params = new URLSearchParams(window.location.search);
+  const hasBridgeParams = Array.from(params.keys()).some((key) => key.startsWith('minted_'));
+  if (!hasBridgeParams) return false;
+
+  const amount = normalizeMintedBridgeMoney(params.get('minted_amount'));
+  const tax = normalizeMintedBridgeMoney(params.get('minted_tax'));
+  const shippingRaw = params.get('minted_shipping');
+  const shipping = normalizeMintedBridgeMoney(shippingRaw === null ? '0' : shippingRaw);
+
+  if (amount === null || tax === null || shipping === null) {
+    adjStatus.textContent = 'Minted bridge data is incomplete or invalid. Enter Amount and Tax from Minted manually.';
+    adjStatus.classList.remove('is-success');
+    adjStatus.classList.add('is-warning');
+    return false;
+  }
+
+  setMode('single');
+  adjAmount.value = amount;
+  adjTax.value = tax;
+  adjTax.dataset.taxEdited = '1';
+  adjUseTaxInput.checked = true;
+  adjShipInput.value = shipping;
+  computeAdjustment();
+
+  const expectedSubtotalRaw = params.get('minted_subtotal');
+  const expectedTotalRaw = params.get('minted_total');
+  const expectedSubtotal = expectedSubtotalRaw === null ? null : normalizeMintedBridgeMoney(expectedSubtotalRaw);
+  const expectedTotal = expectedTotalRaw === null ? null : normalizeMintedBridgeMoney(expectedTotalRaw);
+  const comparisons = [];
+  let mismatch = false;
+
+  if (expectedSubtotalRaw !== null) {
+    if (expectedSubtotal === null) {
+      comparisons.push('Minted Subtotal reference is invalid');
+      mismatch = true;
+    } else if (Math.round(Number(expectedSubtotal) * 100) !== currentAdjustment.subtotalCents) {
+      comparisons.push('App Subtotal ' + money(currentAdjustment.subtotalCents / 100) +
+        ' differs from Minted Subtotal ' + money(Number(expectedSubtotal)));
+      mismatch = true;
+    } else {
+      comparisons.push('Subtotal matches Minted');
+    }
+  }
+
+  if (expectedTotalRaw !== null) {
+    if (expectedTotal === null) {
+      comparisons.push('Minted Total reference is invalid');
+      mismatch = true;
+    } else if (Math.round(Number(expectedTotal) * 100) !== currentAdjustment.totalCents) {
+      comparisons.push('App Total ' + money(currentAdjustment.totalCents / 100) +
+        ' differs from Minted Total ' + money(Number(expectedTotal)));
+      mismatch = true;
+    } else {
+      comparisons.push('Total matches Minted');
+    }
+  }
+
+  if (comparisons.length) {
+    adjStatus.textContent = 'Minted values imported. ' + comparisons.join('. ') + '.';
+    adjStatus.classList.toggle('is-warning', mismatch);
+    adjStatus.classList.toggle('is-success', !mismatch);
+  } else {
+    adjStatus.textContent = 'Minted Amount, Tax, and Shipping imported. Compare Subtotal and Total Adjustment with Minted before copying.';
+    adjStatus.classList.remove('is-success');
+    adjStatus.classList.add('is-warning');
+  }
+
+  document.documentElement.setAttribute('data-bf-minted-import', '1');
+  clearMintedBridgeParams(params);
+  return true;
+}
+
 function applyTheme(theme, { animate = false } = {}) {
   document.documentElement.dataset.theme = theme;
   const dark = theme === 'dark';
@@ -1676,3 +1768,6 @@ if (backerInput.value && discountInput.value) {
   noteWasEdited = false;
   calculateLive();
 }
+
+// Import manually reviewed Minted values after normal calculator initialization.
+applyMintedBridgeParams();
