@@ -351,6 +351,9 @@ test('has no bridge popup and only adds Reset dialog semantics while open', () =
   assert.ok(script.includes('first.focus();'));
   assert.ok(script.includes("document.body.classList.add('reset-modal-open')"));
   assert.ok(script.includes("document.body.classList.remove('reset-modal-open')"));
+  assert.ok(script.includes("Math.max(0, window.innerWidth - document.documentElement.clientWidth)"));
+  assert.ok(script.includes("document.body.style.removeProperty('--reset-scrollbar-compensation')"));
+  assert.ok(css.includes('padding-right: var(--reset-scrollbar-compensation, 0px);'));
   assert.ok(css.includes('.reset-confirmation {'));
   assert.ok(css.includes('position: fixed;'));
   assert.ok(css.includes('inset: 0;'));
@@ -375,4 +378,8 @@ test('customer note copying requires Minted tax and a matching Minted total', ()
   assert.ok(script.includes('function batchNoteCopyBlockReason(results = batchResults)'));
   assert.ok(script.includes('batchCopyGuard.hidden = !blockReason'));
   assert.ok(script.includes('copyAllNotesBtn.disabled = !batchNoteText.value.trim() || Boolean(blockReason)'));
+  assert.ok(script.includes('function clearSingleMintedTotalReference()'));
+  assert.ok(script.includes('const invalidateBatchMintedTotal = () =>'));
+  assert.ok(script.includes('clearSingleMintedTotalReference();'));
+  assert.ok(script.includes('invalidateBatchMintedTotal();'));
 });
