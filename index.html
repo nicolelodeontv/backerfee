@@ -184,7 +184,7 @@
       <button type="button" class="adj-copy-btn" data-copy-from="#adjAmount" aria-label="Copy Amount"><span class="t-text-swap">Copy</span></button>
     </div>
     <div class="adjustment-row tax">
-      <label class="adjustment-row-label" for="adjTax">Tax from Minted (replace estimate)</label>
+      <label class="adjustment-row-label" for="adjTax">Estimated tax</label>
       <div class="adjustment-row-valuegroup">
         <div class="input-wrap adjustment-value-input">
           <span class="prefix" aria-hidden="true">$</span>
@@ -208,16 +208,16 @@
       </div>
     </div>
     <div class="adjustment-row total">
-      <label class="adjustment-row-label" for="adjTotal">Total Adjustment</label>
+      <label class="adjustment-row-label" for="adjTotal">Total Adjustment (estimate)</label>
       <div class="input-wrap adjustment-value-input">
         <span class="prefix" aria-hidden="true">$</span>
-        <input type="number" id="adjTotal" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated total adjustment">
+        <input type="number" id="adjTotal" min="0" step="0.01" placeholder="0.00" readonly aria-label="Estimated total adjustment, not final until tax is replaced with Minted tax">
       </div>
       <button type="button" class="adj-copy-btn" data-copy-from="#adjTotal" aria-label="Copy Total Adjustment"><span class="t-text-swap">Copy</span></button>
     </div>
   </div>
 
-  <p class="adjustment-status" id="adjStatus" role="status" aria-live="polite">Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted's tax.</p>
+  <p class="adjustment-status is-warning" id="adjStatus" role="status" aria-live="polite">Unconfirmed total: tax is an estimate. Replace it with Minted's tax before using this total.</p>
   <p class="adjustment-limit-warning" id="adjLimitWarning" role="alert" hidden>Minted won't allow a charge of $50,000 or more.</p>
   <p class="adjustment-note">The 9.75% tax is only an estimate. Replace Tax with Minted's actual amount after clicking Calculate. Adjust Shipping Adjustment when needed.</p>
 </section>
