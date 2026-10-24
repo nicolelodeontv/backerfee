@@ -1568,6 +1568,7 @@ function closeResetConfirmation({ restoreFocus = true } = {}) {
   resetDialog.removeAttribute('aria-labelledby');
   document.documentElement.classList.remove('reset-modal-open');
   document.body.classList.remove('reset-modal-open');
+  document.body.style.removeProperty('--reset-scrollbar-compensation');
   resetBtn.setAttribute('aria-expanded', 'false');
   if (restoreFocus) resetBtn.focus();
 }
@@ -1577,6 +1578,10 @@ function requestReset() {
   resetDialog.setAttribute('role', 'dialog');
   resetDialog.setAttribute('aria-modal', 'true');
   resetDialog.setAttribute('aria-labelledby', 'resetConfirmTitle');
+  document.body.style.setProperty(
+    '--reset-scrollbar-compensation',
+    Math.max(0, window.innerWidth - document.documentElement.clientWidth) + 'px'
+  );
   resetConfirmation.hidden = false;
   document.documentElement.classList.add('reset-modal-open');
   document.body.classList.add('reset-modal-open');
