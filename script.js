@@ -45,12 +45,9 @@ const copyStatus = document.getElementById('copyStatus');
 const resetBtn = document.getElementById('resetBtn');
 const themeBtn = document.getElementById('themeBtn');
 const themeIcon = document.getElementById('themeIcon');
-const confirmModal = document.getElementById('confirmModal');
-const confirmDialog = confirmModal.querySelector('.confirm-modal');
-const confirmTitle = document.getElementById('confirmTitle');
-const confirmMessage = document.getElementById('confirmMessage');
-const confirmCancelBtn = document.getElementById('confirmCancelBtn');
-const confirmActionBtn = document.getElementById('confirmActionBtn');
+const resetConfirmation = document.getElementById('resetConfirmation');
+const cancelResetBtn = document.getElementById('cancelResetBtn');
+const confirmResetBtn = document.getElementById('confirmResetBtn');
 const modeSingleBtn = document.getElementById('modeSingleBtn');
 const modeBatchBtn = document.getElementById('modeBatchBtn');
 const batchPanel = document.getElementById('batchPanel');
@@ -68,8 +65,6 @@ let calculated = null;
 let currentAdjustment = null;
 let customDiscountPreset = '';
 let noteWasEdited = false;
-let confirmAction = null;
-let lastFocusedElement = null;
 let copyFeedbackTimer = null;
 let currentMode = 'single';
 let batchRowId = 0;
@@ -1474,36 +1469,16 @@ async function copyNote() {
   }
 }
 
-function openConfirmModal({ title, message, actionLabel, onConfirm }) {
-  lastFocusedElement = document.activeElement;
-  confirmAction = onConfirm;
-  confirmTitle.textContent = title;
-  confirmMessage.textContent = message;
-  confirmActionBtn.textContent = actionLabel;
-  confirmDialog.setAttribute('role', 'dialog');
-  confirmDialog.setAttribute('aria-modal', 'true');
-  confirmModal.hidden = false;
-  document.body.classList.add('modal-open');
-  confirmCancelBtn.focus();
-}
-
-function closeConfirmModal() {
-  confirmModal.hidden = true;
-  confirmDialog.removeAttribute('role');
-  confirmDialog.removeAttribute('aria-modal');
-  document.body.classList.remove('modal-open');
-  confirmAction = null;
-  if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') lastFocusedElement.focus();
-  lastFocusedElement = null;
+function closeResetConfirmation({ restoreFocus = false } = {}) {
+  resetConfirmation.hidden = true;
+  resetBtn.setAttribute('aria-expanded', 'false');
+  if (restoreFocus) resetBtn.focus();
 }
 
 function requestReset() {
-  openConfirmModal({
-    title: 'Reset calculator?',
-    message: 'This will clear the current price, discount, results, and note.',
-    actionLabel: 'Reset',
-    onConfirm: resetCalculator
-  });
+  resetConfirmation.hidden = false;
+  resetBtn.setAttribute('aria-expanded', 'true');
+  cancelResetBtn.focus();
 }
 
 function formatBackerInput() {
@@ -1625,15 +1600,10 @@ batchRows.addEventListener('click', (event) => {
   const row = removeBtn.closest('.batch-row');
   if (row) removeBatchRow(row);
 });
-confirmCancelBtn.addEventListener('click', closeConfirmModal);
-confirmActionBtn.addEventListener('click', () => {
-  const action = confirmAction;
-  closeConfirmModal();
-  if (action) action();
-});
-
-confirmModal.addEventListener('click', (event) => {
-  if (event.target === confirmModal) closeConfirmModal();
+cancelResetBtn.addEventListener('click', () => closeResetConfirmation({ restoreFocus: true }));
+confirmResetBtn.addEventListener('click', () => {
+  closeResetConfirmation();
+  resetCalculator();
 });
 
 document.querySelectorAll('.preset-btn').forEach((button) => {
@@ -1722,8 +1692,8 @@ noteText.addEventListener('input', () => {
 });
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && !confirmModal.hidden) {
-    closeConfirmModal();
+  if (event.key === 'Escape' && !resetConfirmation.hidden) {
+    closeResetConfirmation({ restoreFocus: true });
     return;
   }
 
@@ -1735,22 +1705,8 @@ document.addEventListener('keydown', (event) => {
 
   if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
     event.preventDefault();
-    if (!confirmModal.hidden) return;
+    if (!resetConfirmation.hidden) return;
     copyNote();
-  }
-
-  if (event.key === 'Tab' && !confirmModal.hidden) {
-    const focusable = confirmModal.querySelectorAll('button:not([disabled]), [href], input, textarea, select, [tabindex]:not([tabindex="-1"])');
-    if (!focusable.length) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
   }
 });
 
