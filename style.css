@@ -386,23 +386,60 @@ html[data-theme="dark"] .highlighted { background: linear-gradient(135deg, #3026
 }
 .history-action:hover { text-decoration: underline; }
 
-.reset-confirmation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  margin: -12px 0 20px;
-  padding: 10px 0 12px;
-  border-bottom: 1px solid var(--line);
-  color: var(--ink);
+html.modal-open,
+body.modal-open { overflow: hidden; }
+
+.reset-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(24, 20, 29, .56);
+  backdrop-filter: blur(4px);
+  overscroll-behavior: contain;
 }
-.reset-confirmation[hidden] { display: none; }
-.reset-confirmation-copy { min-width: 0; flex: 1 1 240px; }
-.reset-confirmation-copy strong { display: block; font-size: 12px; }
-.reset-confirmation-copy p { margin: 3px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
-.reset-confirmation-actions { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; }
-.reset-confirmation-actions .copy-btn { min-height: 38px; }
+.reset-modal-backdrop[hidden] { display: none; }
+.reset-modal {
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .32);
+}
+.reset-modal h2 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.reset-modal p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.reset-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+}
+.reset-modal-actions button { min-height: 42px; }
+
+.copy-guard {
+  flex: 1 0 100%;
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.copy-guard[hidden] { display: none; }
 
 .toast-root {
   position: fixed;
@@ -621,6 +658,13 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
     min-height: 36px;
     padding: 6px 8px;
   }
+}
+
+@media (max-width: 380px) {
+  .reset-modal-backdrop { padding: 12px; }
+  .reset-modal { width: calc(100vw - 24px); max-height: calc(100vh - 24px); padding: 20px; }
+  .reset-modal-actions { justify-content: stretch; gap: 8px; }
+  .reset-modal-actions button { flex: 1 1 0; min-width: 0; padding: 0 10px; }
 }
 
 @media (max-width: 700px) {
