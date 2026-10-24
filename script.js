@@ -46,6 +46,7 @@ const resetBtn = document.getElementById('resetBtn');
 const themeBtn = document.getElementById('themeBtn');
 const themeIcon = document.getElementById('themeIcon');
 const resetConfirmation = document.getElementById('resetConfirmation');
+const resetDialog = document.getElementById('resetDialog');
 const cancelResetBtn = document.getElementById('cancelResetBtn');
 const confirmResetBtn = document.getElementById('confirmResetBtn');
 const modeSingleBtn = document.getElementById('modeSingleBtn');
@@ -57,6 +58,7 @@ const copyAllNotesBtn = document.getElementById('copyAllNotesBtn');
 const batchStatus = document.getElementById('batchStatus');
 const batchNoteText = document.getElementById('batchNoteText');
 const batchNoteState = document.getElementById('batchNoteState');
+const batchCopyGuard = document.getElementById('batchCopyGuard');
 const dashboardCard = document.querySelector('.dashboard-card');
 const textSwapTimers = new WeakMap();
 const copyFeedbackTimers = new WeakMap();
@@ -724,12 +726,56 @@ function refreshAdjustment() {
   updateNote(calculated);
 }
 
+function singleNoteCopyBlockReason() {
+  if (!currentAdjustment || !Number.isSafeInteger(currentAdjustment.totalCents)) {
+    return 'Enter valid adjustment details before copying this customer note.';
+  }
+
+  const tax = readAdjustmentField(adjTax);
+  if (!adjUseTaxInput.checked || adjTax.dataset.taxEdited !== '1' || tax.empty || !tax.ok) {
+    return 'Enter Minted\'s actual tax before copying this customer note.';
+  }
+
+  if (!adjMintedTotal.value.trim()) {
+    return 'Enter Total from Minted and wait for “Matches Minted” before copying this customer note.';
+  }
+  if (adjMintedTotalCheck.textContent.trim() !== 'Matches Minted') {
+    return 'The total does not match Minted. Correct the tax or shipping before copying this customer note.';
+  }
+  return '';
+}
+
+function updateSingleNoteCopyState() {
+  const hasNote = Boolean(noteText.value.trim());
+  const blockReason = hasNote ? singleNoteCopyBlockReason() : '';
+  copyBtn.disabled = !hasNote || Boolean(blockReason);
+  noteState.classList.toggle('is-warning', Boolean(blockReason));
+
+  if (blockReason) {
+    noteState.textContent = noteWasEdited ? 'Edited draft — check Minted' : 'Draft — confirmation required';
+    copyStatus.textContent = blockReason;
+    copyStatus.classList.add('is-warning');
+  } else {
+    if (hasNote) noteState.textContent = noteWasEdited ? 'Edited — ready to copy' : 'Updated automatically';
+    if (copyStatus.classList.contains('is-warning')) {
+      copyStatus.textContent = '';
+      copyStatus.classList.remove('is-warning');
+    }
+  }
+}
+
 function updateNote(data, { force = false } = {}) {
   if (!data) {
-    noteState.textContent = 'Waiting for valid details';
-    copyBtn.disabled = true;
     if (force || !noteWasEdited) noteText.value = '';
     noteEmpty?.setAttribute('aria-hidden', noteText.value.trim() ? 'true' : 'false');
+    if (noteText.value.trim()) updateSingleNoteCopyState();
+    else {
+      noteState.textContent = 'Waiting for valid details';
+      noteState.classList.remove('is-warning');
+      copyBtn.disabled = true;
+      copyStatus.textContent = '';
+      copyStatus.classList.remove('is-warning');
+    }
     fitNote(noteText);
     return;
   }
@@ -739,9 +785,8 @@ function updateNote(data, { force = false } = {}) {
     noteText.value = generated;
     noteWasEdited = false;
   }
-  noteState.textContent = noteWasEdited ? 'Edited — ready to copy' : 'Updated automatically';
-  copyBtn.disabled = !noteText.value.trim();
   noteEmpty?.setAttribute('aria-hidden', noteText.value.trim() ? 'true' : 'false');
+  updateSingleNoteCopyState();
   fitNote(noteText);
 }
 
@@ -1224,9 +1269,8 @@ function calculateBatch() {
     }
   });
 
-  updateBatchNote(results);
   batchResults = results;
-  copyAllNotesBtn.disabled = results.length === 0;
+  updateBatchNote(results);
   batchStatus.textContent = invalidCount
     ? results.length + ' calculated · ' + invalidCount + ' row' + (invalidCount === 1 ? '' : 's') + ' need attention.'
     : (results.length
@@ -1268,6 +1312,10 @@ function updateBatchNote(results) {
   if (!results.length) {
     batchNoteText.value = '';
     batchNoteState.textContent = 'Waiting for valid details';
+    batchNoteState.classList.remove('is-warning');
+    batchCopyGuard.hidden = true;
+    batchCopyGuard.textContent = '';
+    copyAllNotesBtn.disabled = true;
     fitNote(batchNoteText);
     return;
   }
@@ -1279,11 +1327,47 @@ function updateBatchNote(results) {
   batchNoteState.textContent = missing
     ? missing + ' card name' + (missing === 1 ? '' : 's') + ' missing'
     : 'Updated automatically';
+
+  const blockReason = batchNoteCopyBlockReason(results);
+  batchCopyGuard.hidden = !blockReason;
+  batchCopyGuard.textContent = blockReason || '';
+  copyAllNotesBtn.disabled = !batchNoteText.value.trim() || Boolean(blockReason);
+  batchNoteState.classList.toggle('is-warning', missing > 0 || Boolean(blockReason));
   fitNote(batchNoteText);
+}
+
+function batchNoteCopyBlockReason(results = batchResults) {
+  if (!results.length) return 'Enter details in at least one row before copying the customer note.';
+
+  const rows = results.map((item) => Array.from(batchRows.querySelectorAll('.batch-row'))
+    .find((row) => Number(row.dataset.id) === item.rowId));
+  if (rows.some((row) => {
+    if (!row) return true;
+    const includeTax = row.querySelector('.batch-adj-use-tax');
+    const taxInput = row.querySelector('.batch-adj-tax');
+    const tax = readAdjustmentField(taxInput);
+    return !includeTax?.checked || row.dataset.taxEdited !== '1' ||
+      !taxInput.value.trim() || !tax.ok;
+  })) {
+    return 'Enter Minted tax in every Batch row before copying this customer note.';
+  }
+
+  if (rows.some((row) => row.querySelector('.batch-adj-total-check')?.textContent.trim() !== 'Matches Minted')) {
+    return 'Enter Total from Minted for every Batch row and confirm each says “Matches Minted” before copying this customer note.';
+  }
+  return '';
 }
 
 async function copyAllNotes() {
   const notes = batchNoteText.value;
+  const blockReason = batchNoteCopyBlockReason();
+  if (blockReason) {
+    batchCopyGuard.hidden = false;
+    batchCopyGuard.textContent = blockReason;
+    batchNoteState.classList.add('is-warning');
+    batchStatus.textContent = blockReason;
+    return;
+  }
   if (!notes.trim()) return;
 
   try {
@@ -1452,6 +1536,14 @@ async function copyNote() {
     return;
   }
 
+  const blockReason = singleNoteCopyBlockReason();
+  if (blockReason) {
+    copyStatus.textContent = blockReason;
+    copyStatus.classList.add('is-warning');
+    return;
+  }
+  copyStatus.classList.remove('is-warning');
+
   try {
     if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
     await navigator.clipboard.writeText(noteText.value);
@@ -1469,14 +1561,25 @@ async function copyNote() {
   }
 }
 
-function closeResetConfirmation({ restoreFocus = false } = {}) {
+function closeResetConfirmation({ restoreFocus = true } = {}) {
   resetConfirmation.hidden = true;
+  resetDialog.removeAttribute('role');
+  resetDialog.removeAttribute('aria-modal');
+  resetDialog.removeAttribute('aria-labelledby');
+  document.documentElement.classList.remove('reset-modal-open');
+  document.body.classList.remove('reset-modal-open');
   resetBtn.setAttribute('aria-expanded', 'false');
   if (restoreFocus) resetBtn.focus();
 }
 
 function requestReset() {
+  if (!resetConfirmation.hidden) return;
+  resetDialog.setAttribute('role', 'dialog');
+  resetDialog.setAttribute('aria-modal', 'true');
+  resetDialog.setAttribute('aria-labelledby', 'resetConfirmTitle');
   resetConfirmation.hidden = false;
+  document.documentElement.classList.add('reset-modal-open');
+  document.body.classList.add('reset-modal-open');
   resetBtn.setAttribute('aria-expanded', 'true');
   cancelResetBtn.focus();
 }
@@ -1540,12 +1643,14 @@ taxRateInput.addEventListener('blur', () => {
 });
 adjMintedTotal.addEventListener('input', () => {
   updateMintedTotalComparison(adjMintedTotal, adjMintedTotalCheck, currentAdjustment?.totalCents ?? null);
+  updateSingleNoteCopyState();
 });
 adjMintedTotal.addEventListener('blur', () => {
   const value = readAdjustmentField(adjMintedTotal);
   if (!value.empty && value.ok) adjMintedTotal.value = (Math.round(value.value * 100) / 100).toFixed(2);
   updateMintedTotalComparison(adjMintedTotal, adjMintedTotalCheck, currentAdjustment?.totalCents ?? null);
   setInputMotionError(adjMintedTotal, !value.ok, { shake: true });
+  updateSingleNoteCopyState();
 });
 adjTax.addEventListener('input', () => {
   adjTax.dataset.taxEdited = '1';
@@ -1600,10 +1705,14 @@ batchRows.addEventListener('click', (event) => {
   const row = removeBtn.closest('.batch-row');
   if (row) removeBatchRow(row);
 });
-cancelResetBtn.addEventListener('click', () => closeResetConfirmation({ restoreFocus: true }));
+cancelResetBtn.addEventListener('click', () => closeResetConfirmation());
 confirmResetBtn.addEventListener('click', () => {
-  closeResetConfirmation();
+  closeResetConfirmation({ restoreFocus: false });
   resetCalculator();
+  resetBtn.focus();
+});
+resetConfirmation.addEventListener('click', (event) => {
+  if (event.target === resetConfirmation) closeResetConfirmation();
 });
 
 document.querySelectorAll('.preset-btn').forEach((button) => {
@@ -1682,18 +1791,38 @@ discountInput.addEventListener('keydown', (event) => {
 
 noteText.addEventListener('input', () => {
   noteWasEdited = true;
-  noteState.textContent = 'Edited — ready to copy';
-  copyBtn.disabled = !noteText.value.trim();
   copyStatus.textContent = '';
+  copyStatus.classList.remove('is-warning');
   restoreCopyButton();
   noteEmpty?.setAttribute('aria-hidden', noteText.value.trim() ? 'true' : 'false');
+  updateSingleNoteCopyState();
   saveSettings();
   fitNote(noteText);
 });
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && !resetConfirmation.hidden) {
-    closeResetConfirmation({ restoreFocus: true });
+  if (!resetConfirmation.hidden) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeResetConfirmation();
+      return;
+    }
+    if (event.key === 'Tab') {
+      const focusable = [cancelResetBtn, confirmResetBtn].filter((element) => !element.disabled);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!focusable.length) {
+        event.preventDefault();
+        resetDialog.focus();
+      } else if (event.shiftKey && (document.activeElement === first || !resetDialog.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !resetDialog.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+      return;
+    }
     return;
   }
 
@@ -1705,8 +1834,8 @@ document.addEventListener('keydown', (event) => {
 
   if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
     event.preventDefault();
-    if (!resetConfirmation.hidden) return;
-    copyNote();
+    if (currentMode === 'batch') copyAllNotes();
+    else copyNote();
   }
 });
 
