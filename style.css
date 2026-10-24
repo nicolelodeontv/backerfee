@@ -1917,10 +1917,10 @@ html[data-theme="dark"] .adjustment-callout-icon {
 .adjustment-row > .adj-copy-btn { order: 1; }
 .adjustment-row > .adjustment-value-input { order: 2; }
 
-/* Batch: align the labels and inputs for the two fields on the second line. */
+/* Keep all second-line Batch inputs aligned even when the Total label wraps beside Copy. */
 @media (min-width: 521px) {
   .batch-adj-field:nth-child(n + 4) .batch-adj-label {
-    min-height: 26px;
+    min-height: 40px;
     align-items: center;
   }
 }
