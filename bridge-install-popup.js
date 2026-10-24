@@ -21,6 +21,8 @@
   function closePopup() {
     var existing = document.getElementById(POPUP_ID);
     if (existing) existing.remove();
+    var style = document.getElementById(POPUP_ID + '-style');
+    if (style) style.remove();
     if (observer) observer.disconnect();
   }
 
@@ -181,6 +183,7 @@
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-bf-bridge'] });
     document.addEventListener('bf-bridge-ready', closePopup, { once: true });
+    if (markerPresent()) closePopup();
   }
 
   window.setTimeout(showPopup, 2000);
