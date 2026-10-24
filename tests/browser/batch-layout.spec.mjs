@@ -662,8 +662,8 @@ try {
     `Amount, Tax Based on Shipping Zip, and Subtotal inputs should align on one line (y=${topLineInputY.join(', ')})`);
   for (const index of [3, 4, 5]) {
     const labelHeight = await adjustmentFields.nth(index).locator('.batch-adj-label').evaluate((el) => getComputedStyle(el).minHeight);
-    assert.equal(labelHeight, '26px',
-      `Batch second-line field ${index + 1} should reserve the shared 26px label height`);
+    assert.equal(labelHeight, '40px',
+      `Batch second-line field ${index + 1} should reserve the shared 40px label height`);
   }
   const secondLineInputBoxes = await Promise.all([3, 4, 5].map(async (index) =>
     adjustmentFields.nth(index).locator('.input-wrap input').first().boundingBox()));
