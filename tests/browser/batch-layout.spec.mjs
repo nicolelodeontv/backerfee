@@ -864,8 +864,11 @@ try {
     const taxField = row.locator('.batch-adj-tax');
     const totalField = row.locator('.batch-adj-total');
     const mintedTotalField = row.locator('.batch-adj-minted-total');
-    await taxField.fill(await taxField.inputValue());
-    await mintedTotalField.fill(await totalField.inputValue());
+    const calculatedTax = await taxField.inputValue();
+    const calculatedTotal = await totalField.inputValue();
+    await taxField.fill('');
+    await taxField.fill(calculatedTax);
+    await mintedTotalField.fill(calculatedTotal);
     assert.equal(await row.locator('.batch-adj-total-check').innerText(), 'Matches Minted',
       'Batch note copy should require a matching Minted total for every calculated row');
   }
