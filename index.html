@@ -58,15 +58,15 @@
             </div>
           </div>
 
-          <div class="reset-confirmation" id="resetConfirmation" hidden aria-labelledby="resetConfirmTitle">
-            <div class="reset-confirmation-copy">
-              <strong id="resetConfirmTitle">Reset calculator?</strong>
-              <p>This will clear the current price, discount, results, and note.</p>
-            </div>
-            <div class="reset-confirmation-actions">
-              <button class="secondary-btn compact" id="cancelResetBtn" type="button">Cancel</button>
-              <button class="copy-btn compact" id="confirmResetBtn" type="button">Confirm reset</button>
-            </div>
+          <div class="reset-confirmation" id="resetConfirmation" hidden>
+            <section class="reset-dialog" id="resetDialog" tabindex="-1">
+              <h2 id="resetConfirmTitle">Reset calculator?</h2>
+              <p id="resetConfirmMessage">This will clear the current price, discount, results, and note.</p>
+              <div class="reset-confirmation-actions">
+                <button class="secondary-btn compact" id="cancelResetBtn" type="button">Cancel</button>
+                <button class="copy-btn compact" id="confirmResetBtn" type="button">Confirm reset</button>
+              </div>
+            </section>
           </div>
 
           <div class="tax-rate-setting" role="group" aria-labelledby="taxRateLabel">
@@ -173,6 +173,7 @@
                 <span class="note-state" id="batchNoteState">Waiting for valid details</span>
               </div>
               <textarea id="batchNoteText" rows="12" readonly aria-readonly="true" aria-label="Generated batch customer note" placeholder="Enter a price and discount in at least one row to generate the note."></textarea>
+              <p class="note-copy-guard" id="batchCopyGuard" role="status" aria-live="polite" hidden></p>
             </section>
 
             <div class="batch-actions">
