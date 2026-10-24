@@ -728,15 +728,18 @@ function refreshAdjustment() {
 }
 
 function isSingleCustomerNoteReady() {
-  if (!calculated || !currentAdjustment || !adjUseTaxInput.checked) return false;
+  if (!calculated || !currentAdjustment) return false;
 
-  const tax = readAdjustmentField(adjTax);
   const mintedTotal = readAdjustmentField(adjMintedTotal);
-  return adjTax.dataset.taxEdited === '1' &&
-    !tax.empty && tax.ok &&
-    !mintedTotal.empty && mintedTotal.ok &&
+  const totalMatches = !mintedTotal.empty && mintedTotal.ok &&
     Number.isSafeInteger(currentAdjustment.totalCents) &&
     adjMintedTotalCheck.textContent.trim() === 'Matches Minted';
+  if (!totalMatches) return false;
+
+  if (!adjUseTaxInput.checked) return true;
+
+  const tax = readAdjustmentField(adjTax);
+  return adjTax.dataset.taxEdited === '1' && !tax.empty && tax.ok;
 }
 
 function updateSingleNoteCopyState() {
@@ -744,8 +747,9 @@ function updateSingleNoteCopyState() {
   const ready = hasDetails && isSingleCustomerNoteReady();
   copyBtn.disabled = !ready;
   noteCopyGuard.hidden = !hasDetails || ready;
-  noteCopyGuard.textContent = ready ? '' :
-    "Enter Minted's tax and total, then confirm “Matches Minted” before copying this note.";
+  noteCopyGuard.textContent = ready ? '' : (adjUseTaxInput.checked
+    ? "Enter Minted's tax and total, then confirm “Matches Minted” before copying this note."
+    : "With Include Tax off, enter a Total from Minted that matches the calculated total before copying this note.");
 
   if (!calculated) {
     noteState.textContent = 'Waiting for valid details';
@@ -765,7 +769,11 @@ function updateNote(data, { force = false } = {}) {
     return;
   }
 
-  const generated = buildCustomerNote({ ...data, discountedPrice: noteFee(data) });
+  const generated = buildCustomerNote({
+    ...data,
+    discountedPrice: noteFee(data),
+    includesLocalTaxes: adjUseTaxInput.checked
+  });
   if (force || !noteWasEdited || !noteText.value.trim()) {
     noteText.value = generated;
     noteWasEdited = false;
@@ -1245,7 +1253,8 @@ function calculateBatch() {
         name: typedName || 'Card ' + (index + 1),
         named: Boolean(typedName),
         data: resultData,
-        adjustment
+        adjustment,
+        includesLocalTaxes: row.querySelector('.batch-adj-use-tax')?.checked !== false
       });
     } catch (error) {
       console.error('Batch calculation failed:', error);
@@ -1275,23 +1284,34 @@ function buildBatchNote(items) {
     : quoted[0];
   const sameFee = new Set(items.map((item) => item.feeCents)).size === 1;
   const feeText = sameFee ? ' of ' + money(items[0].feeCents / 100) : '';
-  const lines = items.map((item) => '"' + item.name + '" cards: ' + money(item.feeCents / 100));
+  const allIncludeTax = items.every((item) => item.includesLocalTaxes !== false);
+  const noneIncludeTax = items.every((item) => item.includesLocalTaxes === false);
+  const mixedTaxTreatment = !allIncludeTax && !noneIncludeTax;
+  const taxText = allIncludeTax
+    ? 'including local taxes.'
+    : (noneIncludeTax
+      ? 'with local taxes excluded.'
+      : 'with tax treatment indicated for each card below.');
+  const lines = items.map((item) => '"' + item.name + '" cards: ' + money(item.feeCents / 100) +
+    (mixedTaxTreatment ? (item.includesLocalTaxes === false ? ' (local taxes excluded)' : ' (local taxes included)') : ''));
 
   return 'Please note that adding printing on the back of the ' + names + ' cards incurs an additional fee' +
-    feeText + ' per card, based on the quantity you\'ve purchased, including local taxes.\n\n' +
+    feeText + ' per card, based on the quantity you\'ve purchased, ' + taxText + '\n\n' +
     'For the cost of back-of-card printing:\n' + lines.join('\n') + '\n\n' +
     'If you\'d like to continue with back-of-card printing, please request a change and leave a note approving the fee. ' +
     'If you\'re happy with your card as-is and would no longer like printing on the back of your card, simply approve your design for print.';
 }
 
-function areBatchCustomerNotesReady(results) {
-  if (!results.length) return false;
-
+function getBatchCustomerNoteBlockers(results) {
   const rows = Array.from(batchRows.querySelectorAll('.batch-row'));
-  return results.every((item) => {
-    if (!item.adjustment) return false;
+  const blockers = [];
+
+  for (const item of results) {
     const row = rows.find((candidate) => Number(candidate.dataset.id) === item.rowId);
-    if (!row || row.dataset.taxEdited !== '1') return false;
+    if (!item.adjustment || !row) {
+      blockers.push({ name: item.name || 'Unnamed row', reason: 'valid adjustment values' });
+      continue;
+    }
 
     const taxInput = row.querySelector('.batch-adj-tax');
     const mintedTotalInput = row.querySelector('.batch-adj-minted-total');
@@ -1299,19 +1319,33 @@ function areBatchCustomerNotesReady(results) {
     const mintedTotalStatus = row.querySelector('.batch-adj-total-check');
     const tax = readAdjustmentField(taxInput);
     const mintedTotal = readAdjustmentField(mintedTotalInput);
-    return useTaxInput.checked &&
-      !tax.empty && tax.ok &&
-      !mintedTotal.empty && mintedTotal.ok &&
+    const totalMatches = !mintedTotal.empty && mintedTotal.ok &&
       mintedTotalStatus.textContent.trim() === 'Matches Minted';
-  });
+
+    if (useTaxInput.checked &&
+        (row.dataset.taxEdited !== '1' || tax.empty || !tax.ok)) {
+      blockers.push({ name: item.name, reason: "Minted's tax and a matching Total from Minted" });
+    } else if (!totalMatches) {
+      blockers.push({ name: item.name, reason: 'a matching Total from Minted' });
+    }
+  }
+
+  return blockers;
+}
+
+function areBatchCustomerNotesReady(results) {
+  return results.length > 0 && getBatchCustomerNoteBlockers(results).length === 0;
 }
 
 function updateBatchNoteCopyState(results) {
-  const ready = areBatchCustomerNotesReady(results);
+  const blockers = getBatchCustomerNoteBlockers(results);
+  const ready = results.length > 0 && blockers.length === 0;
   copyAllNotesBtn.disabled = !ready;
   batchNoteGuard.hidden = !results.length || ready;
   batchNoteGuard.textContent = ready ? '' :
-    "Enter Minted's tax and total in every calculated row, then confirm “Matches Minted” before copying notes.";
+    'Before copying, ' + blockers.map((blocker) =>
+      '“' + blocker.name + '” needs ' + blocker.reason
+    ).join('; ') + '.';
 }
 
 function updateBatchNote(results) {
@@ -1332,9 +1366,10 @@ function updateBatchNote(results) {
     return;
   }
 
-  batchNoteText.value = buildBatchNote(results.map(({ name, data, adjustment }) => ({
+  batchNoteText.value = buildBatchNote(results.map(({ name, data, adjustment, includesLocalTaxes }) => ({
     name,
-    feeCents: adjustment ? adjustment.totalCents : Math.round(data.discountedPrice * 100)
+    feeCents: adjustment ? adjustment.totalCents : Math.round(data.discountedPrice * 100),
+    includesLocalTaxes
   })));
   batchNoteState.textContent = missing
     ? missing + ' card name' + (missing === 1 ? '' : 's') + ' missing'
