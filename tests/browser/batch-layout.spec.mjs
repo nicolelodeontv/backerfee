@@ -1127,8 +1127,8 @@ try {
   assert.equal(Number(await page.locator('#adjTax').inputValue()), 6.26,
     'Changing Single original price should reset entered tax to the estimate');
   await page.locator('#backer').fill('100');
-  assert.equal(Number(await page.locator('#adjTax').inputValue()), 7.75,
-    'Restoring the price should recompute the 7.75% estimate');
+  assert.equal(Number(await page.locator('#adjTax').inputValue()), 6.20,
+    'Restoring the price should recompute the 7.75% estimate on Amount $80.00');
   await page.locator('#discount').fill('20');
   await page.waitForFunction(() =>
     document.querySelector('#adjAmount').value === '80.00' &&
