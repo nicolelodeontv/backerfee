@@ -301,23 +301,81 @@ try {
   assert.equal(Number(await bothTaxRows.nth(1).locator('.batch-adj-total').inputValue()), 85,
     'Restored unchecked row should calculate Amount plus shipping');
 
-  // Reset confirmation stays in page flow and never creates a dialog or overlay.
+  // Reset opens a centered modal, traps focus, and changes no data until confirmed.
+  const firstBatchRow = page.locator('#batchRows .batch-row').first();
+  const batchPriceBeforeReset = await firstBatchRow.locator('.batch-price').inputValue();
+  const batchDiscountBeforeReset = await firstBatchRow.locator('.batch-discount').inputValue();
   await page.locator('#resetBtn').click();
   assert.equal(await page.locator('#resetConfirmation').isVisible(), true,
-    'Reset should show an inline confirmation');
-  assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
-    'Reset confirmation must never use dialog or modal semantics');
-  assert.equal(await page.locator('#resetConfirmation').evaluate((el) => getComputedStyle(el).position), 'static',
-    'Reset confirmation must stay in normal document flow, not overlay the page');
+    'Reset should open the modal confirmation');
+  assert.equal(await page.locator('#resetDialog').getAttribute('role'), 'dialog');
+  assert.equal(await page.locator('#resetDialog').getAttribute('aria-modal'), 'true');
+  assert.equal(await page.locator('#resetDialog').getAttribute('aria-labelledby'), 'resetConfirmTitle');
+  assert.equal(await page.locator('#resetConfirmTitle').innerText(), 'Reset calculator?');
+  assert.equal(await page.locator('#resetConfirmMessage').innerText(),
+    'This will clear the current price, discount, results, and note.');
+  assert.equal(await page.locator('[role="dialog"]').count(), 1,
+    'Reset should be the only open dialog');
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'cancelResetBtn',
+    'Focus should move to Cancel when the modal opens');
+  assert.equal(await page.evaluate(() => document.body.classList.contains('reset-modal-open')), true,
+    'Background scrolling should be locked while the modal is open');
+  assert.equal(await firstBatchRow.locator('.batch-price').inputValue(), batchPriceBeforeReset,
+    'Opening Reset must not clear data');
+  assert.equal(await firstBatchRow.locator('.batch-discount').inputValue(), batchDiscountBeforeReset,
+    'Opening Reset must not clear discounts');
+
+  await page.keyboard.press('Shift+Tab');
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'confirmResetBtn',
+    'Shift+Tab from Cancel must wrap to Confirm reset');
+  await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'cancelResetBtn',
+    'Tab from Confirm reset must wrap to Cancel');
   await page.locator('#cancelResetBtn').click();
   assert.equal(await page.locator('#resetConfirmation').isVisible(), false,
-    'Cancel should dismiss the inline confirmation');
-  assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
-    'Cancelling Reset must not add dialog semantics');
+    'Cancel should close the modal');
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'resetBtn',
+    'Closing with Cancel must return focus to Reset');
+  assert.equal(await page.evaluate(() => document.body.classList.contains('reset-modal-open')), false,
+    'Cancel should release the background scroll lock');
+  assert.equal(await page.locator('#resetDialog').getAttribute('role'), null,
+    'Dialog semantics should be removed when closed');
+  assert.equal(await firstBatchRow.locator('.batch-price').inputValue(), batchPriceBeforeReset,
+    'Cancel must keep data intact');
+
   await page.locator('#resetBtn').click();
+  await page.mouse.click(2, 2);
+  assert.equal(await page.locator('#resetConfirmation').isVisible(), false,
+    'Clicking the backdrop should close the modal');
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'resetBtn',
+    'Backdrop close should return focus to Reset');
+  assert.equal(await firstBatchRow.locator('.batch-price').inputValue(), batchPriceBeforeReset,
+    'Backdrop close must keep data intact');
+
+  await page.locator('#resetBtn').focus();
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#resetConfirmation').isVisible(), true,
+    'Escape outside the modal should open Reset confirmation');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#resetConfirmation').isVisible(), false,
+    'Escape inside the modal should close it, not reset anything');
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'resetBtn',
+    'Escape close should return focus to Reset');
+  assert.equal(await firstBatchRow.locator('.batch-price').inputValue(), batchPriceBeforeReset,
+    'Escape close must keep data intact');
+
+  await page.locator('#resetBtn').click();
+  assert.equal(await firstBatchRow.locator('.batch-price').inputValue(), batchPriceBeforeReset,
+    'Even after opening the modal, data should remain until Confirm reset');
   await page.locator('#confirmResetBtn').click();
   assert.equal(await page.locator('#resetConfirmation').isVisible(), false,
-    'Confirming Reset should close the inline confirmation');
+    'Confirm reset should close the modal');
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'resetBtn',
+    'Confirm reset should also return focus to Reset');
+  assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
+    'No modal semantics should remain after closing');
+  assert.equal(await page.evaluate(() => document.body.classList.contains('reset-modal-open')), false,
+    'Confirm reset should release the scroll lock');
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
   await page.locator('#modeBatchBtn').click();
