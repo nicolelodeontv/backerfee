@@ -1768,9 +1768,10 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
 @media (min-width: 901px) {
   .calculator-card form {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto auto;
     grid-template-areas:
       "heading heading"
+      "resetconfirm resetconfirm"
       "trust trust"
       "details adjustment"
       "results adjustment"
@@ -1797,6 +1798,12 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
   .calculator-card form > .results {
     align-self: start;
     margin: 12px 0 0;
+  }
+
+  .calculator-card form > .reset-confirmation {
+    grid-area: resetconfirm;
+    align-self: start;
+    margin: 0 0 12px;
   }
 
   .calculator-card form > .tax-rate-setting {
