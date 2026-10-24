@@ -198,6 +198,20 @@ try {
     'Restoring 7.75% should restore Batch estimated tax');
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47,
     'Restoring 7.75% should restore the Batch estimate total');
+  await page.locator('#taxRate').fill('0');
+  assert.equal(await page.locator('#taxRate').getAttribute('aria-invalid'), 'true',
+    'A zero rate should be rejected in Batch mode');
+  assert.equal(await page.locator('#taxRateError').isVisible(), true,
+    'An invalid shared rate should show its validation error in Batch mode');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47,
+    'An invalid shared rate must not corrupt the Batch total');
+  await page.locator('#taxRate').evaluate((el) => el.blur());
+  assert.equal(await page.locator('#taxRate').inputValue(), '7.75',
+    'Invalid Batch rate should recover to 7.75%');
+  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(1).locator('.batch-adj-label > span').innerText(),
+    'Estimated tax', 'An invalid rate must not change the Batch label to Minted tax');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.92,
+    'The Batch estimate should remain correct after invalid-rate recovery');
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.92,
     'Without a typed tax, Batch should show the 7.75% estimate');
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47,
@@ -222,8 +236,8 @@ try {
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 59.47,
     'Typed tax and Shipping should be used in Batch');
   await restoredDraftRows.nth(0).locator('.batch-price').fill('51');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 4.23,
-    'Changing original price should reset Batch tax to the estimate');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.36,
+    'Changing original price should reset Batch tax to the 7.75% estimate');
   assert.equal((await restoredDraftRows.nth(0).locator('.batch-adj-status').innerText()),
     'Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.',
     'Changing original price should return the row to estimated status');
