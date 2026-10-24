@@ -184,11 +184,11 @@
       <button type="button" class="adj-copy-btn" data-copy-from="#adjAmount" aria-label="Copy Amount"><span class="t-text-swap">Copy</span></button>
     </div>
     <div class="adjustment-row tax">
-      <label class="adjustment-row-label" for="adjTax">Tax from Minted</label>
+      <label class="adjustment-row-label" for="adjTax">Tax from Minted (replace estimate)</label>
       <div class="adjustment-row-valuegroup">
         <div class="input-wrap adjustment-value-input">
           <span class="prefix" aria-hidden="true">$</span>
-          <input type="number" id="adjTax" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Tax from Minted or estimated tax">
+          <input type="number" id="adjTax" min="0" step="0.01" placeholder="Enter Minted tax" inputmode="decimal" autocomplete="off" aria-label="Enter Minted tax to replace the estimate">
         </div>
         <label class="adj-check" for="adjUseTax">Include Tax: <input type="checkbox" id="adjUseTax" checked></label>
       </div>
@@ -217,9 +217,9 @@
     </div>
   </div>
 
-  <p class="adjustment-status" id="adjStatus" role="status" aria-live="polite">Tax is an estimate. Click Calculate in Minted, then type Minted's tax here.</p>
+  <p class="adjustment-status" id="adjStatus" role="status" aria-live="polite">Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted's tax.</p>
   <p class="adjustment-limit-warning" id="adjLimitWarning" role="alert" hidden>Minted won't allow a charge of $50,000 or more.</p>
-  <p class="adjustment-note">Tax is estimated at 9.75% until confirmed in Minted. Adjust Shipping Adjustment when needed.</p>
+  <p class="adjustment-note">The 9.75% tax is only an estimate. Replace Tax with Minted's actual amount after clicking Calculate. Adjust Shipping Adjustment when needed.</p>
 </section>
 
         </form>
