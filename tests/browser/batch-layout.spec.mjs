@@ -1163,7 +1163,17 @@ try {
   await page.locator('#adjShip').fill('0');
   assert.equal(await page.locator('#adjTax').isEditable(), true,
     'Single tax must be an editable input, not a fixed-rate-only output');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
+    'Single customer note must not be copyable while tax is estimated');
+  assert.match(await page.locator('#copyStatus').innerText(), /Enter Minted.*actual tax/,
+    'Single note should explain that Minted tax is needed before copying');
   await page.locator('#adjTax').fill('3.92');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
+    'Entering Minted tax alone must not enable copying until the Minted total matches');
+  await page.locator('#adjMintedTotal').fill('54.47');
+  assert.equal(await page.locator('#adjMintedTotalCheck').innerText(), 'Matches Minted');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), false,
+    'Single note should become copyable after tax is entered and the Minted total matches');
   assert.equal(Number(await page.locator('#adjSubtotal').inputValue()), 54.47,
     'Single Amount $50.55 and Minted tax $3.92 should subtotal to $54.47');
   assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.47,
@@ -1175,6 +1185,8 @@ try {
   assert.equal(await page.locator('#adjMintedTotalCheck').innerText(),
     'Mismatch: app $54.47, Minted $54.48, difference $0.01',
     'Single should report the app total, Minted total, and cent difference');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
+    'A one-cent mismatch must disable customer note copying');
   await page.locator('#adjMintedTotal').fill('');
   assert.equal((await page.locator('#adjStatus').innerText()), 'Using tax from Minted.',
     'Single should report when user-entered Minted tax is being used');
@@ -1251,6 +1263,15 @@ try {
     document.querySelector('#adjAmount').value === '80.00' &&
     document.querySelector('#adjTotal').value === '86.20'
   );
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
+    'Changing the order should invalidate the prior tax/total confirmation');
+  await page.locator('#adjTax').fill('6.20');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
+    'Single note should remain disabled until Total from Minted matches the updated order');
+  await page.locator('#adjMintedTotal').fill('86.20');
+  assert.equal(await page.locator('#adjMintedTotalCheck').innerText(), 'Matches Minted');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), false,
+    'Single note should enable only when the updated tax and total both match Minted');
   // Check Single-mode copy buttons using a calculated fee and Total Adjustment.
   const singleInputBoxes = await page.locator('#adjustmentCard .adjustment-row').evaluateAll((rows) =>
     rows.map((row) => row.querySelector('.adjustment-value-input input')?.getBoundingClientRect()).filter(Boolean)
@@ -1279,8 +1300,15 @@ try {
     'Single Total Adjustment copy should copy a plain number');
   assert.ok((await page.locator('#noteText').inputValue()).includes('$86.20'),
     'Generated note should use the same Total Adjustment shown in the Single estimate');
+  await page.locator('#copyBtn').click();
+  await page.waitForFunction(() => document.querySelector('#copyStatus').textContent === 'Copied ✓', null, { timeout: 8000 });
+  assert.ok((await page.evaluate(() => navigator.clipboard.readText())).includes('$86.20'),
+    'Only the Minted-confirmed total should be copied to the customer note');
 
   await page.screenshot({ path: screenshotName('single-mode-1440'), fullPage: true });
+  await page.locator('#adjTax').fill('');
+  await page.locator('#adjTax').blur();
+  await page.locator('#adjMintedTotal').fill('');
 
   // Invalid rates show a clear error and recover to the documented 7.75% default.
   await page.locator('#adjAmount').fill('50.55');
