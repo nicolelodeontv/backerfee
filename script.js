@@ -508,7 +508,7 @@ function applyBatchAdjustment(row, data) {
     row.dataset.taxEdited = '';
     taxEdited = false;
   }
-  const taxLabel = row.querySelector('.batch-adj-label > span');
+  const taxLabel = taxOut.closest('.batch-adj-field')?.querySelector('.batch-adj-label > span');
   const totalLabel = totalOut.closest('.batch-adj-field')?.querySelector('.batch-adj-label > span');
   const taxUnconfirmed = useTaxInput.checked && !taxEdited;
   taxLabel.textContent = !useTaxInput.checked ? 'Tax excluded'
