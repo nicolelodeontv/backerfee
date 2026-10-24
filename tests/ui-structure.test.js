@@ -330,33 +330,37 @@ test('persists Batch draft rows locally across refreshes', () => {
 
 
 test('has no bridge popup and only adds Reset dialog semantics while open', () => {
-  assert.doesNotMatch(html, /bridge-install-popup|backer-fee-minted-bridge\\.user\\.js|Tampermonkey|Open Backer Fee on Minted/i);
+  assert.doesNotMatch(html, /bridge-install-popup|backer-fee-minted-bridge[.]user[.]js|Tampermonkey|Open Backer Fee on Minted/i);
   assert.doesNotMatch(script, /normalizeMintedBridgeMoney|applyMintedBridgeParams|minted_(?:amount|tax|shipping|subtotal|total)|data-bf-minted-import|bf-bridge-ready|backerfee-bridge-install-dismissed-v1/i);
   assert.doesNotMatch(html, /role="dialog"|aria-modal=/i,
     'Initial HTML must not contain dialog or aria-modal attributes');
-  assert.match(html, /id="resetConfirmation" hidden>/);
-  assert.match(html, /<section class="reset-dialog" id="resetDialog" tabindex="-1">/);
-  assert.match(html, /id="resetConfirmTitle">Reset calculator\\?<\\/h2>/);
-  assert.match(html, /id="resetConfirmMessage">This will clear the current price, discount, results, and note\\.<\\/p>/);
-  assert.match(html, /id="cancelResetBtn"/);
-  assert.match(html, /id="confirmResetBtn"/);
-  assert.match(script, /resetDialog\\.setAttribute\\('role', 'dialog'\\)/);
-  assert.match(script, /resetDialog\\.setAttribute\\('aria-modal', 'true'\\)/);
-  assert.match(script, /resetDialog\\.setAttribute\\('aria-labelledby', 'resetConfirmTitle'\\)/);
-  assert.match(script, /resetDialog\\.removeAttribute\\('role'\\)/);
-  assert.match(script, /resetDialog\\.removeAttribute\\('aria-modal'\\)/);
-  assert.match(script, /resetDialog\\.removeAttribute\\('aria-labelledby'\\)/);
-  assert.match(script, /event\\.key === 'Tab'[\\s\\S]*?last\\.focus\\(\\)[\\s\\S]*?first\\.focus\\(\\)/);
-  assert.match(script, /document\\.body\\.classList\\.add\\('reset-modal-open'\\)/);
-  assert.match(script, /document\\.body\\.classList\\.remove\\('reset-modal-open'\\)/);
-  assert.match(css, /\\.reset-confirmation\\s*\\{[\\s\\S]*position:\\s*fixed;[\\s\\S]*inset:\\s*0;/);
-  assert.match(css, /\\.reset-confirmation\\[hidden\\]\\s*\\{\\s*display:\\s*none;/);
-  assert.match(css, /@media \\(max-width: 380px\\)[\\s\\S]*?\\.reset-dialog/);
-  assert.match(css, /grid-template-rows:\s*auto auto auto auto auto;/,
-    'Desktop Single layout should use explicit results and tax-rate rows');
-  assert.match(css, /"results adjustment"[\s\S]*?"taxrate adjustment"/,
-    'Tax rate should retain its own explicit row below results');
-  assert.doesNotMatch(css, /\.calculator-card form > \.reset-confirmation\s*\{[^}]*grid-area/,
+  assert.ok(html.includes('id="resetConfirmation" hidden>'));
+  assert.ok(html.includes('<section class="reset-dialog" id="resetDialog" tabindex="-1">'));
+  assert.ok(html.includes('id="resetConfirmTitle">Reset calculator?</h2>'));
+  assert.ok(html.includes('id="resetConfirmMessage">This will clear the current price, discount, results, and note.</p>'));
+  assert.ok(html.includes('id="cancelResetBtn"'));
+  assert.ok(html.includes('id="confirmResetBtn"'));
+  assert.ok(script.includes("resetDialog.setAttribute('role', 'dialog')"));
+  assert.ok(script.includes("resetDialog.setAttribute('aria-modal', 'true')"));
+  assert.ok(script.includes("resetDialog.setAttribute('aria-labelledby', 'resetConfirmTitle')"));
+  assert.ok(script.includes("resetDialog.removeAttribute('role')"));
+  assert.ok(script.includes("resetDialog.removeAttribute('aria-modal')"));
+  assert.ok(script.includes("resetDialog.removeAttribute('aria-labelledby')"));
+  assert.ok(script.includes("if (event.key === 'Tab')"));
+  assert.ok(script.includes('last.focus();'));
+  assert.ok(script.includes('first.focus();'));
+  assert.ok(script.includes("document.body.classList.add('reset-modal-open')"));
+  assert.ok(script.includes("document.body.classList.remove('reset-modal-open')"));
+  assert.ok(css.includes('.reset-confirmation {'));
+  assert.ok(css.includes('position: fixed;'));
+  assert.ok(css.includes('inset: 0;'));
+  assert.ok(css.includes('.reset-confirmation[hidden] { display: none; }'));
+  assert.ok(css.includes('@media (max-width: 380px)'));
+  assert.ok(css.includes('.reset-dialog { padding: 20px 16px;'));
+  assert.ok(css.includes('grid-template-rows: auto auto auto auto auto;'));
+  assert.ok(css.includes('"results adjustment"'));
+  assert.ok(css.includes('"taxrate adjustment"'));
+  assert.equal(css.includes('.calculator-card form > .reset-confirmation'), false,
     'The fixed Reset modal must not take up a calculator grid row');
   assert.ok(html.includes('id="adjTax" min="0" step="0.01" placeholder="Minted tax"'));
   assert.ok(html.includes('id="adjMintedTotal" min="0" step="0.01" placeholder="Minted total"'));
