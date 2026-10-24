@@ -335,7 +335,7 @@ test('keeps the Reset dialog hidden until opened and guards customer-note copyin
 
   assert.match(html, /class="reset-modal-backdrop" id="resetConfirmation" hidden>/);
   assert.match(html, /<section class="reset-modal" tabindex="-1">/);
-  assert.match(html, /<h2 id="resetConfirmTitle">Reset calculator\?<\\/h2>/);
+  assert.ok(html.includes('<h2 id="resetConfirmTitle">Reset calculator?</h2>'));
   assert.doesNotMatch(html, /role="dialog"|aria-modal=|aria-labelledby="resetConfirmTitle"/i,
     'Initial markup must not apply dialog semantics before the modal opens');
   assert.match(html, /id="cancelResetBtn"/);
