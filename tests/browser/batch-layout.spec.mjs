@@ -714,6 +714,16 @@ try {
   const largeTotal = rows.nth(0).locator('.batch-adj-total');
   assert.equal(await largeTotal.inputValue(), '1234.56',
     'A large Total Adjustment should calculate to $1,234.56');
+  await largeAmount.fill('50000');
+  await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .batch-adj-total')?.value === '54875.00');
+  const batchLimitWarning = rows.nth(0).locator('.batch-adj-limit-warning');
+  assert.equal(await batchLimitWarning.isVisible(), true,
+    'A Batch Total Adjustment of $50,000 or more should show the Minted charge-limit warning');
+  assert.equal(await batchLimitWarning.innerText(), 'Minted won\'t allow a charge of $50,000 or more.');
+  await largeAmount.fill('1124.88');
+  await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .batch-adj-total')?.value === '1234.56');
+  assert.equal(await batchLimitWarning.isVisible(), false,
+    'The Batch charge-limit warning should clear again below $50,000');
   const largeTotalBox = await largeTotal.boundingBox();
   assert.ok(largeTotalBox && largeTotalBox.width >= 70,
     `Large Total Adjustment needs enough input width to display its value (box=${JSON.stringify(largeTotalBox)})`);
@@ -943,6 +953,13 @@ try {
   await page.locator('#adjShip').fill('5.00');
   assert.equal(Number(await page.locator('#adjTotal').inputValue()), 59.47,
     'Single Amount, typed tax, and $5 shipping should total $59.47');
+  await page.locator('#adjAmount').fill('50000');
+  assert.equal(await page.locator('#adjLimitWarning').isVisible(), true,
+    'Single Total Adjustment at or above $50,000 should show the Minted charge-limit warning');
+  assert.equal(await page.locator('#adjLimitWarning').innerText(), 'Minted won\'t allow a charge of $50,000 or more.');
+  await page.locator('#adjAmount').fill('50.55');
+  assert.equal(await page.locator('#adjLimitWarning').isVisible(), false,
+    'The Single charge-limit warning should clear below $50,000');
   await page.locator('#adjUseTax').uncheck();
   assert.equal(Number(await page.locator('#adjTax').inputValue()), 0,
     'Unchecking Include Tax should set Single tax to zero');
