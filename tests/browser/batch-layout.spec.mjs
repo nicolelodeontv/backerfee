@@ -755,6 +755,13 @@ try {
   assert.equal(await batchLimitWarning.isVisible(), true,
     'A Batch Total Adjustment of $50,000 or more should show the Minted charge-limit warning');
   assert.equal(await batchLimitWarning.innerText(), 'Minted won\'t allow a charge of $50,000 or more.');
+  const limitTotalCopy = rows.nth(0).locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]');
+  await limitTotalCopy.click();
+  await page.waitForFunction(() =>
+    document.querySelector('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Total Adjustment"]')?.textContent.trim() === 'Copied ✓'
+  );
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '54875.00',
+    'Copy should still work while Minted charge-limit warning is visible');
   await largeAmount.fill('1124.88');
   await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .batch-adj-total')?.value === '1234.56');
   assert.equal(await batchLimitWarning.isVisible(), false,
