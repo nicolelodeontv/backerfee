@@ -347,4 +347,8 @@ test('has no Minted bridge, onboarding popup, or Reset modal', () => {
     'Tax rate should have an explicit row below the results');
   assert.match(css, /\.calculator-card form > \.tax-rate-setting\s*\{\s*grid-area:\s*taxrate;[\s\S]*?margin:\s*16px 0 0;/,
     'Tax-rate setting should have its own grid area and deliberate gap');
+  assert.ok(html.includes('id="adjTax" min="0" step="0.01" placeholder="Minted tax"'));
+  assert.ok(html.includes('id="adjMintedTotal" min="0" step="0.01" placeholder="Minted total"'));
+  assert.ok(css.includes('"resetconfirm resetconfirm"'));
+  assert.ok(css.includes('grid-area: resetconfirm;'));
 });
