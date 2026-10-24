@@ -352,11 +352,12 @@ test('has no bridge popup and only adds Reset dialog semantics while open', () =
   assert.match(css, /\\.reset-confirmation\\s*\\{[\\s\\S]*position:\\s*fixed;[\\s\\S]*inset:\\s*0;/);
   assert.match(css, /\\.reset-confirmation\\[hidden\\]\\s*\\{\\s*display:\\s*none;/);
   assert.match(css, /@media \\(max-width: 380px\\)[\\s\\S]*?\\.reset-dialog/);
-  assert.match(css, /grid-template-rows:\\s*auto auto auto auto auto auto;/,
-    'Desktop Single layout should use explicit rows rather than a flexible empty results row');
-  assert.match(css, /"resetconfirm resetconfirm"[\\s\\S]*?"results adjustment"[\\s\\S]*?"taxrate adjustment"/,
-    'Reset confirmation and tax rate should occupy explicit grid areas');
-  assert.match(css, /\\.calculator-card form > \\.reset-confirmation\\s*\\{\\s*grid-area:\\s*resetconfirm;[\\s\\S]*?margin:\\s*0 0 12px;/);
+  assert.match(css, /grid-template-rows:\s*auto auto auto auto auto;/,
+    'Desktop Single layout should use explicit results and tax-rate rows');
+  assert.match(css, /"results adjustment"[\s\S]*?"taxrate adjustment"/,
+    'Tax rate should retain its own explicit row below results');
+  assert.doesNotMatch(css, /\.calculator-card form > \.reset-confirmation\s*\{[^}]*grid-area/,
+    'The fixed Reset modal must not take up a calculator grid row');
   assert.ok(html.includes('id="adjTax" min="0" step="0.01" placeholder="Minted tax"'));
   assert.ok(html.includes('id="adjMintedTotal" min="0" step="0.01" placeholder="Minted total"'));
 });
