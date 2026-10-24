@@ -147,6 +147,11 @@ try {
     'Refresh should recompute Total Adjustment from restored values');
   assert.ok((await page.locator('#batchNoteText').inputValue()).includes('"Invitation" cards: $54.47'),
     'The restored customer note should use Minted tax and the resulting Total Adjustment');
+  const typedTaxTotalCopy = restoredDraftRows.nth(0).locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]');
+  await typedTaxTotalCopy.click();
+  await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Total Adjustment"]')?.textContent.trim() === 'Copied ✓');
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '54.47',
+    'The Total Adjustment Copy button should copy 54.47 for the entered Minted tax');
 
   // Include Tax is functional in every Batch row; excluding it uses zero tax.
   await restoredDraftRows.nth(0).locator('.batch-adj-ship').fill('5.00');
@@ -186,6 +191,32 @@ try {
   assert.equal(await restoredDraftRows.nth(1).locator('.batch-discount').inputValue(), '',
     'Refresh should keep an incomplete discount blank');
 
+  // Save a typed Minted tax in row 1 and unchecked Include Tax in row 2, then reload.
+  await restoredDraftRows.nth(0).locator('.batch-adj-amount').fill('50.55');
+  await restoredDraftRows.nth(0).locator('.batch-adj-tax').fill('3.92');
+  await restoredDraftRows.nth(0).locator('.batch-adj-ship').fill('0');
+  await restoredDraftRows.nth(1).locator('.batch-discount').fill('20');
+  await restoredDraftRows.nth(1).locator('.batch-adj-ship').fill('5.00');
+  await restoredDraftRows.nth(1).locator('.batch-adj-use-tax').uncheck();
+  assert.equal(Number(await restoredDraftRows.nth(1).locator('.batch-adj-total').inputValue()), 85,
+    'Second row with Include Tax off should total Amount plus $5 shipping');
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
+  await page.locator('#modeBatchBtn').click();
+  const bothTaxRows = page.locator('#batchRows .batch-row');
+  assert.equal(Number(await bothTaxRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.92,
+    'Refresh should restore typed Minted tax in row 1');
+  assert.equal(Number(await bothTaxRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47,
+    'Refresh should preserve row 1 tax calculation');
+  assert.equal(await bothTaxRows.nth(1).locator('.batch-adj-use-tax').isChecked(), false,
+    'Refresh should restore Include Tax unchecked in row 2');
+  assert.equal(await bothTaxRows.nth(1).locator('.batch-adj-tax').isDisabled(), true,
+    'Restored unchecked Include Tax should keep tax disabled');
+  assert.equal(Number(await bothTaxRows.nth(1).locator('.batch-adj-tax').inputValue()), 0,
+    'Restored unchecked Include Tax should keep tax at zero');
+  assert.equal(Number(await bothTaxRows.nth(1).locator('.batch-adj-total').inputValue()), 85,
+    'Restored unchecked row should calculate Amount plus shipping');
+
   // Reset must persist an empty Batch draft across refreshes.
   await page.locator('#resetBtn').click();
   assert.equal(await page.locator('#confirmModal').isVisible(), true, 'Reset should ask for confirmation');
@@ -204,6 +235,10 @@ try {
     'Reset should clear prices in every Batch row');
   assert.deepEqual(await resetRows.locator('.batch-discount').evaluateAll((els) => els.map((el) => el.value)), ['', ''],
     'Reset should clear discounts in every Batch row');
+  assert.deepEqual(await resetRows.locator('.batch-adj-tax').evaluateAll((els) => els.map((el) => el.value)), ['', ''],
+    'Reset should clear persisted typed tax in every Batch row');
+  assert.deepEqual(await resetRows.locator('.batch-adj-use-tax').evaluateAll((els) => els.map((el) => el.checked)), [true, true],
+    'Reset should restore Include Tax checked in empty Batch rows');
   assert.equal(await page.locator('#batchNoteState').innerText(), 'Waiting for valid details',
     'Reset should clear the generated customer note');
 
@@ -950,6 +985,11 @@ try {
     'Single should report when user-entered Minted tax is being used');
   assert.ok((await page.locator('#noteText').inputValue()).includes('$54.47'),
     'Single customer note should use the entered Minted tax Total Adjustment');
+  const singleMintedTotalCopy = page.locator('.adj-copy-btn[data-copy-from="#adjTotal"]');
+  await singleMintedTotalCopy.click();
+  await page.waitForFunction(() => document.querySelector('.adj-copy-btn[data-copy-from="#adjTotal"]')?.textContent.trim() === 'Copied ✓');
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '54.47',
+    'Single Total Adjustment Copy should copy 54.47 for Amount $50.55 and Minted tax $3.92');
   await page.locator('#adjShip').fill('5.00');
   assert.equal(Number(await page.locator('#adjTotal').inputValue()), 59.47,
     'Single Amount, typed tax, and $5 shipping should total $59.47');
