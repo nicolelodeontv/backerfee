@@ -1005,6 +1005,40 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   height: 46px;
   font-size: 13px;
 }
+.tax-rate-setting {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper-2);
+}
+.tax-rate-setting .adjustment-rate-field {
+  flex: 0 0 150px;
+  margin: 0;
+}
+.tax-rate-setting .adjustment-rate-field > span:first-child { margin-bottom: 5px; }
+.tax-rate-setting .adjustment-rate-input input {
+  height: 40px;
+  font-size: 12px;
+}
+.tax-rate-setting small {
+  flex: 1 1 auto;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.tax-rate-setting .tax-rate-error {
+  display: block;
+  flex: none;
+  margin-top: 4px;
+  color: var(--danger);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.tax-rate-setting input[aria-invalid="true"] { border-color: var(--danger); }
 .adjustment-rows { margin-top: 12px; }
 .adjustment-row {
   display: flex;
@@ -1033,6 +1067,24 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   color: var(--accent-dark);
   font-size: 18px;
 }
+
+.adjustment-limit-warning {
+  margin: 8px 0 0;
+  padding: 9px 12px;
+  border: 1px solid #f59e0b;
+  border-radius: 10px;
+  color: #92400e;
+  background: #fff7ed;
+  font-size: .85rem;
+  font-weight: 600;
+}
+html[data-theme="dark"] .adjustment-limit-warning {
+  color: #fde68a;
+  background: rgba(120, 53, 15, .24);
+  border-color: #fbbf24;
+}
+.adjustment-limit-warning[hidden] { display: none; }
+
 .adjustment-status {
   margin: 10px 0 0;
   color: var(--muted);
@@ -1077,7 +1129,7 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
 }
 
 
-/* Fixed-rate Minted adjustment inputs */
+/* Minted adjustment inputs and confirmation checks */
 .adjustment-row-label {
   flex: 1 1 auto;
   min-width: 0;
@@ -1155,7 +1207,18 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   color: var(--ink);
   font-weight: 800;
 }
+.adjustment-row.total .adjustment-value-input input.is-unconfirmed,
+.batch-adj-total.is-unconfirmed {
+  border-color: var(--danger) !important;
+  background-color: rgba(181, 79, 95, .08) !important;
+}
+html[data-theme="dark"] .adjustment-row.total .adjustment-value-input input.is-unconfirmed,
+html[data-theme="dark"] .batch-adj-total.is-unconfirmed {
+  background-color: rgba(241, 154, 170, .10) !important;
+}
 @media (max-width: 520px) {
+  .tax-rate-setting { align-items: stretch; flex-direction: column; gap: 7px; }
+  .tax-rate-setting .adjustment-rate-field { max-width: 170px; }
   .adjustment-row { align-items: flex-start; gap: 10px; }
   .adjustment-row-label { padding-top: 12px; }
   .adjustment-value-input { flex-basis: 135px; width: 135px; }
@@ -1211,7 +1274,7 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
 
 .batch-adjust-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1265,7 +1328,11 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   font-weight: 800 !important;
 }
 
-.batch-adj-status { margin-top: 10px; }
+.batch-adj-status,
+.batch-adj-total-check { margin-top: 10px; }
+.batch-adj-total-check:empty,
+#adjMintedTotalCheck:empty { display: none; }
+.minted-total-row { margin-top: 5px; }
 
 @media (max-width: 1100px) and (min-width: 701px) {
   .batch-adjust-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -1287,6 +1354,7 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   .batch-row-main > .batch-remove { grid-area: remove; justify-self: end; }
   .batch-adjust { padding: 12px; }
   .batch-adjust-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .batch-adj-field:nth-child(5),
   .batch-adj-field:last-child { grid-column: 1 / -1; }
   .batch-adjust-head { align-items: flex-start; }
   .batch-adjust-head .adjustment-target-label { max-width: 105px; text-align: right; }
@@ -1611,6 +1679,7 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
     display: none;
   }
   .batch-adjust-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .batch-adj-field:nth-child(5),
   .batch-adj-field:last-child { grid-column: 1 / -1; }
 }
 
@@ -1637,10 +1706,11 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
   }
 }
 
-/* Keep the tax description on one line in the narrow two-column grid. */
+/* The estimated-tax label may wrap on narrow screens beside Include Tax. */
 @media (max-width: 520px) {
   .batch-adj-field:nth-child(2) .batch-adj-label > span {
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -1680,7 +1750,7 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
 @media (min-width: 521px) {
   .batch-adjust-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .batch-adj-field:nth-child(-n + 3) { grid-column: span 2; }
-  .batch-adj-field:nth-child(n + 4) { grid-column: span 3; }
+  .batch-adj-field:nth-child(n + 4) { grid-column: span 2; }
   .batch-adj-label {
     min-height: 30px;
     align-content: flex-start;
@@ -1847,10 +1917,10 @@ html[data-theme="dark"] .adjustment-callout-icon {
 .adjustment-row > .adj-copy-btn { order: 1; }
 .adjustment-row > .adjustment-value-input { order: 2; }
 
-/* Batch: align the labels and inputs for the two fields on the second line. */
+/* Keep all second-line Batch inputs aligned even when the Total label wraps beside Copy. */
 @media (min-width: 521px) {
   .batch-adj-field:nth-child(n + 4) .batch-adj-label {
-    min-height: 26px;
+    min-height: 40px;
     align-items: center;
   }
 }

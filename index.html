@@ -58,6 +58,18 @@
             </div>
           </div>
 
+          <div class="tax-rate-setting" role="group" aria-labelledby="taxRateLabel">
+            <label class="adjustment-rate-field" for="taxRate">
+              <span id="taxRateLabel">Tax rate %</span>
+              <div class="input-wrap adjustment-rate-input">
+                <input type="number" id="taxRate" min="0.01" max="100" step="0.01" value="7.75" inputmode="decimal" autocomplete="off" aria-describedby="taxRateHint taxRateError">
+                <span class="suffix" aria-hidden="true">%</span>
+              </div>
+              <small class="error tax-rate-error" id="taxRateError" role="alert"></small>
+            </label>
+            <small id="taxRateHint">Used for estimates only. Confirm the tax in Minted or compare the final total below.</small>
+          </div>
+
           <div class="local-trust single-only" role="note">
             <span class="local-trust-icon" aria-hidden="true">✓</span>
             <span><strong>Runs locally in your browser.</strong> Pricing data and calculation history stay on this device.</span>
@@ -166,7 +178,7 @@
       <span class="section-kicker">FINANCIAL ADJUSTMENT</span>
       <h2 id="adjustmentHeading">Minted entry</h2>
     </div>
-    <span class="adjustment-target-label">Fixed tax: 9.75%</span>
+    <span class="adjustment-target-label">Estimate: 7.75%</span>
   </div>
 
   <p class="adjustment-callout" role="note">
@@ -184,13 +196,13 @@
       <button type="button" class="adj-copy-btn" data-copy-from="#adjAmount" aria-label="Copy Amount"><span class="t-text-swap">Copy</span></button>
     </div>
     <div class="adjustment-row tax">
-      <label class="adjustment-row-label" for="adjTax">Tax Based on Shipping Zip</label>
+      <label class="adjustment-row-label" for="adjTax">Estimated tax</label>
       <div class="adjustment-row-valuegroup">
         <div class="input-wrap adjustment-value-input">
           <span class="prefix" aria-hidden="true">$</span>
-          <input type="number" id="adjTax" min="0" step="0.01" placeholder="0.00" readonly aria-label="Tax based on fixed 9.75% rate">
+          <input type="number" id="adjTax" min="0" step="0.01" placeholder="Enter Minted tax" inputmode="decimal" autocomplete="off" aria-label="Enter Minted tax to replace the estimate">
         </div>
-        <label class="adj-check" for="adjUseTax">Include Tax: <input type="checkbox" id="adjUseTax" checked disabled></label>
+        <label class="adj-check" for="adjUseTax">Include Tax: <input type="checkbox" id="adjUseTax" checked></label>
       </div>
     </div>
     <div class="adjustment-row">
@@ -208,17 +220,27 @@
       </div>
     </div>
     <div class="adjustment-row total">
-      <label class="adjustment-row-label" for="adjTotal">Total Adjustment</label>
+      <label class="adjustment-row-label" for="adjTotal">Total Adjustment (estimate)</label>
       <div class="input-wrap adjustment-value-input">
         <span class="prefix" aria-hidden="true">$</span>
-        <input type="number" id="adjTotal" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated total adjustment">
+        <input type="number" id="adjTotal" min="0" step="0.01" placeholder="0.00" readonly aria-label="Estimated total adjustment, not final until tax is replaced with Minted tax">
       </div>
       <button type="button" class="adj-copy-btn" data-copy-from="#adjTotal" aria-label="Copy Total Adjustment"><span class="t-text-swap">Copy</span></button>
     </div>
   </div>
 
-  <p class="adjustment-status" id="adjStatus" role="status" aria-live="polite">Enter a price and discount to see the Minted adjustment.</p>
-  <p class="adjustment-note">Tax uses a fixed 9.75% rate and is rounded to the cent. Adjust Shipping Adjustment when needed.</p>
+  <p class="adjustment-status is-warning" id="adjStatus" role="status" aria-live="polite">Unconfirmed total: tax is an estimate. Replace it with Minted's tax before using this total.</p>
+  <p class="adjustment-limit-warning" id="adjLimitWarning" role="alert" hidden>Minted won't allow a charge of $50,000 or more.</p>
+  <div class="adjustment-row minted-total-row">
+    <label class="adjustment-row-label" for="adjMintedTotal">Total from Minted (optional)</label>
+    <div class="input-wrap adjustment-value-input">
+      <span class="prefix" aria-hidden="true">$</span>
+      <input type="number" id="adjMintedTotal" min="0" step="0.01" placeholder="Enter Minted total" inputmode="decimal" autocomplete="off" aria-describedby="adjMintedTotalCheck" aria-label="Total from Minted, optional">
+    </div>
+  </div>
+
+  <p class="adjustment-status" id="adjMintedTotalCheck" role="status" aria-live="polite"></p>
+  <p class="adjustment-note">Tax is an estimate based on the rate above. Replace Tax with Minted's actual amount to confirm the calculation. Use Total from Minted to check the final result; shipping is added separately.</p>
 </section>
 
         </form>
@@ -273,6 +295,7 @@
 
   <script type="module" src="script.js"></script>
   <script src="ui-enhancements.js"></script>
+  <script src="bridge-install-popup.js" defer></script>
 </body>
 </html>
 <!-- deployment trigger: final QA production verification -->
