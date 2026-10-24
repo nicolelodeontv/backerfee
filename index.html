@@ -58,17 +58,6 @@
             </div>
           </div>
 
-          <div class="reset-confirmation" id="resetConfirmation" hidden aria-labelledby="resetConfirmTitle">
-            <div class="reset-confirmation-copy">
-              <strong id="resetConfirmTitle">Reset calculator?</strong>
-              <p>This will clear the current price, discount, results, and note.</p>
-            </div>
-            <div class="reset-confirmation-actions">
-              <button class="secondary-btn compact" id="cancelResetBtn" type="button">Cancel</button>
-              <button class="copy-btn compact" id="confirmResetBtn" type="button">Confirm reset</button>
-            </div>
-          </div>
-
           <div class="tax-rate-setting" role="group" aria-labelledby="taxRateLabel">
             <label class="adjustment-rate-field" for="taxRate">
               <span id="taxRateLabel">Tax rate %</span>
@@ -179,6 +168,7 @@
               <span class="batch-status" id="batchStatus" role="status" aria-live="polite"></span>
               <div class="batch-action-buttons">
                 <button class="copy-btn" id="copyAllNotesBtn" type="button" disabled><span class="t-text-swap">Copy Note</span></button>
+                <small class="copy-guard is-warning" id="batchNoteGuard" role="status" aria-live="polite" hidden></small>
               </div>
             </div>
           </section>
@@ -276,6 +266,7 @@
     <div class="note-actions">
       <button class="copy-btn" id="copyBtn" type="button" disabled><span class="t-text-swap">Copy Note</span></button>
       <span class="copy-status" id="copyStatus" role="status" aria-live="polite"></span>
+      <small class="copy-guard is-warning" id="noteCopyGuard" role="status" aria-live="polite" hidden></small>
     </div>
   </section>
       </aside>
@@ -286,6 +277,17 @@
       <span>Runs locally in your browser</span>
     </footer>
   </main>
+
+  <div class="reset-modal-backdrop" id="resetConfirmation" hidden>
+    <section class="reset-modal" tabindex="-1">
+      <h2 id="resetConfirmTitle">Reset calculator?</h2>
+      <p>This will clear the current price, discount, results, and note.</p>
+      <div class="reset-modal-actions">
+        <button class="secondary-btn compact" id="cancelResetBtn" type="button">Cancel</button>
+        <button class="copy-btn compact" id="confirmResetBtn" type="button">Confirm reset</button>
+      </div>
+    </section>
+  </div>
 
   <div class="toast-root" id="toastRoot" aria-live="polite" aria-atomic="true"></div>
 
