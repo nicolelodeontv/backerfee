@@ -1405,6 +1405,8 @@ try {
   const singlePriceBeforeReset = await page.locator('#backer').inputValue();
   const singleDiscountBeforeReset = await page.locator('#discount').inputValue();
   const noteBeforeReset = await page.locator('#noteText').inputValue();
+  await page.locator('#resetBtn').scrollIntoViewIfNeeded();
+  const pageScrollBeforeReset = await page.evaluate(() => window.scrollY);
   const backerBoxBeforeReset = await page.locator('#backer').boundingBox();
   await page.locator('#resetBtn').click();
   const resetDialogBox = await page.locator('#resetDialog').boundingBox();
@@ -1421,6 +1423,9 @@ try {
   assert.equal(await page.locator('#noteText').inputValue(), noteBeforeReset,
     'Opening Reset should leave the Generated note intact');
   const backerBoxAfterOpen = await page.locator('#backer').boundingBox();
+  const pageScrollAfterOpen = await page.evaluate(() => window.scrollY);
+  assert.equal(pageScrollAfterOpen, pageScrollBeforeReset,
+    'Opening Reset must not change the page scroll position');
   assert.ok(backerBoxBeforeReset && backerBoxAfterOpen &&
     Math.abs(backerBoxBeforeReset.x - backerBoxAfterOpen.x) < 1 &&
     Math.abs(backerBoxBeforeReset.y - backerBoxAfterOpen.y) < 1 &&
