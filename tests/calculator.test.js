@@ -63,7 +63,7 @@ test('builds the note with paragraph breaks and the requested fee wording', () =
 
 test('customer note accurately states when local taxes are excluded', () => {
   const note = buildCustomerNote({ discountedPrice: 55.55, discount: 20, includesLocalTaxes: false });
-  assert.match(note, /\\$55\\.55/);
+  assert.ok(note.includes('$55.55'));
   assert.match(note, /20% discount/);
   assert.match(note, /local taxes are excluded/);
   assert.doesNotMatch(note, /any local taxes/);
