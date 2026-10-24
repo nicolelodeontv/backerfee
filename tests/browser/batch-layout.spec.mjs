@@ -1442,7 +1442,8 @@ try {
       'tax label fits inside its column at 320px',
       'Single mode two-column layout, full-width note, and no mascot',
       'no bridge popup or Tampermonkey text on load or after delay/reload',
-      'Reset confirmation remains inline, cancellable, and has no dialog or modal semantics',
+      'Reset uses one centered modal with focus trapping, scroll locking, safe close actions, and a 320px layout',
+      'Single and Batch customer notes stay blocked until Minted tax and total match',
       'desktop results and tax-rate setting have deliberate vertical spacing',
       'no uncaught browser runtime errors'
     ],
