@@ -37,6 +37,9 @@ test('exposes the complete single and batch workflow controls', () => {
 
 test('uses an editable 7.75% estimate and allows Minted tax and total comparison', () => {
   assert.match(script, /const DEFAULT_TAX_RATE = 7\.75/);
+  assert.match(script, /value > 0 && value <= 100 \? value : null/);
+  assert.match(script, /taxRateError\.textContent = parsed === null/);
+  assert.match(script, /taxRate = DEFAULT_TAX_RATE;\s*taxRateInput\.value = String\(DEFAULT_TAX_RATE\)/);
   assert.match(script, /function parseTaxRate\(raw\)/);
   assert.match(script, /function updateMintedTotalComparison\(input, status, totalCents\)/);
   assert.match(script, /function estimateTaxCents\(amountCents\)/);
@@ -48,6 +51,7 @@ test('uses an editable 7.75% estimate and allows Minted tax and total comparison
   assert.match(html, /id="adjUseTax" checked/);
   assert.doesNotMatch(html, /id="adjUseTax"[^>]*disabled/);
   assert.match(html, /id="taxRate"[^>]*value="7\.75"/);
+  assert.match(html, /id="taxRateError" role="alert"/);
   assert.match(html, /Estimate: 7\.75%/);
   assert.match(script, /taxRate: String\(taxRate\)/);
   assert.match(script, /taxRateInput\.addEventListener\(['"]input['"]/);
@@ -190,7 +194,7 @@ test('gives Batch adjustment cards the full desktop width and a mobile-friendly 
   const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
   assert.match(css, /\.dashboard-card\.batch-mode \.calculator-card \{ grid-column: 1 \/ -1; \}/);
   assert.match(css, /\.batch-row-main\s*\{[\s\S]*grid-template-columns/);
-  assert.match(css, /\.batch-adjust-grid\s*\{[\s\S]*repeat\(5, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.batch-adjust-grid\s*\{[\s\S]*repeat\(6, minmax\(0, 1fr\)\)/);
   assert.match(css, /grid-template-areas:[\s\S]*"price discount"[\s\S]*"discount-amount final-fee"/);
   assert.match(css, /@media \(max-width: 700px\) \{[\s\S]*?\.batch-grid-header \{\s*display: none;\s*\}/);
   assert.match(css, /\.batch-row-main > \.batch-field:first-child::before[\s\S]*?content: "Original Price"/);
