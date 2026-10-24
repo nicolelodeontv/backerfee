@@ -175,7 +175,7 @@ test('builds one live Batch customer note with per-row names and fees', () => {
   assert.match(script, /nameInput\.addEventListener\(['"]input['"], \(\) => calculateBatch\(\)\)/);
   assert.match(script, /function updateBatchNote\(results\)[\s\S]*batchNoteText\.value = buildBatchNote/);
   assert.match(script, /async function copyAllNotes\(\)[\s\S]*const notes = batchNoteText\.value/);
-  assert.match(script, /updateBatchNote\(results\);\s*batchResults = results;/);
+  assert.match(script, /batchResults = results;\s*updateBatchNote\(results\);/);
 });
 
 test('warns about missing Batch card names without disabling copying', () => {
