@@ -632,15 +632,16 @@ try {
 
   await page.screenshot({ path: screenshotName('desktop-1440-four-rows'), fullPage: true });
 
-  // Financial Adjustment: three fields on the first line and two on the second.
+  // Financial Adjustment: three fields on each line at desktop width.
   const adjustmentFields = rows.nth(0).locator('.batch-adjust-grid .batch-adj-field');
-  assert.equal(await adjustmentFields.count(), 5);
+  assert.equal(await adjustmentFields.count(), 6);
   const adjustmentBoxes = await positions(adjustmentFields);
   assertSameLine(adjustmentBoxes[0], adjustmentBoxes[1], 'Amount and Tax should share the first adjustment line');
   assertSameLine(adjustmentBoxes[1], adjustmentBoxes[2], 'Tax and Subtotal should share the first adjustment line');
   assert.ok(adjustmentBoxes[3].y > adjustmentBoxes[2].y + 10, 'Shipping should begin the second adjustment line');
   assertSameLine(adjustmentBoxes[3], adjustmentBoxes[4], 'Shipping and Total should share the second adjustment line');
-  for (let i = 0; i < 5; i += 1) {
+  assertSameLine(adjustmentBoxes[4], adjustmentBoxes[5], 'Total from Minted should share the second adjustment line');
+  for (let i = 0; i < 6; i += 1) {
     const input = adjustmentFields.nth(i).locator('.input-wrap input').first();
     const inputBox = await input.boundingBox();
     assert.ok(inputBox && inputBox.width >= 48, `Adjustment field ${i + 1} needs a usable input width`);
@@ -656,16 +657,16 @@ try {
   const topLineInputY = topLineInputBoxes.map((box) => box.y);
   assert.ok(Math.max(...topLineInputY) - Math.min(...topLineInputY) <= 1,
     `Amount, Tax Based on Shipping Zip, and Subtotal inputs should align on one line (y=${topLineInputY.join(', ')})`);
-  for (const index of [3, 4]) {
+  for (const index of [3, 4, 5]) {
     const labelHeight = await adjustmentFields.nth(index).locator('.batch-adj-label').evaluate((el) => getComputedStyle(el).minHeight);
     assert.equal(labelHeight, '26px',
       `Batch second-line field ${index + 1} should reserve the shared 26px label height`);
   }
-  const secondLineInputBoxes = await Promise.all([3, 4].map(async (index) =>
+  const secondLineInputBoxes = await Promise.all([3, 4, 5].map(async (index) =>
     adjustmentFields.nth(index).locator('.input-wrap input').first().boundingBox()));
-  assert.ok(secondLineInputBoxes.every(Boolean), 'Shipping and Total Adjustment inputs should have layout boxes');
-  assert.ok(Math.abs(secondLineInputBoxes[0].y - secondLineInputBoxes[1].y) <= 1,
-    `Batch Shipping and Total Adjustment inputs should align at the same height (boxes=${JSON.stringify(secondLineInputBoxes)})`);
+  assert.ok(secondLineInputBoxes.every(Boolean), 'Shipping, Total Adjustment, and Total from Minted inputs should have layout boxes');
+  assert.ok(Math.max(...secondLineInputBoxes.map((box) => box.y)) - Math.min(...secondLineInputBoxes.map((box) => box.y)) <= 1,
+    `Batch second-line inputs should align at the same height (boxes=${JSON.stringify(secondLineInputBoxes)})`);
   const taxLabel = adjustmentFields.nth(1).locator('.batch-adj-label');
   assert.ok(await taxLabel.isVisible(), 'Tax label and checkbox row should remain visible');
   assert.ok(await taxLabel.locator('.adj-check input').isVisible(), 'Include Tax checkbox should remain visible');
