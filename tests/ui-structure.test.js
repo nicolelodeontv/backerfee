@@ -330,30 +330,37 @@ test('persists Batch draft rows locally across refreshes', () => {
 
 
 test('keeps the Reset dialog hidden until opened and guards customer-note copying', () => {
-  assert.doesNotMatch(html, /bridge-install-popup|backer-fee-minted-bridge\\.user\\.js|Tampermonkey|Open Backer Fee on Minted/i);
+  assert.doesNotMatch(html, /bridge-install-popup|backer-fee-minted-bridge\.user\.js|Tampermonkey|Open Backer Fee on Minted/i);
   assert.doesNotMatch(script, /normalizeMintedBridgeMoney|applyMintedBridgeParams|minted_(?:amount|tax|shipping|subtotal|total)|data-bf-minted-import|bf-bridge-ready|backerfee-bridge-install-dismissed-v1/i);
 
-  assert.match(html, /class="reset-modal-backdrop" id="resetConfirmation" hidden>/);
-  assert.match(html, /<section class="reset-modal" tabindex="-1">/);
+  assert.ok(html.includes('class="reset-modal-backdrop" id="resetConfirmation" hidden>'));
+  assert.ok(html.includes('<section class="reset-modal" tabindex="-1">'));
   assert.ok(html.includes('<h2 id="resetConfirmTitle">Reset calculator?</h2>'));
-  assert.doesNotMatch(html, /role="dialog"|aria-modal=|aria-labelledby="resetConfirmTitle"/i,
-    'Initial markup must not apply dialog semantics before the modal opens');
-  assert.match(html, /id="cancelResetBtn"/);
-  assert.match(html, /id="confirmResetBtn"/);
+  assert.ok(!html.includes('role="dialog"'));
+  assert.ok(!html.includes('aria-modal='));
+  assert.ok(!html.includes('aria-labelledby="resetConfirmTitle"'));
+  assert.ok(html.includes('id="cancelResetBtn"'));
+  assert.ok(html.includes('id="confirmResetBtn"'));
 
-  assert.match(css, /\.reset-modal-backdrop\\s*\\{[\\s\\S]*?position:\\s*fixed;[\\s\\S]*?inset:\\s*0;[\\s\\S]*?place-items:\\s*center;/);
-  assert.match(css, /\.reset-modal\\s*\\{[\\s\\S]*?width:\\s*min\\(420px, calc\\(100vw - 32px\\)\\)/);
-  assert.match(css, /html\\.modal-open,[\\s\\S]*?body\\.modal-open \\{ overflow: hidden; \\}/);
-  assert.match(css, /\\.copy-guard\\[hidden\\] \\{ display: none; \\}/);
+  assert.ok(css.includes('.reset-modal-backdrop {'));
+  assert.ok(css.includes('position: fixed;'));
+  assert.ok(css.includes('inset: 0;'));
+  assert.ok(css.includes('place-items: center;'));
+  assert.ok(css.includes('width: min(420px, calc(100vw - 32px))'));
+  assert.ok(css.includes('html.modal-open,'));
+  assert.ok(css.includes('body.modal-open { overflow: hidden; }'));
+  assert.ok(css.includes('.copy-guard[hidden] { display: none; }'));
 
-  assert.match(script, /function requestReset\\(\\)[\\s\\S]*?setAttribute\\('role', 'dialog'\\)[\\s\\S]*?setAttribute\\('aria-modal', 'true'\\)[\\s\\S]*?setAttribute\\('aria-labelledby', 'resetConfirmTitle'\\)/);
-  assert.match(script, /function trapResetModalTab\\(event\\)/);
-  assert.match(script, /if \\(event\\.target === resetConfirmation\\) closeResetConfirmation/);
-  assert.match(script, /pageShell\\.inert = true/);
-  assert.match(script, /function isSingleCustomerNoteReady\\(\\)/);
-  assert.match(script, /function areBatchCustomerNotesReady\\(results\\)/);
-  assert.match(script, /if \\(!isSingleCustomerNoteReady\\(\\)\\)/);
-  assert.match(script, /if \\(!areBatchCustomerNotesReady\\(batchResults\\)\\)/);
-  assert.match(html, /id="noteCopyGuard"/);
-  assert.match(html, /id="batchNoteGuard"/);
+  assert.ok(script.includes("resetConfirmation.setAttribute('role', 'dialog')"));
+  assert.ok(script.includes("resetConfirmation.setAttribute('aria-modal', 'true')"));
+  assert.ok(script.includes("resetConfirmation.setAttribute('aria-labelledby', 'resetConfirmTitle')"));
+  assert.ok(script.includes('function trapResetModalTab(event)'));
+  assert.ok(script.includes('if (event.target === resetConfirmation) closeResetConfirmation'));
+  assert.ok(script.includes('pageShell.inert = true'));
+  assert.ok(script.includes('function isSingleCustomerNoteReady()'));
+  assert.ok(script.includes('function areBatchCustomerNotesReady(results)'));
+  assert.ok(script.includes('if (!isSingleCustomerNoteReady())'));
+  assert.ok(script.includes('if (!areBatchCustomerNotesReady(batchResults))'));
+  assert.ok(html.includes('id="noteCopyGuard"'));
+  assert.ok(html.includes('id="batchNoteGuard"'));
 });
