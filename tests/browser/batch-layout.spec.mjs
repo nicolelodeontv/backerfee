@@ -1416,6 +1416,10 @@ try {
     resetDialogBox.x + resetDialogBox.width <= viewport.width + 1 &&
     resetDialogBox.y + resetDialogBox.height <= viewport.height + 1,
   `Reset modal should fit a 320px viewport (dialog=${JSON.stringify(resetDialogBox)}, viewport=${JSON.stringify(viewport)})`);
+  assert.ok(resetDialogBox && viewport &&
+    Math.abs(resetDialogBox.x + resetDialogBox.width / 2 - viewport.width / 2) < 1 &&
+    Math.abs(resetDialogBox.y + resetDialogBox.height / 2 - viewport.height / 2) < 1,
+  'Reset modal should be centered in the 320px viewport');
   assert.equal(await page.locator('#backer').inputValue(), singlePriceBeforeReset,
     'Opening Reset should leave Single price intact');
   assert.equal(await page.locator('#discount').inputValue(), singleDiscountBeforeReset,
