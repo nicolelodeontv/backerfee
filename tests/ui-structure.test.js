@@ -17,11 +17,14 @@ test('exposes the complete single and batch workflow controls', () => {
     'copyAllNotesBtn',
     'toastRoot',
     'adjustmentCard',
+    'taxRate',
     'adjAmount',
     'adjTax',
     'adjSubtotal',
     'adjShip',
     'adjTotal',
+    'adjMintedTotal',
+    'adjMintedTotalCheck',
     'adjUseTax',
   ]) {
     assert.match(html, new RegExp('id="' + id + '"'));
@@ -32,7 +35,10 @@ test('exposes the complete single and batch workflow controls', () => {
   assert.match(html, /class="note-panel single-only"/);
 });
 
-test('uses 9.75% as an estimate and allows Minted tax input', () => {
+test('uses an editable 7.75% estimate and allows Minted tax and total comparison', () => {
+  assert.match(script, /const DEFAULT_TAX_RATE = 7\.75/);
+  assert.match(script, /function parseTaxRate\(raw\)/);
+  assert.match(script, /function updateMintedTotalComparison\(input, status, totalCents\)/);
   assert.match(script, /function estimateTaxCents\(amountCents\)/);
   assert.match(script, /function adjustmentCents\(amountValue, shipValue, taxOverrideCents = null, includeTax = true\)/);
   assert.match(script, /taxOverrideCents === null \? estimateTaxCents\(amountCents\)/);
@@ -41,7 +47,10 @@ test('uses 9.75% as an estimate and allows Minted tax input', () => {
   assert.doesNotMatch(html, /id="adjTax"[^>]*readonly/);
   assert.match(html, /id="adjUseTax" checked/);
   assert.doesNotMatch(html, /id="adjUseTax"[^>]*disabled/);
-  assert.match(html, /Estimate: 9\.75%/);
+  assert.match(html, /id="taxRate"[^>]*value="7\.75"/);
+  assert.match(html, /Estimate: 7\.75%/);
+  assert.match(script, /taxRate: String\(taxRate\)/);
+  assert.match(script, /taxRateInput\.addEventListener\(['"]input['"]/);
   assert.ok(script.includes("Unconfirmed total: tax is an estimate. Replace it with Minted\\'s tax before using this total."));
   assert.ok(html.includes('for="adjTotal">Total Adjustment (estimate)</label>'));
   assert.ok(script.includes("totalOut.classList.toggle('is-unconfirmed', taxUnconfirmed)"));
@@ -55,9 +64,16 @@ test('uses 9.75% as an estimate and allows Minted tax input', () => {
 
 test('reproduces the supplied Minted tax arithmetic in cents with manual overrides', () => {
   const amountCents = Math.round(50.55 * 100);
-  const estimateCents = Math.round((amountCents * 9.75) / 100);
-  assert.equal(estimateCents, 493);
-  assert.equal(amountCents + estimateCents, 5548);
+  const estimateCents = Math.round((amountCents * 7.75) / 100);
+  assert.equal(estimateCents, 392);
+  assert.equal(amountCents + estimateCents, 5447);
+  const twentyDollarCents = Math.round(20 * 100);
+  const twentyDollarTaxCents = Math.round((twentyDollarCents * 7.75) / 100);
+  assert.equal(twentyDollarTaxCents, 155);
+  assert.equal(twentyDollarCents + twentyDollarTaxCents, 2155);
+  const changedRateTaxCents = Math.round((twentyDollarCents * 8) / 100);
+  assert.equal(changedRateTaxCents, 160);
+  assert.equal(twentyDollarCents + changedRateTaxCents, 2160);
   const mintedTaxCents = Math.round(3.92 * 100);
   assert.equal(amountCents + mintedTaxCents, 5447);
   assert.equal(amountCents + mintedTaxCents + 500, 5947);
