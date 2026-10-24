@@ -64,6 +64,25 @@ try {
   assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
     'Reload should not display a bridge dialog or modal');
 
+  // Desktop Single-mode layout should place results after details and give the tax rate its own gap.
+  const singleSpacing = await page.evaluate(() => {
+    const bounds = (selector) => {
+      const rect = document.querySelector(selector).getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom };
+    };
+    const details = bounds('.field-grid');
+    const results = bounds('#results');
+    const rate = bounds('.tax-rate-setting');
+    return {
+      detailsToResults: results.top - details.bottom,
+      resultsToRate: rate.top - results.bottom
+    };
+  });
+  assert.ok(singleSpacing.detailsToResults >= 8 && singleSpacing.detailsToResults <= 28,
+    `Results should follow the detail fields with a deliberate gap, got ${singleSpacing.detailsToResults}px`);
+  assert.ok(singleSpacing.resultsToRate >= 12 && singleSpacing.resultsToRate <= 28,
+    `Tax rate should have a deliberate gap below results, got ${singleSpacing.resultsToRate}px`);
+
   // The same approval callout exists in Single and Batch modes.
   const callouts = page.locator('.adjustment-callout');
   assert.equal(await callouts.count(), 2, 'Single and Batch should share the same approval notice');
@@ -1254,6 +1273,7 @@ try {
       'Single mode two-column layout, full-width note, and no mascot',
       'no bridge popup or Tampermonkey text on load or after delay/reload',
       'Reset confirmation remains inline, cancellable, and has no dialog or modal semantics',
+      'desktop results and tax-rate setting have deliberate vertical spacing',
       'no uncaught browser runtime errors'
     ],
     screenshots: [
