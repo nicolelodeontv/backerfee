@@ -53,8 +53,19 @@
             </div>
             <span class="live-badge" aria-label="Automatic calculation enabled"><span class="live-dot" aria-hidden="true"></span>Auto-calculating</span>
             <div class="reset-group">
-              <button class="secondary-btn compact" id="resetBtn" type="button">Reset</button>
+              <button class="secondary-btn compact" id="resetBtn" type="button" aria-controls="resetConfirmation" aria-expanded="false">Reset</button>
               <span class="shortcut-hint" aria-hidden="true"><kbd>Esc</kbd> reset</span>
+            </div>
+          </div>
+
+          <div class="reset-confirmation" id="resetConfirmation" hidden aria-labelledby="resetConfirmTitle">
+            <div class="reset-confirmation-copy">
+              <strong id="resetConfirmTitle">Reset calculator?</strong>
+              <p>This will clear the current price, discount, results, and note.</p>
+            </div>
+            <div class="reset-confirmation-actions">
+              <button class="secondary-btn compact" id="cancelResetBtn" type="button">Cancel</button>
+              <button class="copy-btn compact" id="confirmResetBtn" type="button">Confirm reset</button>
             </div>
           </div>
 
@@ -67,7 +78,7 @@
               </div>
               <small class="error tax-rate-error" id="taxRateError" role="alert"></small>
             </label>
-            <small id="taxRateHint">Used for estimates only. Confirm the tax in Minted or compare the final total below.</small>
+            <small id="taxRateHint">This rate is an estimate, not verified across tax areas. Confirm the tax in Minted and compare each order’s final total below, including shipping.</small>
           </div>
 
           <div class="local-trust single-only" role="note">
@@ -275,21 +286,6 @@
       <span>Runs locally in your browser</span>
     </footer>
   </main>
-
-  <div class="modal-backdrop" id="confirmModal" hidden>
-    <section class="confirm-modal" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
-      <div class="confirm-icon" aria-hidden="true">!</div>
-      <div class="confirm-copy">
-        <span class="section-kicker">CONFIRM ACTION</span>
-        <h2 id="confirmTitle">Reset calculator?</h2>
-        <p id="confirmMessage">This will clear the current price, discount, results, and note.</p>
-      </div>
-      <div class="confirm-actions">
-        <button class="secondary-btn" id="confirmCancelBtn" type="button">Cancel</button>
-        <button class="copy-btn confirm-danger" id="confirmActionBtn" type="button">Reset</button>
-      </div>
-    </section>
-  </div>
 
   <div class="toast-root" id="toastRoot" aria-live="polite" aria-atomic="true"></div>
 
