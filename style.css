@@ -1655,10 +1655,11 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
   }
 }
 
-/* Keep the tax description on one line in the narrow two-column grid. */
+/* The estimated-tax label may wrap on narrow screens beside Include Tax. */
 @media (max-width: 520px) {
   .batch-adj-field:nth-child(2) .batch-adj-label > span {
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 
