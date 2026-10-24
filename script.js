@@ -26,6 +26,7 @@ const resultsSection = document.getElementById('results');
 const adjAmount = document.getElementById('adjAmount');
 const adjTax = document.getElementById('adjTax');
 const taxRateInput = document.getElementById('taxRate');
+const taxRateError = document.getElementById('taxRateError');
 const adjMintedTotal = document.getElementById('adjMintedTotal');
 const adjMintedTotalCheck = document.getElementById('adjMintedTotalCheck');
 const adjTaxLabel = document.querySelector('label[for="adjTax"]');
@@ -136,7 +137,7 @@ function parseTaxRate(raw) {
   const text = String(raw ?? '').trim();
   if (!text || !DECIMAL_PATTERN.test(text)) return null;
   const value = Number(text);
-  return Number.isFinite(value) && value >= 0 && value <= 100 ? value : null;
+  return Number.isFinite(value) && value > 0 && value <= 100 ? value : null;
 }
 
 function updateTaxRateLabels() {
@@ -1622,6 +1623,9 @@ resetBtn.addEventListener('click', requestReset);
 taxRateInput.addEventListener('input', () => {
   const parsed = parseTaxRate(taxRateInput.value);
   taxRateInput.setAttribute('aria-invalid', parsed === null ? 'true' : 'false');
+  taxRateError.textContent = parsed === null
+    ? 'Enter a tax rate greater than 0% and no more than 100%.'
+    : '';
   if (parsed === null) return;
   taxRate = parsed;
   updateTaxRateLabels();
@@ -1631,13 +1635,16 @@ taxRateInput.addEventListener('input', () => {
 });
 taxRateInput.addEventListener('blur', () => {
   const parsed = parseTaxRate(taxRateInput.value);
-  if (parsed === null) taxRateInput.value = String(taxRate);
-  else {
+  if (parsed === null) {
+    taxRate = DEFAULT_TAX_RATE;
+    taxRateInput.value = String(DEFAULT_TAX_RATE);
+  } else {
     taxRate = parsed;
     taxRateInput.value = String(taxRate);
-    saveSettings();
   }
   taxRateInput.setAttribute('aria-invalid', 'false');
+  taxRateError.textContent = '';
+  saveSettings();
   updateTaxRateLabels();
   computeAdjustment();
   calculateBatch();
