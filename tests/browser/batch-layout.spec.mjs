@@ -809,7 +809,7 @@ try {
   );
   const largeTotal = rows.nth(0).locator('.batch-adj-total');
   assert.equal(await largeTotal.inputValue(), '1212.06',
-    'A large Total Adjustment should calculate to $1,234.56');
+    'A large Total Adjustment should calculate to $1,212.06');
   await largeAmount.fill('50000');
   await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .batch-adj-total')?.value === '53875.00');
   const batchLimitWarning = rows.nth(0).locator('.batch-adj-limit-warning');
@@ -859,7 +859,7 @@ try {
   assert.deepEqual(realValueLines.map((line) => line.match(/^"([^"]+)" cards:/)?.[1]),
     ['Card 1', 'Card 2', 'Premium', 'Card 4'],
     'Blank Card names should fall back to Card 1, Card 2, and subsequent row numbers');
-  assert.ok(realValueLines[0].includes('$1,234.56'),
+  assert.ok(realValueLines[0].includes('$1,212.06'),
     'Generated note should include the large Total Adjustment for row 1');
 
   const rowOneAmountCopy = rows.nth(0).locator('.adj-copy-btn[aria-label="Copy Amount"]');
