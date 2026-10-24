@@ -1096,7 +1096,7 @@ function renderBatchRows(rows) {
           adjField('Shipping Adjustment', '<input class="batch-adj-ship" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Shipping adjustment">') +
           adjField('Total Adjustment (estimate)', '<input class="batch-adj-total" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Estimated total adjustment, not final until tax is replaced with Minted tax">',
             '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-total" aria-label="Copy Total Adjustment"><span class="t-text-swap">Copy</span></button>') +
-          adjField('Total from Minted (optional)', '<input class="batch-adj-minted-total" type="number" min="0" step="0.01" placeholder="Enter Minted total" inputmode="decimal" autocomplete="off" aria-label="Total from Minted, optional">') +
+          adjField('Total from Minted', '<input class="batch-adj-minted-total" type="number" min="0" step="0.01" placeholder="Minted total" inputmode="decimal" autocomplete="off" aria-label="Total from Minted; required before copying the customer note">') +
         '</div>' +
         '<p class="adjustment-status batch-adj-total-check" role="status" aria-live="polite"></p>' +
         '<p class="adjustment-status batch-adj-status" role="status" aria-live="polite">Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.</p>' +
