@@ -487,7 +487,10 @@ try {
     'Discount Amount stays unwrapped during rapid typing');
   assert.equal(await page.locator('#total .t-digit-group').count(), 0,
     'Final Backer Fee stays unwrapped during rapid typing');
-  await page.waitForTimeout(320);
+  await page.waitForFunction(() => {
+    const counts = window.__singleMotionCounts;
+    return counts?.result === 1 && counts?.total === 1 && counts?.adjustment === 1;
+  }, null, { timeout: 1500 });
   const singleMotionCounts = await page.evaluate(() => {
     window.__singleMotionObserver.disconnect();
     return { ...window.__singleMotionCounts };
