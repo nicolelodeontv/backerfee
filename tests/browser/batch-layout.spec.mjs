@@ -1044,9 +1044,10 @@ try {
   const singleHistoryBox = await page.locator('.history-card').boundingBox();
   const singleDetailsBox = await page.locator('.calculator-card form > .field-grid').boundingBox();
   const singleResultsBox = await page.locator('#results').boundingBox();
+  const singleTaxRateBox = await page.locator('.tax-rate-setting').boundingBox();
   const singleAdjustmentBox = await page.locator('#adjustmentCard').boundingBox();
   const singleNoteBox = await page.locator('.history-card .note-panel').boundingBox();
-  assert.ok(singleCardBox && singleCalculatorBox && singleHistoryBox && singleDetailsBox && singleResultsBox && singleAdjustmentBox && singleNoteBox,
+  assert.ok(singleCardBox && singleCalculatorBox && singleHistoryBox && singleDetailsBox && singleResultsBox && singleTaxRateBox && singleAdjustmentBox && singleNoteBox,
     'Single-mode desktop layout elements should have layout boxes');
   assert.ok(singleCalculatorBox.width > singleCardBox.width * 0.9,
     'Single-mode calculator should span nearly the full dashboard width');
@@ -1065,9 +1066,9 @@ try {
   assert.ok(singleAdjustmentBox.height > singleDetailsBox.height,
     'Single-mode Financial Adjustment should be the taller right-side column');
   const singleResultsBottom = singleResultsBox.y + singleResultsBox.height;
-  const singleAdjustmentBottom = singleAdjustmentBox.y + singleAdjustmentBox.height;
-  assert.ok(Math.abs(singleResultsBottom - singleAdjustmentBottom) < 3,
-    `Single-mode fee results and Financial Adjustment should share a bottom line (results=${singleResultsBottom}, adjustment=${singleAdjustmentBottom})`);
+  const singleTaxRateGap = singleTaxRateBox.y - singleResultsBottom;
+  assert.ok(singleTaxRateGap >= 12 && singleTaxRateGap <= 28,
+    `Single-mode tax-rate setting should sit 12–28px below the results (gap=${singleTaxRateGap})`);
   const emptySingleErrors = page.locator('.calculator-card form > .field-grid .error:empty');
   assert.equal(await emptySingleErrors.count(), 3,
     'Single-mode field inputs should each have their empty validation message element');
