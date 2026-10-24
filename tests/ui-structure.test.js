@@ -329,26 +329,38 @@ test('persists Batch draft rows locally across refreshes', () => {
 
 
 
-test('has no Minted bridge, onboarding popup, or Reset modal', () => {
+test('keeps the Reset dialog hidden until opened and guards customer-note copying', () => {
   assert.doesNotMatch(html, /bridge-install-popup|backer-fee-minted-bridge\.user\.js|Tampermonkey|Open Backer Fee on Minted/i);
   assert.doesNotMatch(script, /normalizeMintedBridgeMoney|applyMintedBridgeParams|minted_(?:amount|tax|shipping|subtotal|total)|data-bf-minted-import|bf-bridge-ready|backerfee-bridge-install-dismissed-v1/i);
-  assert.doesNotMatch(html, /role="dialog"|aria-modal=/i,
-    'Initial HTML must not contain dialog or aria-modal attributes');
-  assert.match(html, /id="resetConfirmation" hidden[^>]*aria-labelledby="resetConfirmTitle"/);
-  assert.match(html, /id="cancelResetBtn"/);
-  assert.match(html, /id="confirmResetBtn"/);
-  assert.doesNotMatch(script, /confirmModal|confirmDialog|openConfirmModal|closeConfirmModal|aria-modal|role', 'dialog'/i);
-  assert.doesNotMatch(css, /\.modal-backdrop|\.confirm-modal|body\.modal-open|@keyframes modal-in/,
-    'Reset should not retain modal overlay styling');
-  assert.match(css, /\.reset-confirmation\[hidden\]\s*\{\s*display:\s*none;/);
-  assert.match(css, /grid-template-rows:\s*auto auto auto auto auto;/,
-    'Desktop Single layout should not allocate a flexible empty results row');
-  assert.match(css, /"results adjustment"\s*"taxrate adjustment"/,
-    'Tax rate should have an explicit row below the results');
-  assert.match(css, /\.calculator-card form > \.tax-rate-setting\s*\{\s*grid-area:\s*taxrate;[\s\S]*?margin:\s*16px 0 0;/,
-    'Tax-rate setting should have its own grid area and deliberate gap');
-  assert.ok(html.includes('id="adjTax" min="0" step="0.01" placeholder="Minted tax"'));
-  assert.ok(html.includes('id="adjMintedTotal" min="0" step="0.01" placeholder="Minted total"'));
-  assert.ok(css.includes('"resetconfirm resetconfirm"'));
-  assert.ok(css.includes('grid-area: resetconfirm;'));
+
+  assert.ok(html.includes('class="reset-modal-backdrop" id="resetConfirmation" hidden>'));
+  assert.ok(html.includes('<section class="reset-modal" tabindex="-1">'));
+  assert.ok(html.includes('<h2 id="resetConfirmTitle">Reset calculator?</h2>'));
+  assert.ok(!html.includes('role="dialog"'));
+  assert.ok(!html.includes('aria-modal='));
+  assert.ok(!html.includes('aria-labelledby="resetConfirmTitle"'));
+  assert.ok(html.includes('id="cancelResetBtn"'));
+  assert.ok(html.includes('id="confirmResetBtn"'));
+
+  assert.ok(css.includes('.reset-modal-backdrop {'));
+  assert.ok(css.includes('position: fixed;'));
+  assert.ok(css.includes('inset: 0;'));
+  assert.ok(css.includes('place-items: center;'));
+  assert.ok(css.includes('width: min(420px, calc(100vw - 32px))'));
+  assert.ok(css.includes('html.modal-open,'));
+  assert.ok(css.includes('body.modal-open { overflow: hidden; }'));
+  assert.ok(css.includes('.copy-guard[hidden] { display: none; }'));
+
+  assert.ok(script.includes("resetConfirmation.setAttribute('role', 'dialog')"));
+  assert.ok(script.includes("resetConfirmation.setAttribute('aria-modal', 'true')"));
+  assert.ok(script.includes("resetConfirmation.setAttribute('aria-labelledby', 'resetConfirmTitle')"));
+  assert.ok(script.includes('function trapResetModalTab(event)'));
+  assert.ok(script.includes('if (event.target === resetConfirmation) closeResetConfirmation'));
+  assert.ok(script.includes('pageShell.inert = true'));
+  assert.ok(script.includes('function isSingleCustomerNoteReady()'));
+  assert.ok(script.includes('function areBatchCustomerNotesReady(results)'));
+  assert.ok(script.includes('if (!isSingleCustomerNoteReady())'));
+  assert.ok(script.includes('if (!areBatchCustomerNotesReady(batchResults))'));
+  assert.ok(html.includes('id="noteCopyGuard"'));
+  assert.ok(html.includes('id="batchNoteGuard"'));
 });

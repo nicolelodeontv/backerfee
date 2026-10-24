@@ -301,27 +301,127 @@ try {
   assert.equal(Number(await bothTaxRows.nth(1).locator('.batch-adj-total').inputValue()), 85,
     'Restored unchecked row should calculate Amount plus shipping');
 
-  // Reset confirmation stays in page flow and never creates a dialog or overlay.
-  await page.locator('#resetBtn').click();
-  assert.equal(await page.locator('#resetConfirmation').isVisible(), true,
-    'Reset should show an inline confirmation');
-  assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
-    'Reset confirmation must never use dialog or modal semantics');
-  assert.equal(await page.locator('#resetConfirmation').evaluate((el) => getComputedStyle(el).position), 'static',
-    'Reset confirmation must stay in normal document flow, not overlay the page');
+  // Reset opens a centered modal; closing it without confirmation leaves the current Batch data untouched.
+  const resetButton = page.locator('#resetBtn');
+  const resetModal = page.locator('#resetConfirmation');
+  const beforeResetData = await page.evaluate(() => ({
+    names: Array.from(document.querySelectorAll('#batchRows .batch-name')).map((el) => el.value),
+    prices: Array.from(document.querySelectorAll('#batchRows .batch-price')).map((el) => el.value),
+    discounts: Array.from(document.querySelectorAll('#batchRows .batch-discount')).map((el) => el.value),
+    note: document.querySelector('#batchNoteText').value
+  }));
+  const layoutBeforeModal = await page.locator('.dashboard-card').boundingBox();
+  await resetButton.click();
+  assert.equal(await resetModal.isVisible(), true, 'Reset should open the modal');
+  assert.equal(await resetModal.getAttribute('role'), 'dialog');
+  assert.equal(await resetModal.getAttribute('aria-modal'), 'true');
+  assert.equal(await resetModal.getAttribute('aria-labelledby'), 'resetConfirmTitle');
+  assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 1,
+    'The Reset modal should be the only dialog while open');
+  assert.equal(await page.locator('#cancelResetBtn').evaluate((el) => document.activeElement === el),
+    true, 'Opening the modal should move focus to Cancel');
+  assert.equal(await page.locator('body').evaluate((el) => el.classList.contains('modal-open')), true,
+    'Opening the modal should lock background scrolling');
+  assert.equal(await page.locator('.page-shell').evaluate((el) => el.inert), true,
+    'The page behind the modal should be inert while open');
+  const modalCss = await resetModal.evaluate((el) => ({
+    position: getComputedStyle(el).position,
+    backdropDisplay: getComputedStyle(el).display,
+    panelPosition: getComputedStyle(el.querySelector('.reset-modal')).position
+  }));
+  assert.equal(modalCss.position, 'fixed', 'Modal backdrop should be fixed to the viewport');
+  const layoutWhileModal = await page.locator('.dashboard-card').boundingBox();
+  assert.ok(Math.abs(layoutBeforeModal.y - layoutWhileModal.y) < 1 &&
+    Math.abs(layoutBeforeModal.height - layoutWhileModal.height) < 1,
+    'Opening Reset should not shift the page layout');
+
+  await page.locator('#cancelResetBtn').press('Shift+Tab');
+  assert.equal(await page.locator('#confirmResetBtn').evaluate((el) => document.activeElement === el),
+    true, 'Shift+Tab from Cancel should wrap to Confirm reset');
+  await page.keyboard.press('Tab');
+  assert.equal(await page.locator('#cancelResetBtn').evaluate((el) => document.activeElement === el),
+    true, 'Tab from Confirm reset should wrap to Cancel');
+
   await page.locator('#cancelResetBtn').click();
-  assert.equal(await page.locator('#resetConfirmation').isVisible(), false,
-    'Cancel should dismiss the inline confirmation');
-  assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
-    'Cancelling Reset must not add dialog semantics');
-  await page.locator('#resetBtn').click();
+  assert.equal(await resetModal.isVisible(), false, 'Cancel should close the modal');
+  assert.equal(await resetModal.getAttribute('role'), null, 'Dialog role should be removed on close');
+  assert.equal(await resetModal.getAttribute('aria-modal'), null, 'aria-modal should be removed on close');
+  assert.equal(await resetModal.getAttribute('aria-labelledby'), null, 'aria-labelledby should be removed on close');
+  assert.equal(await page.locator('body').evaluate((el) => el.classList.contains('modal-open')), false,
+    'Closing the modal should unlock background scrolling');
+  assert.equal(await page.locator('.page-shell').evaluate((el) => el.inert), false);
+  assert.equal(await resetButton.evaluate((el) => document.activeElement === el), true,
+    'Closing Reset should return focus to the Reset button');
+
+  const assertBatchDataIntact = async (reason) => {
+    const current = await page.evaluate(() => ({
+      names: Array.from(document.querySelectorAll('#batchRows .batch-name')).map((el) => el.value),
+      prices: Array.from(document.querySelectorAll('#batchRows .batch-price')).map((el) => el.value),
+      discounts: Array.from(document.querySelectorAll('#batchRows .batch-discount')).map((el) => el.value),
+      note: document.querySelector('#batchNoteText').value
+    }));
+    assert.deepEqual(current, beforeResetData, reason);
+  };
+  await assertBatchDataIntact('Cancel must preserve every Batch field and the generated note');
+
+  await resetButton.click();
+  await resetModal.click({ position: { x: 4, y: 4 } });
+  assert.equal(await resetModal.isVisible(), false, 'Clicking the backdrop should close the modal');
+  assert.equal(await resetButton.evaluate((el) => document.activeElement === el), true,
+    'Backdrop close should return focus to Reset');
+  await assertBatchDataIntact('Backdrop close must preserve Batch data');
+
+  await page.locator('#batchRows .batch-price').first().focus();
+  await page.keyboard.press('Escape');
+  assert.equal(await resetModal.isVisible(), true, 'Escape from the page should open Reset');
+  assert.equal(await page.locator('#cancelResetBtn').evaluate((el) => document.activeElement === el), true);
+  await page.keyboard.press('Escape');
+  assert.equal(await resetModal.isVisible(), false, 'Escape while the modal is open should close it, not reset');
+  await assertBatchDataIntact('Escape close must preserve Batch data');
+  assert.equal(await resetButton.evaluate((el) => document.activeElement === el), true);
+
+  await page.setViewportSize({ width: 320, height: 900 });
+  await resetButton.click();
+  const narrowModalBox = await page.locator('.reset-modal').boundingBox();
+  const narrowModalMetrics = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    document: document.documentElement.scrollWidth,
+    backdrop: (() => { const r = document.querySelector('#resetConfirmation').getBoundingClientRect(); return { left: r.left, right: r.right }; })(),
+    panel: (() => { const r = document.querySelector('.reset-modal').getBoundingClientRect(); return { left: r.left, right: r.right, width: r.width }; })(),
+    buttons: Array.from(document.querySelectorAll('.reset-modal-actions button')).map((el) => {
+      const r = el.getBoundingClientRect(); return { left: r.left, right: r.right };
+    })
+  }));
+  assert.ok(narrowModalBox && narrowModalBox.width <= 296,
+    'Reset modal should fit within 320px with surrounding padding');
+  assert.ok(narrowModalMetrics.panel.left >= 0 && narrowModalMetrics.panel.right <= 320,
+    'Reset modal panel must stay inside the 320px viewport');
+  assert.ok(narrowModalMetrics.buttons.every((box) => box.left >= narrowModalMetrics.panel.left && box.right <= narrowModalMetrics.panel.right),
+    'Cancel and Confirm reset must fit inside the 320px modal');
+  assert.ok(narrowModalMetrics.document <= narrowModalMetrics.viewport + 1,
+    'Reset modal must not cause horizontal overflow at 320px');
+  await page.keyboard.press('Escape');
+  assert.equal(await resetModal.isVisible(), false, 'Reset modal should close with Escape at 320px');
+  await page.setViewportSize({ width: 1440, height: 1300 });
+
+  await resetButton.click();
   await page.locator('#confirmResetBtn').click();
-  assert.equal(await page.locator('#resetConfirmation').isVisible(), false,
-    'Confirming Reset should close the inline confirmation');
+  assert.equal(await resetModal.isVisible(), false, 'Confirm reset should close the modal');
+  assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
+    'No dialog semantics should remain after closing');
+  assert.equal(await page.locator('body').evaluate((el) => el.classList.contains('modal-open')), false);
+  assert.equal(await resetButton.evaluate((el) => document.activeElement === el), true,
+    'Confirm reset should return focus to Reset');
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
   await page.locator('#modeBatchBtn').click();
   const resetRows = page.locator('#batchRows .batch-row');
+  assert.equal(await resetRows.count(), 2, 'Reset should leave the default two empty rows');
+  assert.equal(await resetRows.nth(0).locator('.batch-name').inputValue(), '', 'Reset should clear saved card names');
+  assert.equal(await resetRows.nth(0).locator('.batch-price').inputValue(), '', 'Reset should clear saved prices');
+  assert.equal(await resetRows.nth(0).locator('.batch-discount').inputValue(), '', 'Reset should clear saved discounts');
+  assert.deepEqual(await resetRows.locator('.batch-name').evaluateAll((els) => els.map((el) => el.value)), ['', ''],
+    'Reset should clear names in every Batch row');
   assert.equal(await resetRows.count(), 2, 'Reset should leave the default two empty rows');
   assert.equal(await resetRows.nth(0).locator('.batch-name').inputValue(), '', 'Reset should clear saved card names');
   assert.equal(await resetRows.nth(0).locator('.batch-price').inputValue(), '', 'Reset should clear saved prices');
@@ -799,6 +899,35 @@ try {
     'Generated note should use the full width of the batch row grid');
 
   await page.screenshot({ path: screenshotName('desktop-1440-four-rows'), fullPage: true });
+
+  // Batch customer notes are blocked until every calculated row has confirmed tax and a matching Minted total.
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), true);
+  assert.equal(await page.locator('#batchNoteGuard').isVisible(), true);
+  const noteReadyRows = page.locator('#batchRows .batch-row');
+  for (let i = 0; i < await noteReadyRows.count(); i += 1) {
+    const row = noteReadyRows.nth(i);
+    const includeTax = row.locator('.batch-adj-use-tax');
+    if (!(await includeTax.isChecked())) await includeTax.check();
+    const taxField = row.locator('.batch-adj-tax');
+    await taxField.fill('');
+    await taxField.blur();
+    await row.locator('.batch-adj-minted-total').fill('');
+  }
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), true,
+    'Clearing the typed tax/total should keep Batch Copy Note disabled');
+  for (let i = 0; i < await noteReadyRows.count(); i += 1) {
+    const row = noteReadyRows.nth(i);
+    const taxField = row.locator('.batch-adj-tax');
+    await taxField.fill(await taxField.inputValue());
+    await taxField.blur();
+    await row.locator('.batch-adj-minted-total').fill(await row.locator('.batch-adj-total').inputValue());
+    assert.equal(await row.locator('.batch-adj-total-check').innerText(), 'Matches Minted',
+      `Batch row ${i + 1} should match its entered Minted total before copying notes`);
+  }
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), false,
+    'Batch Copy Note should enable when every calculated row is confirmed');
+  assert.equal(await page.locator('#batchNoteGuard').isVisible(), false);
+
   await page.locator('#copyAllNotesBtn').click();
   await page.waitForFunction(() => document.querySelector('#batchStatus').textContent.includes('Customer note copied.'), null, { timeout: 8000 });
   await page.waitForFunction(() => document.querySelector('#copyAllNotesBtn .t-text-swap')?.textContent === '✓ Copied', null, { timeout: 8000 });
@@ -807,7 +936,18 @@ try {
   const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
   assert.equal(clipboardText, noteText, 'Copy Note should copy the complete generated note');
 
-  // A calculated row with no name should be visibly flagged without blocking the note.
+  // Return the rows to estimate-only state so following calculations still test the rate fallback.
+  for (let i = 0; i < await rows.count(); i += 1) {
+    const row = rows.nth(i);
+    const useTax = row.locator('.batch-adj-use-tax');
+    if (!(await useTax.isChecked())) await useTax.check();
+    const taxInput = row.locator('.batch-adj-tax');
+    await taxInput.fill('');
+    await taxInput.blur();
+    await row.locator('.batch-adj-minted-total').fill('');
+  }
+
+  // A calculated row with no name should be visibly flagged while its copy remains tax-guarded.
   await rows.nth(1).locator('.batch-name').fill('Card Two');
   await rows.nth(2).locator('.batch-name').fill('Premium');
   await rows.nth(3).locator('.batch-name').fill('Card Four');
@@ -1080,6 +1220,35 @@ try {
     'Single-mode desktop note textarea should have a 260px minimum height');
   assert.equal(await page.locator('.history-card .note-actions').evaluate((el) => getComputedStyle(el).flexDirection), 'row-reverse',
     'Single-mode Copy Note action should be at the bottom right, with status on the left');
+
+  // A customer note that says its fee includes local taxes cannot be copied from an estimate.
+  await page.locator('#backer').fill('100');
+  await page.locator('#discount').fill('20');
+  assert.ok((await page.locator('#noteText').inputValue()).includes('$86.20'),
+    'The generated note should reflect the current estimated adjustment');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
+    'Copy Note must remain disabled while tax and total are only estimates');
+  assert.equal(await page.locator('#noteCopyGuard').isVisible(), true,
+    'The reason for blocking the note should be visible');
+  await page.evaluate(() => navigator.clipboard.writeText('clipboard unchanged'));
+  await page.locator('#noteText').focus();
+  await page.keyboard.press('Control+Enter');
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'clipboard unchanged',
+    'The keyboard copy shortcut must not bypass the unconfirmed-total guard');
+  await page.locator('#adjTax').fill('6.20');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
+    'Typing Minted tax alone is insufficient without the final-total comparison');
+  await page.locator('#adjMintedTotal').fill('86.20');
+  assert.equal(await page.locator('#adjMintedTotalCheck').innerText(), 'Matches Minted');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), false,
+    'Copy Note should become available when Minted tax and total match');
+  assert.equal(await page.locator('#noteCopyGuard').isVisible(), false);
+  await page.locator('#adjMintedTotal').fill('86.21');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
+    'A one-cent mismatch should block Copy Note');
+  assert.equal(await page.locator('#noteCopyGuard').isVisible(), true);
+  await page.locator('#adjMintedTotal').fill('86.20');
+
   // Check that Single uses Minted's typed tax, Include Tax, and the 7.75% estimate only as fallback.
   await page.locator('#backer').fill('100');
   await page.locator('#discount').fill('20');
@@ -1273,7 +1442,8 @@ try {
       'tax label fits inside its column at 320px',
       'Single mode two-column layout, full-width note, and no mascot',
       'no bridge popup or Tampermonkey text on load or after delay/reload',
-      'Reset confirmation remains inline, cancellable, and has no dialog or modal semantics',
+      'Reset uses one centered modal with focus trapping, scroll locking, safe close actions, and a 320px layout',
+      'Single and Batch customer notes stay blocked until Minted tax and total match',
       'desktop results and tax-rate setting have deliberate vertical spacing',
       'no uncaught browser runtime errors'
     ],
