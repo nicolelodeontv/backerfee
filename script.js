@@ -1182,6 +1182,7 @@ function renderBatchRows(rows) {
 
     amountInput.addEventListener('input', () => {
       row.dataset.amountEdited = '1';
+      row.dataset.taxEdited = '';
       invalidateBatchMintedTotal();
       calculateBatch();
     });
@@ -1211,6 +1212,7 @@ function renderBatchRows(rows) {
       calculateBatch();
     });
     shipInput.addEventListener('input', () => {
+      row.dataset.taxEdited = '';
       invalidateBatchMintedTotal();
       calculateBatch();
     });
@@ -1630,6 +1632,7 @@ form.addEventListener('submit', (event) => event.preventDefault());
 resetBtn.addEventListener('click', requestReset);
  [adjAmount, adjShipInput].forEach((el) => {
   el.addEventListener('input', () => {
+    adjTax.dataset.taxEdited = '';
     clearSingleMintedTotalReference();
     computeAdjustment();
     if (el === adjShipInput) saveSettings();
