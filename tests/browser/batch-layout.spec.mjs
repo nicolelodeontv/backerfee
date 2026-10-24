@@ -1170,6 +1170,7 @@ try {
     'Single customer note must not be copyable while tax is estimated');
   assert.match(await page.locator('#copyStatus').innerText(), /Enter Minted.*actual tax/,
     'Single note should explain that Minted tax is needed before copying');
+  await page.locator('#adjTax').fill('');
   await page.locator('#adjTax').fill('3.92');
   assert.equal(await page.locator('#copyBtn').isDisabled(), true,
     'Entering Minted tax alone must not enable copying until the Minted total matches');
@@ -1268,6 +1269,7 @@ try {
   );
   assert.equal(await page.locator('#copyBtn').isDisabled(), true,
     'Changing the order should invalidate the prior tax/total confirmation');
+  await page.locator('#adjTax').fill('');
   await page.locator('#adjTax').fill('6.20');
   assert.equal(await page.locator('#copyBtn').isDisabled(), true,
     'Single note should remain disabled until Total from Minted matches the updated order');
@@ -1362,6 +1364,56 @@ try {
   assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.47,
     'The stored-rate fallback should calculate the expected total');
 
+  // Reset modal fits 320px, does not shift the page, and clears Single-mode data only on confirmation.
+  await page.setViewportSize({ width: 320, height: 850 });
+  await page.locator('#modeSingleBtn').click();
+  await page.locator('#backer').fill('100');
+  await page.locator('#discount').fill('20');
+  await page.locator('#adjAmount').fill('11.25');
+  const singlePriceBeforeReset = await page.locator('#backer').inputValue();
+  const singleDiscountBeforeReset = await page.locator('#discount').inputValue();
+  const noteBeforeReset = await page.locator('#noteText').inputValue();
+  const backerBoxBeforeReset = await page.locator('#backer').boundingBox();
+  await page.locator('#resetBtn').click();
+  const resetDialogBox = await page.locator('#resetDialog').boundingBox();
+  const viewport = page.viewportSize();
+  assert.ok(resetDialogBox && viewport &&
+    resetDialogBox.x >= 0 && resetDialogBox.y >= 0 &&
+    resetDialogBox.x + resetDialogBox.width <= viewport.width + 1 &&
+    resetDialogBox.y + resetDialogBox.height <= viewport.height + 1,
+  `Reset modal should fit a 320px viewport (dialog=${JSON.stringify(resetDialogBox)}, viewport=${JSON.stringify(viewport)})`);
+  assert.equal(await page.locator('#backer').inputValue(), singlePriceBeforeReset,
+    'Opening Reset should leave Single price intact');
+  assert.equal(await page.locator('#discount').inputValue(), singleDiscountBeforeReset,
+    'Opening Reset should leave Single discount intact');
+  assert.equal(await page.locator('#noteText').inputValue(), noteBeforeReset,
+    'Opening Reset should leave the Generated note intact');
+  const backerBoxAfterOpen = await page.locator('#backer').boundingBox();
+  assert.ok(backerBoxBeforeReset && backerBoxAfterOpen &&
+    Math.abs(backerBoxBeforeReset.x - backerBoxAfterOpen.x) < 1 &&
+    Math.abs(backerBoxBeforeReset.y - backerBoxAfterOpen.y) < 1 &&
+    Math.abs(backerBoxBeforeReset.width - backerBoxAfterOpen.width) < 1,
+  'Opening Reset must not shift the page layout');
+  await page.locator('#confirmResetBtn').click();
+  assert.equal(await page.locator('#backer').inputValue(), '',
+    'Confirm reset should clear price');
+  assert.equal(await page.locator('#discount').inputValue(), '',
+    'Confirm reset should clear discount');
+  assert.equal((await page.locator('#result').innerText()).trim(), '$0.00',
+    'Confirm reset should clear Discount Amount');
+  assert.equal((await page.locator('#total').innerText()).trim(), '$0.00',
+    'Confirm reset should clear Final Backer Fee');
+  assert.equal(await page.locator('#noteText').inputValue(), '',
+    'Confirm reset should clear the Generated customer note');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
+    'Confirm reset should disable Copy Note');
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'resetBtn',
+    'Confirm reset should return focus to Reset');
+  assert.equal(await page.evaluate(() => document.body.classList.contains('reset-modal-open')), false,
+    'Confirm reset should release the scroll lock');
+  assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
+    'Reset dialog semantics should be removed after closing');
+
   assert.deepEqual(errors, [], `Browser should not emit runtime errors: ${errors.join('; ')}`);
   console.log(JSON.stringify({
     result: 'PASS',
@@ -1380,7 +1432,8 @@ try {
       'tax label fits inside its column at 320px',
       'Single mode two-column layout, full-width note, and no mascot',
       'no bridge popup or Tampermonkey text on load or after delay/reload',
-      'Reset confirmation remains inline, cancellable, and has no dialog or modal semantics',
+      'Reset opens a centered modal with focus trap, backdrop/Escape/Cancel closure, focus restore, and 320px fit',
+      'Single and Batch customer notes stay blocked until Minted tax and total match',
       'desktop results and tax-rate setting have deliberate vertical spacing',
       'no uncaught browser runtime errors'
     ],
