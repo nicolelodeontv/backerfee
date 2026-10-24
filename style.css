@@ -386,23 +386,64 @@ html[data-theme="dark"] .highlighted { background: linear-gradient(135deg, #3026
 }
 .history-action:hover { text-decoration: underline; }
 
+html.reset-modal-open,
+body.reset-modal-open { overflow: hidden; }
+
 .reset-confirmation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  margin: -12px 0 20px;
-  padding: 10px 0 12px;
-  border-bottom: 1px solid var(--line);
-  color: var(--ink);
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(18, 17, 25, .58);
+  backdrop-filter: blur(3px);
+  overscroll-behavior: contain;
 }
 .reset-confirmation[hidden] { display: none; }
-.reset-confirmation-copy { min-width: 0; flex: 1 1 240px; }
-.reset-confirmation-copy strong { display: block; font-size: 12px; }
-.reset-confirmation-copy p { margin: 3px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
-.reset-confirmation-actions { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; }
-.reset-confirmation-actions .copy-btn { min-height: 38px; }
+.reset-dialog {
+  box-sizing: border-box;
+  width: min(440px, 100%);
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .3);
+}
+.reset-dialog h2 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.reset-dialog p {
+  margin: 0 0 22px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.reset-confirmation-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.reset-confirmation-actions button { min-height: 42px; }
+
+.note-copy-guard {
+  margin: 10px 0 0;
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.note-copy-guard[hidden] { display: none; }
+.copy-status.is-warning { color: var(--danger); }
 
 .toast-root {
   position: fixed;
@@ -2105,4 +2146,11 @@ html[data-theme="dark"] .highlighted strong span {
   background-clip: border-box;
   -webkit-text-fill-color: #fbe9ff;
   color: #fbe9ff;
+}
+
+
+@media (max-width: 380px) {
+  .reset-dialog { padding: 20px 16px; border-radius: 16px; }
+  .reset-confirmation-actions { width: 100%; flex-direction: column-reverse; align-items: stretch; }
+  .reset-confirmation-actions button { width: 100%; min-height: 44px; }
 }
