@@ -972,11 +972,11 @@ function renderBatchRows(rows) {
         '<div class="batch-adjust-grid">' +
           adjField('Amount (enter in Minted)', '<input class="batch-adj-amount" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Amount to enter in Minted">',
             '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-amount" aria-label="Copy Amount"><span class="t-text-swap">Copy</span></button>') +
-          adjField('Tax from Minted', '<input class="batch-adj-tax" type="number" min="0" step="0.01" placeholder="Enter Minted tax" inputmode="decimal" autocomplete="off" aria-label="Enter Minted tax to replace the estimate">',
+          adjField('Estimated tax', '<input class="batch-adj-tax" type="number" min="0" step="0.01" placeholder="Enter Minted tax" inputmode="decimal" autocomplete="off" aria-label="Enter Minted tax to replace the estimate">',
             '<label class="adj-check">Include Tax: <input class="batch-adj-use-tax" type="checkbox" checked aria-label="Include tax"></label>') +
           adjField('Subtotal', '<input class="batch-adj-subtotal" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated subtotal">') +
           adjField('Shipping Adjustment', '<input class="batch-adj-ship" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Shipping adjustment">') +
-          adjField('Total Adjustment', '<input class="batch-adj-total" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated total adjustment">',
+          adjField('Total Adjustment (estimate)', '<input class="batch-adj-total" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Estimated total adjustment, not final until tax is replaced with Minted tax">',
             '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-total" aria-label="Copy Total Adjustment"><span class="t-text-swap">Copy</span></button>') +
         '</div>' +
         '<p class="adjustment-status batch-adj-status" role="status" aria-live="polite">Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.</p>' +
