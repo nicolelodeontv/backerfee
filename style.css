@@ -388,6 +388,7 @@ html[data-theme="dark"] .highlighted { background: linear-gradient(135deg, #3026
 
 html.reset-modal-open,
 body.reset-modal-open { overflow: hidden; }
+body.reset-modal-open { padding-right: var(--reset-scrollbar-compensation, 0px); }
 
 .reset-confirmation {
   position: fixed;
