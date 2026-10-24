@@ -1173,6 +1173,15 @@ html[data-theme="dark"] .adjustment-limit-warning {
   color: var(--ink);
   font-weight: 800;
 }
+.adjustment-row.total .adjustment-value-input input.is-unconfirmed,
+.batch-adj-total.is-unconfirmed {
+  border-color: var(--danger) !important;
+  background-color: rgba(181, 79, 95, .08) !important;
+}
+html[data-theme="dark"] .adjustment-row.total .adjustment-value-input input.is-unconfirmed,
+html[data-theme="dark"] .batch-adj-total.is-unconfirmed {
+  background-color: rgba(241, 154, 170, .10) !important;
+}
 @media (max-width: 520px) {
   .adjustment-row { align-items: flex-start; gap: 10px; }
   .adjustment-row-label { padding-top: 12px; }
