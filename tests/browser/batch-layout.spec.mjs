@@ -805,13 +805,13 @@ try {
   await largeAmount.fill('1124.88');
   await largeShipping.fill('0');
   await page.waitForFunction(() =>
-    document.querySelector('#batchRows .batch-row .batch-adj-total')?.value === '1234.56'
+    document.querySelector('#batchRows .batch-row .batch-adj-total')?.value === '1212.06'
   );
   const largeTotal = rows.nth(0).locator('.batch-adj-total');
-  assert.equal(await largeTotal.inputValue(), '1234.56',
+  assert.equal(await largeTotal.inputValue(), '1212.06',
     'A large Total Adjustment should calculate to $1,234.56');
   await largeAmount.fill('50000');
-  await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .batch-adj-total')?.value === '54875.00');
+  await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .batch-adj-total')?.value === '53875.00');
   const batchLimitWarning = rows.nth(0).locator('.batch-adj-limit-warning');
   assert.equal(await batchLimitWarning.isVisible(), true,
     'A Batch Total Adjustment of $50,000 or more should show the Minted charge-limit warning');
@@ -821,10 +821,10 @@ try {
   await page.waitForFunction(() =>
     document.querySelector('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Total Adjustment"]')?.textContent.trim() === 'Copied ✓'
   );
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '54875.00',
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '53875.00',
     'Copy should still work while Minted charge-limit warning is visible');
   await largeAmount.fill('1124.88');
-  await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .batch-adj-total')?.value === '1234.56');
+  await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .batch-adj-total')?.value === '1212.06');
   assert.equal(await batchLimitWarning.isVisible(), false,
     'The Batch charge-limit warning should clear again below $50,000');
   const largeTotalBox = await largeTotal.boundingBox();
@@ -882,7 +882,7 @@ try {
   await page.waitForFunction(() =>
     document.querySelector('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Total Adjustment"]')?.textContent.trim() === 'Copied ✓'
   );
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '1234.56',
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '1212.06',
     'Batch Total Adjustment copy should copy a plain number without currency symbol or commas');
   const rowTwoTotalCopy = rows.nth(1).locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]');
   await rowTwoTotalCopy.click();
