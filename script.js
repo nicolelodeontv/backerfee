@@ -509,7 +509,7 @@ function applyBatchAdjustment(row, data) {
   }
   const taxLabel = row.querySelector('.batch-adj-label > span');
   taxLabel.textContent = !useTaxInput.checked ? 'Tax excluded'
-    : (taxEdited ? 'Tax from Minted' : 'Estimated tax - confirm in Minted');
+    : (taxEdited ? 'Tax from Minted' : 'Estimate - replace with Minted tax');
   taxOut.disabled = !useTaxInput.checked;
   amountInput.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
   shipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
@@ -543,7 +543,7 @@ function applyBatchAdjustment(row, data) {
     status.classList.remove('is-warning');
     status.classList.add('is-success');
   } else {
-    status.textContent = 'Tax is an estimate. Click Calculate in Minted, then type Minted\'s tax here.';
+    status.textContent = 'Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted\'s tax.';
     status.classList.remove('is-success');
     status.classList.add('is-warning');
   }
@@ -574,7 +574,7 @@ function computeAdjustment() {
   const includeTax = adjUseTaxInput.checked;
   adjTax.disabled = !includeTax;
   if (adjTaxLabel) adjTaxLabel.textContent = !includeTax ? 'Tax excluded'
-    : (taxEdited ? 'Tax from Minted' : 'Estimated tax - confirm in Minted');
+    : (taxEdited ? 'Tax from Minted' : 'Estimate - replace with Minted tax');
 
   adjAmount.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
   adjShipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
@@ -615,7 +615,7 @@ function computeAdjustment() {
     adjStatus.textContent = 'Using tax from Minted.';
     adjStatus.classList.add('is-success');
   } else {
-    adjStatus.textContent = 'Tax is an estimate. Click Calculate in Minted, then type Minted\'s tax here.';
+    adjStatus.textContent = 'Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted\'s tax.';
     adjStatus.classList.add('is-warning');
   }
   updateNote(calculated);
@@ -958,14 +958,14 @@ function renderBatchRows(rows) {
         '<div class="batch-adjust-grid">' +
           adjField('Amount (enter in Minted)', '<input class="batch-adj-amount" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Amount to enter in Minted">',
             '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-amount" aria-label="Copy Amount"><span class="t-text-swap">Copy</span></button>') +
-          adjField('Tax from Minted', '<input class="batch-adj-tax" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Tax from Minted or estimated tax">',
+          adjField('Tax from Minted', '<input class="batch-adj-tax" type="number" min="0" step="0.01" placeholder="Enter Minted tax" inputmode="decimal" autocomplete="off" aria-label="Enter Minted tax to replace the estimate">',
             '<label class="adj-check">Include Tax: <input class="batch-adj-use-tax" type="checkbox" checked aria-label="Include tax"></label>') +
           adjField('Subtotal', '<input class="batch-adj-subtotal" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated subtotal">') +
           adjField('Shipping Adjustment', '<input class="batch-adj-ship" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Shipping adjustment">') +
           adjField('Total Adjustment', '<input class="batch-adj-total" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated total adjustment">',
             '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-total" aria-label="Copy Total Adjustment"><span class="t-text-swap">Copy</span></button>') +
         '</div>' +
-        '<p class="adjustment-status batch-adj-status" role="status" aria-live="polite">Tax is an estimate. Click Calculate in Minted, then type Minted\'s tax here.</p>' +
+        '<p class="adjustment-status batch-adj-status" role="status" aria-live="polite">Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted\'s tax.</p>' +
         '<p class="adjustment-limit-warning batch-adj-limit-warning" role="alert" hidden>Minted won\'t allow a charge of $50,000 or more.</p>' +
       '</div>';
 
