@@ -35,10 +35,6 @@ try {
     viewport: { width: 1440, height: 1300 },
     deviceScaleFactor: 1
   });
-  // Keep the onboarding popup out of calculator interaction tests; test its UI separately.
-  await context.addInitScript(() => {
-    try { localStorage.setItem('backerfee-bridge-install-dismissed-v1', '1'); } catch (_) {}
-  });
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], {
     origin: new URL(baseUrl).origin
   }).catch(() => {});
@@ -55,6 +51,18 @@ try {
 
   const response = await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
   assert.equal(response?.status(), 200, `App returned HTTP ${response?.status()}`);
+  assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
+    'No dialog or modal semantics should be present on initial page load');
+  assert.doesNotMatch(await page.locator('body').innerText(), /Tampermonkey|Install Tampermonkey|Open Backer Fee on Minted/i,
+    'No Tampermonkey installation or bridge instructions should appear on load');
+  await page.waitForTimeout(5100);
+  assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
+    'No delayed onboarding dialog should appear after five seconds');
+  assert.doesNotMatch(await page.locator('body').innerText(), /Tampermonkey|Install Tampermonkey|Open Backer Fee on Minted/i,
+    'No delayed Tampermonkey or Minted bridge text should appear');
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
+    'Reload should not display a bridge dialog or modal');
 
   // The same approval callout exists in Single and Batch modes.
   const callouts = page.locator('.adjustment-callout');
@@ -274,10 +282,23 @@ try {
   assert.equal(Number(await bothTaxRows.nth(1).locator('.batch-adj-total').inputValue()), 85,
     'Restored unchecked row should calculate Amount plus shipping');
 
-  // Reset must persist an empty Batch draft across refreshes.
+  // Reset confirmation stays in page flow and never creates a dialog or overlay.
   await page.locator('#resetBtn').click();
-  assert.equal(await page.locator('#confirmModal').isVisible(), true, 'Reset should ask for confirmation');
-  await page.locator('#confirmActionBtn').click();
+  assert.equal(await page.locator('#resetConfirmation').isVisible(), true,
+    'Reset should show an inline confirmation');
+  assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
+    'Reset confirmation must never use dialog or modal semantics');
+  assert.equal(await page.locator('#resetConfirmation').evaluate((el) => getComputedStyle(el).position), 'static',
+    'Reset confirmation must stay in normal document flow, not overlay the page');
+  await page.locator('#cancelResetBtn').click();
+  assert.equal(await page.locator('#resetConfirmation').isVisible(), false,
+    'Cancel should dismiss the inline confirmation');
+  assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
+    'Cancelling Reset must not add dialog semantics');
+  await page.locator('#resetBtn').click();
+  await page.locator('#confirmResetBtn').click();
+  assert.equal(await page.locator('#resetConfirmation').isVisible(), false,
+    'Confirming Reset should close the inline confirmation');
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
   await page.locator('#modeBatchBtn').click();
@@ -1214,34 +1235,6 @@ try {
   assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.47,
     'The stored-rate fallback should calculate the expected total');
 
-  const mintedBridgeUrl = new URL(baseUrl);
-  mintedBridgeUrl.searchParams.set('minted_bridge', '1');
-  mintedBridgeUrl.searchParams.set('minted_amount', '50.55');
-  mintedBridgeUrl.searchParams.set('minted_tax', '3.92');
-  mintedBridgeUrl.searchParams.set('minted_shipping', '5.00');
-  mintedBridgeUrl.searchParams.set('minted_subtotal', '54.47');
-  mintedBridgeUrl.searchParams.set('minted_total', '59.47');
-  await page.goto(mintedBridgeUrl.href, { waitUntil: 'domcontentloaded', timeout: 45000 });
-  await page.waitForFunction(() => document.documentElement.dataset.bfMintedImport === '1', null, { timeout: 15000 });
-  assert.equal(Number(await page.locator('#adjAmount').inputValue()), 50.55,
-    'Minted bridge should import Amount from minted_amount');
-  assert.equal(Number(await page.locator('#adjTax').inputValue()), 3.92,
-    'Minted bridge should import the actual Minted tax and mark it edited');
-  assert.equal(await page.locator('#adjTax').evaluate((el) => el.dataset.taxEdited), '1',
-    'Imported tax should be treated as a user-entered Minted tax, not an estimate');
-  assert.equal(Number(await page.locator('#adjSubtotal').inputValue()), 54.47,
-    'Imported tax should produce the expected Subtotal');
-  assert.equal(Number(await page.locator('#adjShip').inputValue()), 5,
-    'Minted bridge should import Shipping Adjustment');
-  assert.equal(Number(await page.locator('#adjTotal').inputValue()), 59.47,
-    'Imported Minted values should produce the expected Total Adjustment');
-  assert.equal(await page.locator('label[for="adjTotal"]').innerText(), 'Total Adjustment',
-    'A bridge-imported Minted tax should clear the provisional Total Adjustment label');
-  assert.ok((await page.locator('#adjStatus').innerText()).includes('Subtotal matches Minted'));
-  assert.ok((await page.locator('#adjStatus').innerText()).includes('Total matches Minted'));
-  assert.equal(new URL(page.url()).searchParams.has('minted_tax'), false,
-    'Imported order values should be removed from the URL after applying them');
-
   assert.deepEqual(errors, [], `Browser should not emit runtime errors: ${errors.join('; ')}`);
   console.log(JSON.stringify({
     result: 'PASS',
@@ -1259,6 +1252,8 @@ try {
       'no horizontal overflow at 375px and 320px',
       'tax label fits inside its column at 320px',
       'Single mode two-column layout, full-width note, and no mascot',
+      'no bridge popup or Tampermonkey text on load or after delay/reload',
+      'Reset confirmation remains inline, cancellable, and has no dialog or modal semantics',
       'no uncaught browser runtime errors'
     ],
     screenshots: [
