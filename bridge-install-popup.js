@@ -108,7 +108,7 @@
     body1.appendChild(link1);
     var setting = document.createElement('div');
     setting.className = 'bf-setting';
-    setting.textContent = 'Chrome 138+: open chrome://extensions, select Details on Tampermonkey, and enable “Allow user scripts”. On older Chrome versions, Developer mode may be required. Reload Backer Fee after changing this setting.';
+    setting.textContent = 'Chrome 138+: open chrome://extensions, select Details on Tampermonkey, and enable “Allow User Scripts”. On older Chrome versions, Developer mode may be required. Reload Backer Fee after changing this setting.';
     body1.appendChild(setting);
     step1.appendChild(body1);
     card.appendChild(step1);
