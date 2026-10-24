@@ -30,39 +30,32 @@ test('exposes the complete single and batch workflow controls', () => {
   assert.match(html, /class="note-panel single-only"/);
 });
 
-test('locks tax at 9.75% and makes Amount-driven totals live', () => {
-  assert.match(script, /const TAX_RATE = 9\.75/);
-  assert.match(html, /id="adjTax"[^>]*readonly/);
-  assert.match(html, /id="adjUseTax" checked disabled/);
-  assert.match(html, /Tax Based on Shipping Zip/);
-  assert.doesNotMatch(html, /id="adjRate"|id="adjTaxOverride"/);
-  assert.doesNotMatch(script, /adjRateInput|adjRateError|adjTaxOverrideInput|adjUseTaxInput|taxRate:|taxOverride:|useTax:/);
+test('uses 9.75% as an estimate and allows Minted tax input', () => {
+  assert.match(script, /function estimateTaxCents\(amountCents\)/);
+  assert.match(script, /function adjustmentCents\(amountValue, shipValue, taxOverrideCents = null, includeTax = true\)/);
+  assert.match(script, /taxOverrideCents === null \? estimateTaxCents\(amountCents\)/);
+  assert.match(script, /const taxCents = !includeTax \? 0/);
+  assert.match(html, /id="adjTax"[^>]*inputmode="decimal"/);
+  assert.doesNotMatch(html, /id="adjTax"[^>]*readonly/);
+  assert.match(html, /id="adjUseTax" checked/);
+  assert.doesNotMatch(html, /id="adjUseTax"[^>]*disabled/);
+  assert.match(html, /Estimate: 9\.75%/);
+  assert.match(script, /Tax is an estimate\. Click Calculate in Minted, then type Minted\\'s tax here\./);
+  assert.match(script, /Using tax from Minted\./);
   assert.match(script, /function readAdjustmentField/);
-  assert.match(script, /function clearAdjustmentResults\(\)/);
-  assert.match(script, /function adjustmentCents\(amountValue, shipValue\)[\s\S]*Math\.round\(\(amountCents \* TAX_RATE\) \/ 100\)/);
-  assert.match(script, /function computeAdjustment\(\)[\s\S]*currentAdjustment = adjustmentCents\(amount\.value, ship\.value\)/);
   assert.match(script, /const subtotalCents = amountCents \+ taxCents/);
   assert.match(script, /totalCents: subtotalCents \+ shipCents/);
-  assert.match(script, /function clearResults\(\)[\s\S]*updateAdjustment\(0\)/);
-  assert.doesNotMatch(script, /adjCopy|adjCalc|copyAdjustmentValue/);
-  assert.match(script, /\[adjAmount, adjShipInput\]\.forEach\(\(el\) => \{[\s\S]*?el\.addEventListener\(['"]input['"][\s\S]*?computeAdjustment\(\)/);
-  assert.match(script, /\[adjAmount, adjShipInput\]\.forEach\(\(el\) => \{[\s\S]*?el\.addEventListener\(['"]keydown['"][\s\S]*?event\.key === 'Enter'[\s\S]*?computeAdjustment\(\)/);
-  assert.match(script, /noteState\.textContent = noteWasEdited \? 'Edited — ready to copy' : 'Updated automatically'/);
+  assert.match(script, /totalCents < 5000000/);
 });
 
-test('reproduces the four supplied Minted tax examples with cent rounding', () => {
-  const rows = [
-    { amount: 19.24, tax: 1.88, total: 21.12 },
-    { amount: 18.24, tax: 1.78, total: 20.02 },
-    { amount: 17.24, tax: 1.68, total: 18.92 },
-    { amount: 18.00, tax: 1.76, total: 19.76 }
-  ];
-  for (const row of rows) {
-    const amountCents = Math.round(row.amount * 100);
-    const taxCents = Math.round((amountCents * 9.75) / 100);
-    assert.equal(taxCents, Math.round(row.tax * 100), 'tax for Amount ' + row.amount);
-    assert.equal(amountCents + taxCents, Math.round(row.total * 100), 'total for Amount ' + row.amount);
-  }
+test('reproduces the supplied Minted tax arithmetic in cents with manual overrides', () => {
+  const amountCents = Math.round(50.55 * 100);
+  const estimateCents = Math.round((amountCents * 9.75) / 100);
+  assert.equal(estimateCents, 493);
+  assert.equal(amountCents + estimateCents, 5548);
+  const mintedTaxCents = Math.round(3.92 * 100);
+  assert.equal(amountCents + mintedTaxCents, 5447);
+  assert.equal(amountCents + mintedTaxCents + 500, 5947);
 });
 
 test('keeps customer notes tied to Total Adjustment when available', () => {
@@ -70,7 +63,7 @@ test('keeps customer notes tied to Total Adjustment when available', () => {
   assert.match(script, /function refreshAdjustment\(\)/);
   assert.match(script, /buildCustomerNote\(\{ \.\.\.data, discountedPrice: noteFee\(data\) \}\)/);
   assert.match(script, /typeof currentAdjustment\?\.totalCents === 'number'/);
-  assert.match(script, /function updateAdjustment\(finalFee\)/);
+  assert.match(script, /function updateAdjustment\(finalFee, \{ resetTax = true \} = \{\}\)/);
   assert.match(script, /adjAmount\.value = calculated \? \(Math\.round\(Number\(finalFee\) \* 100\) \/ 100\)\.toFixed\(2\) : ''/);
   assert.match(script, /noteWasEdited \? 'Edited — ready to copy' : 'Updated automatically'/);
   assert.match(html, /Copy Note/);
@@ -101,25 +94,30 @@ test('keeps settings local to the browser without a History feature', () => {
   assert.doesNotMatch(script, /historyList|clearHistoryBtn|exportHistoryBtn|STORAGE_KEYS\.history|function addHistory/);
 });
 
-test('persists shipping adjustment locally without a stored tax rate or override', () => {
+test('persists shipping settings and typed tax in Batch drafts', () => {
   assert.match(script, /shippingAdjustment: adjShipInput\.value/);
   assert.match(script, /if \(typeof data\.shippingAdjustment === 'string' && data\.shippingAdjustment\.length <= 12\) adjShipInput\.value = data\.shippingAdjustment/);
-  assert.doesNotMatch(script, /taxRate|taxOverride|useTax/);
+  assert.match(script, /tax: row\.querySelector\('\.batch-adj-tax'\)\?\.value/);
+  assert.match(script, /taxEdited: row\.dataset\.taxEdited === '1'/);
+  assert.match(script, /useTax: row\.querySelector\('\.batch-adj-use-tax'\)\?\.checked/);
+  assert.match(script, /taxEdited: rowData\.taxEdited === true/);
+  assert.match(script, /useTax: rowData\.useTax !== false/);
   assert.match(script, /\[adjAmount, adjShipInput\]\.forEach/);
 });
 
 
 test('uses the same cent-rounded Minted adjustment calculation in Single and Batch', () => {
-  assert.match(script, /function adjustmentCents\(amountValue, shipValue\)/);
-  assert.match(script, /currentAdjustment = adjustmentCents\(amount\.value, ship\.value\)/);
+  assert.match(script, /function adjustmentCents\(amountValue, shipValue, taxOverrideCents = null, includeTax = true\)/);
+  assert.match(script, /currentAdjustment = adjustmentCents\(amount\.value, ship\.value, taxCents, includeTax\)/);
   assert.match(script, /function applyBatchAdjustment\(row, data\)/);
-  assert.match(script, /const adjustment = applyBatchAdjustment\(row, resultData\)/);
+  assert.match(script, /const adj = adjustmentCents\(amount\.value, ship\.value, taxCents, useTaxInput\.checked\)/);
   assert.match(script, /class="batch-adj-amount"/);
   assert.match(script, /class="batch-adj-tax"/);
   assert.match(script, /class="batch-adj-subtotal"/);
   assert.match(script, /class="batch-adj-ship"/);
   assert.match(script, /class="batch-adj-total"/);
 });
+
 
 test('preserves Batch adjustment entries and uses Total Adjustment in copied notes', () => {
   assert.match(script, /amount: row\.querySelector\('\.batch-adj-amount'\)\?\.value/);
