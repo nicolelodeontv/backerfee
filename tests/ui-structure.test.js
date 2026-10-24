@@ -341,4 +341,10 @@ test('has no Minted bridge, onboarding popup, or Reset modal', () => {
   assert.doesNotMatch(css, /\.modal-backdrop|\.confirm-modal|body\.modal-open|@keyframes modal-in/,
     'Reset should not retain modal overlay styling');
   assert.match(css, /\.reset-confirmation\[hidden\]\s*\{\s*display:\s*none;/);
+  assert.match(css, /grid-template-rows:\s*auto auto auto auto auto;/,
+    'Desktop Single layout should not allocate a flexible empty results row');
+  assert.match(css, /"results adjustment"\s*"taxrate adjustment"/,
+    'Tax rate should have an explicit row below the results');
+  assert.match(css, /\.calculator-card form > \.tax-rate-setting\s*\{\s*grid-area:\s*taxrate;[\s\S]*?margin:\s*16px 0 0;/,
+    'Tax-rate setting should have its own grid area and deliberate gap');
 });
