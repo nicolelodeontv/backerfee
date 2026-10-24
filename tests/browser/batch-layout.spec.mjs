@@ -118,6 +118,8 @@ try {
   await invitationDraft.locator('.batch-price').fill('50');
   await invitationDraft.locator('.batch-discount').fill('15');
   await invitationDraft.locator('.batch-adj-amount').fill('50.55');
+  assert.equal(await invitationDraft.locator('.batch-adj-tax').isEditable(), true,
+    'Batch tax must be an editable input, not a fixed-rate-only output');
   await invitationDraft.locator('.batch-adj-tax').fill('3.92');
   await invitationDraft.locator('.batch-adj-ship').fill('0');
   await draftRows.nth(1).locator('.batch-name').fill('Draft RSVP');
@@ -172,7 +174,7 @@ try {
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 55.48,
     'The estimated tax should total $55.48 on Amount $50.55');
   assert.equal((await restoredDraftRows.nth(0).locator('.batch-adj-status').innerText()),
-    'Tax is an estimate. Click Calculate in Minted, then type Minted\'s tax here.',
+    'Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted\'s tax.',
     'The estimated state should explain the Minted verification step');
   await restoredDraftRows.nth(0).locator('.batch-adj-tax').fill('3.92');
   await restoredDraftRows.nth(0).locator('.batch-adj-ship').fill('5.00');
@@ -182,7 +184,7 @@ try {
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 4.23,
     'Changing original price should reset Batch tax to the estimate');
   assert.equal((await restoredDraftRows.nth(0).locator('.batch-adj-status').innerText()),
-    'Tax is an estimate. Click Calculate in Minted, then type Minted\'s tax here.',
+    'Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted\'s tax.',
     'Changing original price should return the row to estimated status');
   assert.equal(await restoredDraftRows.nth(1).locator('.batch-name').inputValue(), 'Draft RSVP',
     'Refresh should preserve the card name in a partially entered row');
@@ -771,7 +773,7 @@ try {
     `Large Total Adjustment needs enough input width to display its value (box=${JSON.stringify(largeTotalBox)})`);
   const largeStatus = rows.nth(0).locator('.batch-adj-status');
   const statusText = await largeStatus.textContent();
-  assert.ok(statusText.includes('Tax is an estimate. Click Calculate in Minted'),
+  assert.ok(statusText.includes('Tax is an estimate. After clicking Calculate in Minted'),
     'Large-value status should keep the explicit tax confirmation guidance');
   assert.equal(await rows.nth(0).locator('.batch-adj-limit-warning').isVisible(), false,
     'Below-$50,000 totals should not show the Minted charge limit warning');
@@ -983,6 +985,8 @@ try {
   await page.locator('#discount').fill('20');
   await page.locator('#adjAmount').fill('50.55');
   await page.locator('#adjShip').fill('0');
+  assert.equal(await page.locator('#adjTax').isEditable(), true,
+    'Single tax must be an editable input, not a fixed-rate-only output');
   await page.locator('#adjTax').fill('3.92');
   assert.equal(Number(await page.locator('#adjSubtotal').inputValue()), 54.47,
     'Single Amount $50.55 and Minted tax $3.92 should subtotal to $54.47');
@@ -1021,7 +1025,7 @@ try {
   assert.equal(Number(await page.locator('#adjTotal').inputValue()), 55.48,
     'Single estimate for Amount $50.55 should total $55.48');
   assert.equal((await page.locator('#adjStatus').innerText()),
-    'Tax is an estimate. Click Calculate in Minted, then type Minted\'s tax here.',
+    'Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted\'s tax.',
     'Single estimate status should explain how to confirm tax');
   await page.locator('#adjTax').fill('3.92');
   await page.locator('#backer').fill('101');
