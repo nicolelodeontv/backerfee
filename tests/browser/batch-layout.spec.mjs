@@ -936,7 +936,18 @@ try {
   const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
   assert.equal(clipboardText, noteText, 'Copy Note should copy the complete generated note');
 
-  // A calculated row with no name should be visibly flagged without blocking the note.
+  // Return the rows to estimate-only state so following calculations still test the rate fallback.
+  for (let i = 0; i < await rows.count(); i += 1) {
+    const row = rows.nth(i);
+    const useTax = row.locator('.batch-adj-use-tax');
+    if (!(await useTax.isChecked())) await useTax.check();
+    const taxInput = row.locator('.batch-adj-tax');
+    await taxInput.fill('');
+    await taxInput.blur();
+    await row.locator('.batch-adj-minted-total').fill('');
+  }
+
+  // A calculated row with no name should be visibly flagged while its copy remains tax-guarded.
   await rows.nth(1).locator('.batch-name').fill('Card Two');
   await rows.nth(2).locator('.batch-name').fill('Premium');
   await rows.nth(3).locator('.batch-name').fill('Card Four');
