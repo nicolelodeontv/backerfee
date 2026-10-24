@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const script = readFileSync(new URL('../script.js', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
 
 test('exposes the complete single and batch workflow controls', () => {
   for (const id of [
@@ -328,9 +329,16 @@ test('persists Batch draft rows locally across refreshes', () => {
 
 
 
-test('does not load the Minted bridge or onboarding popup', () => {
-  assert.doesNotMatch(html, /bridge-install-popup|backer-fee-minted-bridge\\.user\\.js|Tampermonkey|Open Backer Fee on Minted/i);
+test('has no Minted bridge, onboarding popup, or Reset modal', () => {
+  assert.doesNotMatch(html, /bridge-install-popup|backer-fee-minted-bridge\.user\.js|Tampermonkey|Open Backer Fee on Minted/i);
   assert.doesNotMatch(script, /normalizeMintedBridgeMoney|applyMintedBridgeParams|minted_(?:amount|tax|shipping|subtotal|total)|data-bf-minted-import|bf-bridge-ready|backerfee-bridge-install-dismissed-v1/i);
   assert.doesNotMatch(html, /role="dialog"|aria-modal=/i,
-    'No dialog or aria-modal attributes should be present in the initial HTML');
+    'Initial HTML must not contain dialog or aria-modal attributes');
+  assert.match(html, /id="resetConfirmation" hidden[^>]*aria-labelledby="resetConfirmTitle"/);
+  assert.match(html, /id="cancelResetBtn"/);
+  assert.match(html, /id="confirmResetBtn"/);
+  assert.doesNotMatch(script, /confirmModal|confirmDialog|openConfirmModal|closeConfirmModal|aria-modal|role', 'dialog'/i);
+  assert.doesNotMatch(css, /\.modal-backdrop|\.confirm-modal|body\.modal-open|@keyframes modal-in/,
+    'Reset should not retain modal overlay styling');
+  assert.match(css, /\.reset-confirmation\[hidden\]\s*\{\s*display:\s*none;/);
 });
