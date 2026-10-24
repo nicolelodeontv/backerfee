@@ -1033,6 +1033,24 @@ footer { display: flex; justify-content: space-between; gap: 12px; padding: 16px
   color: var(--accent-dark);
   font-size: 18px;
 }
+
+.adjustment-limit-warning {
+  margin: 8px 0 0;
+  padding: 9px 12px;
+  border: 1px solid #f59e0b;
+  border-radius: 10px;
+  color: #92400e;
+  background: #fff7ed;
+  font-size: .85rem;
+  font-weight: 600;
+}
+html[data-theme="dark"] .adjustment-limit-warning {
+  color: #fde68a;
+  background: rgba(120, 53, 15, .24);
+  border-color: #fbbf24;
+}
+.adjustment-limit-warning[hidden] { display: none; }
+
 .adjustment-status {
   margin: 10px 0 0;
   color: var(--muted);
