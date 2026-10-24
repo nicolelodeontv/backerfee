@@ -856,6 +856,24 @@ try {
   assert.ok(rowsBox && noteBox && noteBox.width >= rowsBox.width - 2,
     'Generated note should use the full width of the batch row grid');
 
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), true,
+    'Batch customer notes must not be copied while the tax is only estimated');
+  assert.equal(await page.locator('#batchCopyGuard').isVisible(), true,
+    'Batch note should explain why copying is blocked');
+  for (const row of await rows.all()) {
+    const taxField = row.locator('.batch-adj-tax');
+    const totalField = row.locator('.batch-adj-total');
+    const mintedTotalField = row.locator('.batch-adj-minted-total');
+    await taxField.fill(await taxField.inputValue());
+    await mintedTotalField.fill(await totalField.inputValue());
+    assert.equal(await row.locator('.batch-adj-total-check').innerText(), 'Matches Minted',
+      'Batch note copy should require a matching Minted total for every calculated row');
+  }
+  assert.equal(await page.locator('#batchCopyGuard').isVisible(), false,
+    'Batch copy guard should clear after each row has confirmed tax and total');
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), false,
+    'Batch Copy Note should enable only after every row is confirmed');
+
   await page.screenshot({ path: screenshotName('desktop-1440-four-rows'), fullPage: true });
   await page.locator('#copyAllNotesBtn').click();
   await page.waitForFunction(() => document.querySelector('#batchStatus').textContent.includes('Customer note copied.'), null, { timeout: 8000 });
