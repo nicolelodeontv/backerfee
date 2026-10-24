@@ -58,6 +58,17 @@
             </div>
           </div>
 
+          <div class="tax-rate-setting" role="group" aria-labelledby="taxRateLabel">
+            <label class="adjustment-rate-field" for="taxRate">
+              <span id="taxRateLabel">Tax rate %</span>
+              <div class="input-wrap adjustment-rate-input">
+                <input type="number" id="taxRate" min="0" max="100" step="0.01" value="7.75" inputmode="decimal" autocomplete="off" aria-describedby="taxRateHint">
+                <span class="suffix" aria-hidden="true">%</span>
+              </div>
+            </label>
+            <small id="taxRateHint">Used for estimates only. Confirm the tax in Minted or compare the final total below.</small>
+          </div>
+
           <div class="local-trust single-only" role="note">
             <span class="local-trust-icon" aria-hidden="true">✓</span>
             <span><strong>Runs locally in your browser.</strong> Pricing data and calculation history stay on this device.</span>
@@ -166,7 +177,7 @@
       <span class="section-kicker">FINANCIAL ADJUSTMENT</span>
       <h2 id="adjustmentHeading">Minted entry</h2>
     </div>
-    <span class="adjustment-target-label">Estimate: 9.75%</span>
+    <span class="adjustment-target-label">Estimate: 7.75%</span>
   </div>
 
   <p class="adjustment-callout" role="note">
@@ -219,7 +230,16 @@
 
   <p class="adjustment-status is-warning" id="adjStatus" role="status" aria-live="polite">Unconfirmed total: tax is an estimate. Replace it with Minted's tax before using this total.</p>
   <p class="adjustment-limit-warning" id="adjLimitWarning" role="alert" hidden>Minted won't allow a charge of $50,000 or more.</p>
-  <p class="adjustment-note">The 9.75% tax is only an estimate. Replace Tax with Minted's actual amount after clicking Calculate. Adjust Shipping Adjustment when needed.</p>
+  <div class="adjustment-row minted-total-row">
+    <label class="adjustment-row-label" for="adjMintedTotal">Total from Minted (optional)</label>
+    <div class="input-wrap adjustment-value-input">
+      <span class="prefix" aria-hidden="true">$</span>
+      <input type="number" id="adjMintedTotal" min="0" step="0.01" placeholder="Enter Minted total" inputmode="decimal" autocomplete="off" aria-describedby="adjMintedTotalCheck" aria-label="Total from Minted, optional">
+    </div>
+  </div>
+
+  <p class="adjustment-status" id="adjMintedTotalCheck" role="status" aria-live="polite"></p>
+  <p class="adjustment-note">Tax is an estimate based on the rate above. Replace Tax with Minted's actual amount to confirm the calculation. Use Total from Minted to check the final result; shipping is added separately.</p>
 </section>
 
         </form>
