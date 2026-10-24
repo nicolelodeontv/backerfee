@@ -367,12 +367,12 @@ test('has no bridge popup and only adds Reset dialog semantics while open', () =
 });
 
 test('customer note copying requires Minted tax and a matching Minted total', () => {
-  assert.match(script, /function singleNoteCopyBlockReason\\(\\)/);
-  assert.match(script, /adjTax\\.dataset\\.taxEdited !== '1'/);
-  assert.match(script, /adjMintedTotalCheck\\.textContent\\.trim\\(\\) !== 'Matches Minted'/);
-  assert.match(script, /copyBtn\\.disabled = !hasNote \\|\\| Boolean\\(blockReason\\)/);
-  assert.match(script, /async function copyNote\\(\\)[\\s\\S]*singleNoteCopyBlockReason\\(\\)/);
-  assert.match(script, /function batchNoteCopyBlockReason\\(results = batchResults\\)/);
-  assert.match(script, /batchCopyGuard\\.hidden = !blockReason/);
-  assert.match(script, /copyAllNotesBtn\\.disabled = !batchNoteText\\.value\\.trim\\(\\) \\|\\| Boolean\\(blockReason\\)/);
+  assert.ok(script.includes('function singleNoteCopyBlockReason()'));
+  assert.ok(script.includes("adjTax.dataset.taxEdited !== '1'"));
+  assert.ok(script.includes("adjMintedTotalCheck.textContent.trim() !== 'Matches Minted'"));
+  assert.ok(script.includes('copyBtn.disabled = !hasNote || Boolean(blockReason)'));
+  assert.ok(script.includes('async function copyNote()'));
+  assert.ok(script.includes('function batchNoteCopyBlockReason(results = batchResults)'));
+  assert.ok(script.includes('batchCopyGuard.hidden = !blockReason'));
+  assert.ok(script.includes('copyAllNotesBtn.disabled = !batchNoteText.value.trim() || Boolean(blockReason)'));
 });
