@@ -174,9 +174,17 @@ try {
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 55.48,
     'The estimated tax should total $55.48 on Amount $50.55');
   assert.equal((await restoredDraftRows.nth(0).locator('.batch-adj-status').innerText()),
-    'Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted\'s tax.',
+    'Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.',
     'The estimated state should explain the Minted verification step');
+  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(4).locator('.batch-adj-label > span').innerText(),
+    'Total Adjustment (estimate)', 'Batch total label should mark estimated tax as provisional');
+  assert.ok((await restoredDraftRows.nth(0).locator('.batch-adj-total').getAttribute('class')).includes('is-unconfirmed'),
+    'Batch Total Adjustment should be visibly flagged while tax is estimated');
   await restoredDraftRows.nth(0).locator('.batch-adj-tax').fill('3.92');
+  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(4).locator('.batch-adj-label > span').innerText(),
+    'Total Adjustment', 'Batch total label should drop estimate label after tax entry');
+  assert.ok(!(await restoredDraftRows.nth(0).locator('.batch-adj-total').getAttribute('class')).includes('is-unconfirmed'),
+    'Batch unconfirmed style should clear after Minted tax is entered');
   await restoredDraftRows.nth(0).locator('.batch-adj-ship').fill('5.00');
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 59.47,
     'Typed tax and Shipping should be used in Batch');
@@ -184,7 +192,7 @@ try {
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 4.23,
     'Changing original price should reset Batch tax to the estimate');
   assert.equal((await restoredDraftRows.nth(0).locator('.batch-adj-status').innerText()),
-    'Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted\'s tax.',
+    'Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.',
     'Changing original price should return the row to estimated status');
   assert.equal(await restoredDraftRows.nth(1).locator('.batch-name').inputValue(), 'Draft RSVP',
     'Refresh should preserve the card name in a partially entered row');
@@ -773,7 +781,7 @@ try {
     `Large Total Adjustment needs enough input width to display its value (box=${JSON.stringify(largeTotalBox)})`);
   const largeStatus = rows.nth(0).locator('.batch-adj-status');
   const statusText = await largeStatus.textContent();
-  assert.ok(statusText.includes('Tax is an estimate. After clicking Calculate in Minted'),
+  assert.ok(statusText.includes('Unconfirmed total: tax is an estimate.'),
     'Large-value status should keep the explicit tax confirmation guidance');
   assert.equal(await rows.nth(0).locator('.batch-adj-limit-warning').isVisible(), false,
     'Below-$50,000 totals should not show the Minted charge limit warning');
@@ -1025,9 +1033,17 @@ try {
   assert.equal(Number(await page.locator('#adjTotal').inputValue()), 55.48,
     'Single estimate for Amount $50.55 should total $55.48');
   assert.equal((await page.locator('#adjStatus').innerText()),
-    'Tax is an estimate. After clicking Calculate in Minted, replace this field with Minted\'s tax.',
+    'Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.',
     'Single estimate status should explain how to confirm tax');
+  assert.equal(await page.locator('label[for="adjTotal"]').innerText(), 'Total Adjustment (estimate)',
+    'Single total label should mark estimated tax totals as provisional');
+  assert.ok((await page.locator('#adjTotal').getAttribute('class')).includes('is-unconfirmed'),
+    'Single Total Adjustment should be visibly flagged while tax is estimated');
   await page.locator('#adjTax').fill('3.92');
+  assert.equal(await page.locator('label[for="adjTotal"]').innerText(), 'Total Adjustment',
+    'Single total label should drop estimate label after tax entry');
+  assert.ok(!(await page.locator('#adjTotal').getAttribute('class')).includes('is-unconfirmed'),
+    'Single unconfirmed style should clear after Minted tax is entered');
   await page.locator('#backer').fill('101');
   assert.equal(Number(await page.locator('#adjAmount').inputValue()), 80.8,
     'Changing Single original price should refill Amount');
