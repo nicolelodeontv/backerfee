@@ -151,9 +151,9 @@ try {
   await invitationDraft.locator('.batch-adj-amount').fill('50.55');
   assert.equal(await invitationDraft.locator('.batch-adj-tax').isEditable(), true,
     'Batch tax must be an editable input, not a fixed-rate-only output');
+  await invitationDraft.locator('.batch-adj-ship').fill('0');
   await invitationDraft.locator('.batch-adj-tax').fill('3.92');
   await invitationDraft.locator('.batch-adj-minted-total').fill('54.47');
-  await invitationDraft.locator('.batch-adj-ship').fill('0');
   await draftRows.nth(1).locator('.batch-name').fill('Draft RSVP');
   await draftRows.nth(1).locator('.batch-price').fill('100');
 
