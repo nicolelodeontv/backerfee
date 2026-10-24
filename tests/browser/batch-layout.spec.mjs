@@ -64,6 +64,25 @@ try {
   assert.equal(await page.locator('[role="dialog"], [aria-modal]').count(), 0,
     'Reload should not display a bridge dialog or modal');
 
+  // Desktop Single-mode layout should place results after details and give the tax rate its own gap.
+  const singleSpacing = await page.evaluate(() => {
+    const bounds = (selector) => {
+      const rect = document.querySelector(selector).getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom };
+    };
+    const details = bounds('.field-grid');
+    const results = bounds('#results');
+    const rate = bounds('.tax-rate-setting');
+    return {
+      detailsToResults: results.top - details.bottom,
+      resultsToRate: rate.top - results.bottom
+    };
+  });
+  assert.ok(singleSpacing.detailsToResults >= 8 && singleSpacing.detailsToResults <= 28,
+    `Results should follow the detail fields with a deliberate gap, got ${singleSpacing.detailsToResults}px`);
+  assert.ok(singleSpacing.resultsToRate >= 12 && singleSpacing.resultsToRate <= 28,
+    `Tax rate should have a deliberate gap below results, got ${singleSpacing.resultsToRate}px`);
+
   // The same approval callout exists in Single and Batch modes.
   const callouts = page.locator('.adjustment-callout');
   assert.equal(await callouts.count(), 2, 'Single and Batch should share the same approval notice');
@@ -1025,9 +1044,10 @@ try {
   const singleHistoryBox = await page.locator('.history-card').boundingBox();
   const singleDetailsBox = await page.locator('.calculator-card form > .field-grid').boundingBox();
   const singleResultsBox = await page.locator('#results').boundingBox();
+  const singleTaxRateBox = await page.locator('.tax-rate-setting').boundingBox();
   const singleAdjustmentBox = await page.locator('#adjustmentCard').boundingBox();
   const singleNoteBox = await page.locator('.history-card .note-panel').boundingBox();
-  assert.ok(singleCardBox && singleCalculatorBox && singleHistoryBox && singleDetailsBox && singleResultsBox && singleAdjustmentBox && singleNoteBox,
+  assert.ok(singleCardBox && singleCalculatorBox && singleHistoryBox && singleDetailsBox && singleResultsBox && singleTaxRateBox && singleAdjustmentBox && singleNoteBox,
     'Single-mode desktop layout elements should have layout boxes');
   assert.ok(singleCalculatorBox.width > singleCardBox.width * 0.9,
     'Single-mode calculator should span nearly the full dashboard width');
@@ -1046,9 +1066,9 @@ try {
   assert.ok(singleAdjustmentBox.height > singleDetailsBox.height,
     'Single-mode Financial Adjustment should be the taller right-side column');
   const singleResultsBottom = singleResultsBox.y + singleResultsBox.height;
-  const singleAdjustmentBottom = singleAdjustmentBox.y + singleAdjustmentBox.height;
-  assert.ok(Math.abs(singleResultsBottom - singleAdjustmentBottom) < 3,
-    `Single-mode fee results and Financial Adjustment should share a bottom line (results=${singleResultsBottom}, adjustment=${singleAdjustmentBottom})`);
+  const singleTaxRateGap = singleTaxRateBox.y - singleResultsBottom;
+  assert.ok(singleTaxRateGap >= 12 && singleTaxRateGap <= 28,
+    `Single-mode tax-rate setting should sit 12–28px below the results (gap=${singleTaxRateGap})`);
   const emptySingleErrors = page.locator('.calculator-card form > .field-grid .error:empty');
   assert.equal(await emptySingleErrors.count(), 3,
     'Single-mode field inputs should each have their empty validation message element');
@@ -1254,6 +1274,7 @@ try {
       'Single mode two-column layout, full-width note, and no mascot',
       'no bridge popup or Tampermonkey text on load or after delay/reload',
       'Reset confirmation remains inline, cancellable, and has no dialog or modal semantics',
+      'desktop results and tax-rate setting have deliberate vertical spacing',
       'no uncaught browser runtime errors'
     ],
     screenshots: [

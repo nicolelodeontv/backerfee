@@ -1768,12 +1768,13 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
 @media (min-width: 901px) {
   .calculator-card form {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto auto 1fr;
+    grid-template-rows: auto auto auto auto auto;
     grid-template-areas:
       "heading heading"
       "trust trust"
       "details adjustment"
-      "results adjustment";
+      "results adjustment"
+      "taxrate adjustment";
   }
 
   .calculator-card form > .field-grid { align-self: start; }
@@ -1789,13 +1790,19 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
   }
 }
 
-/* Keep empty Single-mode validation messages from adding blank lines. Align fee results and adjustment card at the bottom. */
+/* Keep empty Single-mode validation messages from adding blank lines and maintain deliberate spacing. */
 @media (min-width: 901px) {
   .calculator-card form > .field-grid .error:empty { display: none; }
 
   .calculator-card form > .results {
-    align-self: end;
+    align-self: start;
     margin: 12px 0 0;
+  }
+
+  .calculator-card form > .tax-rate-setting {
+    grid-area: taxrate;
+    align-self: start;
+    margin: 16px 0 0;
   }
 
   .calculator-card form > .adjustment-card {
