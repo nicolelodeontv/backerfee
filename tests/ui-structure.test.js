@@ -335,6 +335,8 @@ test('has no bridge popup and only adds Reset dialog semantics while open', () =
   assert.doesNotMatch(html, /role="dialog"|aria-modal=/i,
     'Initial HTML must not contain dialog or aria-modal attributes');
   assert.ok(html.includes('id="resetConfirmation" hidden>'));
+  assert.ok(html.indexOf('id="resetConfirmation"') > html.indexOf('</main>'),
+    'The fixed modal should be mounted outside the calculator layout');
   assert.ok(html.includes('<section class="reset-dialog" id="resetDialog" tabindex="-1">'));
   assert.ok(html.includes('id="resetConfirmTitle">Reset calculator?</h2>'));
   assert.ok(html.includes('id="resetConfirmMessage">This will clear the current price, discount, results, and note.</p>'));
