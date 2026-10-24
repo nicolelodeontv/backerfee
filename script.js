@@ -5,7 +5,7 @@ const STORAGE_KEYS = {
   batchDraft: 'backerfee-batch-draft-v1',
 };
 
-const TAX_RATE = 9.75; // % fixed, matches Minted's shipping ZIP tax
+const TAX_RATE = 9.75; // Estimate only; Minted's order-specific tax must be confirmed.
 const DECIMAL_PATTERN = /^\d+(?:\.\d{0,2})?$|^\.\d{1,2}$/;
 const priceFormatter = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 2,
@@ -548,7 +548,7 @@ function applyBatchAdjustment(row, data) {
 
 function clearAdjustmentResults() {
   currentAdjustment = null;
-  adjTax.value = '';
+  if (!adjUseTaxInput.checked) adjTax.value = '0.00';
   adjSubtotal.value = '';
   adjTotal.value = '';
   adjLimitWarning.hidden = true;
@@ -618,7 +618,10 @@ function computeAdjustment() {
 // Called whenever the Final Backer Fee changes: Amount follows the fee, tax follows the Amount.
 function updateAdjustment(finalFee, { resetTax = true } = {}) {
   adjAmount.value = calculated ? (Math.round(Number(finalFee) * 100) / 100).toFixed(2) : '';
-  if (resetTax) adjTax.dataset.taxEdited = '';
+  if (resetTax) {
+    adjTax.dataset.taxEdited = '';
+    if (!calculated) adjTax.value = '';
+  }
   computeAdjustment();
 }
 
