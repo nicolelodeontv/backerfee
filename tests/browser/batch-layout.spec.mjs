@@ -876,6 +876,20 @@ try {
     'Batch copy guard should clear after each row has confirmed tax and total');
   assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), false,
     'Batch Copy Note should enable only after every row is confirmed');
+  const firstShippingForCheck = rows.nth(0).locator('.batch-adj-ship');
+  const firstMintedTotalForCheck = rows.nth(0).locator('.batch-adj-minted-total');
+  const originalShippingForCheck = await firstShippingForCheck.inputValue();
+  const originalMintedTotalForCheck = await firstMintedTotalForCheck.inputValue();
+  await firstShippingForCheck.fill((Number(originalShippingForCheck) + 0.01).toFixed(2));
+  assert.equal(await firstMintedTotalForCheck.inputValue(), '',
+    'Changing Batch shipping should clear its prior Minted total reference');
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), true,
+    'Batch note copy should be blocked until the changed row is rechecked');
+  await firstShippingForCheck.fill(originalShippingForCheck);
+  await firstMintedTotalForCheck.fill(originalMintedTotalForCheck);
+  assert.equal(await rows.nth(0).locator('.batch-adj-total-check').innerText(), 'Matches Minted');
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), false,
+    'Batch note copy should resume after re-confirming the changed row');
 
   await page.screenshot({ path: screenshotName('desktop-1440-four-rows'), fullPage: true });
   await page.locator('#copyAllNotesBtn').click();
@@ -1178,6 +1192,16 @@ try {
   assert.equal(await page.locator('#adjMintedTotalCheck').innerText(), 'Matches Minted');
   assert.equal(await page.locator('#copyBtn').isDisabled(), false,
     'Single note should become copyable after tax is entered and the Minted total matches');
+  await page.locator('#adjShip').fill('0.01');
+  assert.equal(await page.locator('#adjMintedTotal').inputValue(), '',
+    'Changing Single shipping should invalidate the previous Minted total reference');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
+    'Changing shipping should require a fresh Minted total confirmation');
+  await page.locator('#adjShip').fill('0.00');
+  await page.locator('#adjMintedTotal').fill('54.47');
+  assert.equal(await page.locator('#adjMintedTotalCheck').innerText(), 'Matches Minted');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), false,
+    'Re-entering the matching total should restore customer-note copying');
   assert.equal(Number(await page.locator('#adjSubtotal').inputValue()), 54.47,
     'Single Amount $50.55 and Minted tax $3.92 should subtotal to $54.47');
   assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.47,
