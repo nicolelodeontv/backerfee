@@ -1750,7 +1750,7 @@ html[data-theme="dark"] .batch-adj-total { color: #f0abfc !important; }
 @media (min-width: 521px) {
   .batch-adjust-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .batch-adj-field:nth-child(-n + 3) { grid-column: span 2; }
-  .batch-adj-field:nth-child(n + 4) { grid-column: span 3; }
+  .batch-adj-field:nth-child(n + 4) { grid-column: span 2; }
   .batch-adj-label {
     min-height: 30px;
     align-content: flex-start;
