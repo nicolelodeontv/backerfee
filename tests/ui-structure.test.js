@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const script = readFileSync(new URL('../script.js', import.meta.url), 'utf8');
+const bridge = readFileSync(new URL('../backer-fee-minted-bridge.user.js', import.meta.url), 'utf8');
+const installPopup = readFileSync(new URL('../bridge-install-popup.js', import.meta.url), 'utf8');
 
 test('exposes the complete single and batch workflow controls', () => {
   for (const id of [
@@ -304,4 +306,35 @@ test('persists Batch draft rows locally across refreshes', () => {
   assert.match(script, /localStorage\.getItem\(STORAGE_KEYS\.batchDraft\)/);
   assert.match(script, /saveBatchDraft\(\);\s*return results;/);
   assert.match(script, /renderBatchRows\(loadBatchDraft\(\) \?\? \[createEmptyBatchRow\(\), createEmptyBatchRow\(\)\]\)/);
+});
+
+
+test('imports Minted bridge values and reports reference total comparisons', () => {
+  assert.match(script, /function applyMintedBridgeParams\(\)/);
+  assert.match(script, /params\.get\('minted_amount'\)/);
+  assert.match(script, /params\.get\('minted_tax'\)/);
+  assert.match(script, /params\.get\('minted_shipping'\)/);
+  assert.match(script, /params\.get\('minted_subtotal'\)/);
+  assert.match(script, /params\.get\('minted_total'\)/);
+  assert.match(script, /adjTax\.dataset\.taxEdited = '1'/);
+  assert.match(script, /document\.documentElement\.setAttribute\('data-bf-minted-import', '1'\)/);
+  assert.match(script, /clearMintedBridgeParams\(params\)/);
+});
+
+test('publishes a minimal Tampermonkey bridge script and install popup', () => {
+  assert.match(bridge, /\/\/ @version\s+0\.2\.0/);
+  assert.match(bridge, /\/\/ @downloadURL\s+https:\/\/backerfee\.vercel\.app\/backer-fee-minted-bridge\.user\.js/);
+  assert.match(bridge, /\/\/ @updateURL\s+https:\/\/backerfee\.vercel\.app\/backer-fee-minted-bridge\.user\.js/);
+  assert.match(bridge, /\/\/ @grant\s+none/);
+  assert.match(bridge, /setAttribute\('data-bf-bridge', '0\.2\.0'\)/);
+  assert.match(bridge, /minted_amount/);
+  assert.match(bridge, /minted_tax/);
+  assert.match(bridge, /minted_shipping/);
+  assert.match(bridge, /window\.open\(target\.href, '_blank', 'noopener,noreferrer'\)/);
+  assert.match(html, /<script src="bridge-install-popup\.js" defer><\/script>/);
+  assert.match(installPopup, /Don't show again/);
+  assert.match(installPopup, /Not now/);
+  assert.match(installPopup, /Allow User Scripts/);
+  assert.match(installPopup, /MutationObserver/);
+  assert.match(installPopup, /backer-fee-minted-bridge\.user\.js/);
 });
