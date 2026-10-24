@@ -40,7 +40,10 @@ test('uses 9.75% as an estimate and allows Minted tax input', () => {
   assert.match(html, /id="adjUseTax" checked/);
   assert.doesNotMatch(html, /id="adjUseTax"[^>]*disabled/);
   assert.match(html, /Estimate: 9\.75%/);
-  assert.match(script, /Tax is an estimate\. After clicking Calculate in Minted, replace this field with Minted\\'s tax\./);
+  assert.match(script, /Unconfirmed total: tax is an estimate\. Replace it with Minted\\'s tax before using this total\./);
+  assert.match(html, /for="adjTotal">Total Adjustment \\(estimate\\)<\\/label>/);
+  assert.match(script, /totalOut\.classList\.toggle\('is-unconfirmed', taxUnconfirmed\)/);
+  assert.match(script, /adjTotal\.classList\.toggle\('is-unconfirmed', taxUnconfirmed\)/);
   assert.match(script, /Using tax from Minted\./);
   assert.match(script, /function readAdjustmentField/);
   assert.match(script, /const subtotalCents = amountCents \+ taxCents/);
