@@ -35,6 +35,10 @@ try {
     viewport: { width: 1440, height: 1300 },
     deviceScaleFactor: 1
   });
+  // Keep the onboarding popup out of calculator interaction tests; test its UI separately.
+  await context.addInitScript(() => {
+    try { localStorage.setItem('backerfee-bridge-install-dismissed-v1', '1'); } catch (_) {}
+  });
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], {
     origin: new URL(baseUrl).origin
   }).catch(() => {});
@@ -1089,6 +1093,34 @@ try {
     'Single Total Adjustment copy should copy a plain number');
 
   await page.screenshot({ path: screenshotName('single-mode-1440'), fullPage: true });
+
+  const mintedBridgeUrl = new URL(baseUrl);
+  mintedBridgeUrl.searchParams.set('minted_bridge', '1');
+  mintedBridgeUrl.searchParams.set('minted_amount', '50.55');
+  mintedBridgeUrl.searchParams.set('minted_tax', '3.92');
+  mintedBridgeUrl.searchParams.set('minted_shipping', '5.00');
+  mintedBridgeUrl.searchParams.set('minted_subtotal', '54.47');
+  mintedBridgeUrl.searchParams.set('minted_total', '59.47');
+  await page.goto(mintedBridgeUrl.href, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => document.documentElement.dataset.bfMintedImport === '1', null, { timeout: 15000 });
+  assert.equal(Number(await page.locator('#adjAmount').inputValue()), 50.55,
+    'Minted bridge should import Amount from minted_amount');
+  assert.equal(Number(await page.locator('#adjTax').inputValue()), 3.92,
+    'Minted bridge should import the actual Minted tax and mark it edited');
+  assert.equal(await page.locator('#adjTax').evaluate((el) => el.dataset.taxEdited), '1',
+    'Imported tax should be treated as a user-entered Minted tax, not an estimate');
+  assert.equal(Number(await page.locator('#adjSubtotal').inputValue()), 54.47,
+    'Imported tax should produce the expected Subtotal');
+  assert.equal(Number(await page.locator('#adjShip').inputValue()), 5,
+    'Minted bridge should import Shipping Adjustment');
+  assert.equal(Number(await page.locator('#adjTotal').inputValue()), 59.47,
+    'Imported Minted values should produce the expected Total Adjustment');
+  assert.equal(await page.locator('label[for="adjTotal"]').innerText(), 'Total Adjustment',
+    'A bridge-imported Minted tax should clear the provisional Total Adjustment label');
+  assert.ok((await page.locator('#adjStatus').innerText()).includes('Subtotal matches Minted'));
+  assert.ok((await page.locator('#adjStatus').innerText()).includes('Total matches Minted'));
+  assert.equal(new URL(page.url()).searchParams.has('minted_tax'), false,
+    'Imported order values should be removed from the URL after applying them');
 
   assert.deepEqual(errors, [], `Browser should not emit runtime errors: ${errors.join('; ')}`);
   console.log(JSON.stringify({
