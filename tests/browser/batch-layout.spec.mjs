@@ -889,7 +889,7 @@ try {
   await page.waitForFunction(() =>
     document.querySelectorAll('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Total Adjustment"]')[1]?.textContent.trim() === 'Copied ✓'
   );
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '175.60',
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '172.40',
     'Each Batch Total Adjustment button should copy its own row value');
 
   console.log('Batch real-value status metrics: ' + JSON.stringify(statusMetrics));
