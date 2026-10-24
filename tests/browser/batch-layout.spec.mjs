@@ -184,6 +184,20 @@ try {
     'Tax input should be disabled when Include Tax is unchecked');
   await batchUseTax.check();
   await restoredDraftRows.nth(0).locator('.batch-adj-ship').fill('0');
+  await page.locator('#taxRate').fill('8');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 4.04,
+    'Changing the shared rate should recalculate the Batch estimate at 8%');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.59,
+    'Changing the shared rate should recalculate the Batch total');
+  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(1).locator('.batch-adj-label > span').innerText(),
+    'Estimated tax', 'Batch should retain the estimate label after changing the rate');
+  assert.ok((await restoredDraftRows.nth(0).locator('.batch-adj-total').getAttribute('class')).includes('is-unconfirmed'),
+    'Batch total should stay unconfirmed after changing the rate');
+  await page.locator('#taxRate').fill('7.75');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.92,
+    'Restoring 7.75% should restore Batch estimated tax');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47,
+    'Restoring 7.75% should restore the Batch estimate total');
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.92,
     'Without a typed tax, Batch should show the 7.75% estimate');
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47,
@@ -1128,8 +1142,58 @@ try {
   await page.waitForFunction(() => document.querySelector('.adj-copy-btn[data-copy-from="#adjTotal"]')?.textContent.trim() === 'Copied ✓');
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '86.20',
     'Single Total Adjustment copy should copy a plain number');
+  assert.ok((await page.locator('#noteText').inputValue()).includes('$86.20'),
+    'Generated note should use the same Total Adjustment shown in the Single estimate');
 
   await page.screenshot({ path: screenshotName('single-mode-1440'), fullPage: true });
+
+  // Invalid rates show a clear error and recover to the documented 7.75% default.
+  await page.locator('#adjAmount').fill('50.55');
+  await page.locator('#adjShip').fill('0');
+  const rateInput = page.locator('#taxRate');
+  for (const invalidRate of ['0', '-1', '101', '']) {
+    await rateInput.fill(invalidRate);
+    assert.equal(await rateInput.getAttribute('aria-invalid'), 'true',
+      `Tax rate ${JSON.stringify(invalidRate)} should be marked invalid while editing`);
+    assert.ok((await page.locator('#taxRateError').innerText()).includes('greater than 0%'),
+      `Tax rate ${JSON.stringify(invalidRate)} should show a clear validation error`);
+    assert.notEqual(await page.locator('#adjTotal').inputValue(), 'NaN',
+      'Invalid rate must never produce NaN in Total Adjustment');
+    await rateInput.evaluate((el) => el.blur());
+    assert.equal(await rateInput.inputValue(), '7.75',
+      `Tax rate ${JSON.stringify(invalidRate)} should fall back to 7.75% on blur`);
+    assert.equal(await rateInput.getAttribute('aria-invalid'), 'false',
+      'Rate validation state should clear after default is restored');
+    assert.equal(await page.locator('#taxRateError').innerText(), '',
+      'Rate validation message should clear after default is restored');
+    assert.equal(Number(await page.locator('#adjTax').inputValue()), 3.92,
+      'A recovered default rate should produce $3.92 tax for Amount $50.55');
+    assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.47,
+      'A recovered default rate should produce a $54.47 total');
+  }
+  await rateInput.evaluate((el) => { el.type = 'text'; el.value = 'abc'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  assert.equal(await rateInput.getAttribute('aria-invalid'), 'true', 'Letter input should be rejected');
+  assert.ok((await page.locator('#taxRateError').innerText()).includes('greater than 0%'), 'Letter input should explain the valid rate range');
+  assert.notEqual(await page.locator('#adjTotal').inputValue(), 'NaN', 'Letter input must never produce NaN');
+  await rateInput.evaluate((el) => el.blur());
+  await rateInput.evaluate((el) => { el.type = 'number'; });
+  assert.equal(await rateInput.inputValue(), '7.75', 'Letter input should recover to 7.75% on blur');
+
+  // Invalid stored rate data must also load safely with the default rate.
+  await page.evaluate(() => {
+    const key = 'backerfee-settings-v3';
+    const data = JSON.parse(localStorage.getItem(key) || '{}');
+    data.taxRate = 'not-a-rate';
+    localStorage.setItem(key, JSON.stringify(data));
+  });
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  assert.equal(await page.locator('#taxRate').inputValue(), '7.75',
+    'An invalid localStorage tax rate should fall back to 7.75% on startup');
+  await page.locator('#adjAmount').fill('50.55');
+  assert.equal(Number(await page.locator('#adjTax').inputValue()), 3.92,
+    'The stored-rate fallback should calculate tax without NaN');
+  assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.47,
+    'The stored-rate fallback should calculate the expected total');
 
   const mintedBridgeUrl = new URL(baseUrl);
   mintedBridgeUrl.searchParams.set('minted_bridge', '1');
