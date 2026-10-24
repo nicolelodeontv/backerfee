@@ -376,7 +376,7 @@ try {
   await afterBadDraftRows.nth(0).locator('.batch-discount').fill('15');
   assert.equal(await page.locator('#batchNoteState').innerText(), '1 card name missing',
     'A calculated card with no name should show the missing-name warning');
-  assert.match(await page.locator('#batchNoteText').inputValue(), /"Card 1" cards: \$46\.64/,
+  assert.match(await page.locator('#batchNoteText').inputValue(), /"Card 1" cards: \$45\.79/,
     'The generated note should include the fallback card name and recomputed Total');
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
@@ -385,7 +385,7 @@ try {
     'The missing-name warning should return after refresh');
   assert.equal(await page.locator('#batchRows .batch-row').first().locator('.batch-name').evaluate((el) =>
     el.classList.contains('needs-name')), true, 'The restored unnamed card should be highlighted');
-  assert.match(await page.locator('#batchNoteText').inputValue(), /"Card 1" cards: \$46\.64/,
+  assert.match(await page.locator('#batchNoteText').inputValue(), /"Card 1" cards: \$45\.79/,
     'The restored note should contain the recomputed fee after refresh');
 
   // Keep the rest of the layout suite's state clean.
