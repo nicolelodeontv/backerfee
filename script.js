@@ -499,6 +499,11 @@ function adjustmentCents(amountValue, shipValue, taxOverrideCents = null, includ
   return { amountCents, taxCents, subtotalCents, shipCents, totalCents: subtotalCents + shipCents };
 }
 
+function clearSingleMintedTotalReference() {
+  adjMintedTotal.value = '';
+  updateMintedTotalComparison(adjMintedTotal, adjMintedTotalCheck, null);
+}
+
 function updateMintedTotalComparison(input, status, totalCents) {
   const raw = input.value.trim();
   status.classList.remove('is-success', 'is-warning');
@@ -705,6 +710,7 @@ function updateAdjustment(finalFee, { resetTax = true } = {}) {
   adjAmount.value = calculated ? (Math.round(Number(finalFee) * 100) / 100).toFixed(2) : '';
   if (resetTax) {
     adjTax.dataset.taxEdited = '';
+    clearSingleMintedTotalReference();
     if (!calculated) adjTax.value = '';
   }
   computeAdjustment();
@@ -1112,6 +1118,9 @@ function renderBatchRows(rows) {
     const taxInput = row.querySelector('.batch-adj-tax');
     const mintedTotalInput = row.querySelector('.batch-adj-minted-total');
     const useTaxInput = row.querySelector('.batch-adj-use-tax');
+    const invalidateBatchMintedTotal = () => {
+      mintedTotalInput.value = '';
+    };
     priceInput.value = rowData.backer ?? '';
     discountInputForRow.value = rowData.discount ?? '';
     amountInput.value = rowData.amount ?? '';
@@ -1131,6 +1140,7 @@ function renderBatchRows(rows) {
     priceInput.addEventListener('input', () => {
       row.dataset.amountEdited = '';
       row.dataset.taxEdited = '';
+      invalidateBatchMintedTotal();
       calculateBatch();
     });
 
@@ -1149,6 +1159,7 @@ function renderBatchRows(rows) {
     discountInputForRow.addEventListener('input', () => {
       row.dataset.amountEdited = '';
       row.dataset.taxEdited = '';
+      invalidateBatchMintedTotal();
       const boundMessage = clampBatchDiscount(discountInputForRow);
       calculateBatch();
       if (boundMessage) {
@@ -1171,6 +1182,7 @@ function renderBatchRows(rows) {
 
     amountInput.addEventListener('input', () => {
       row.dataset.amountEdited = '1';
+      invalidateBatchMintedTotal();
       calculateBatch();
     });
     amountInput.addEventListener('blur', () => {
@@ -1180,6 +1192,7 @@ function renderBatchRows(rows) {
     });
     taxInput.addEventListener('input', () => {
       row.dataset.taxEdited = '1';
+      invalidateBatchMintedTotal();
       calculateBatch();
     });
     taxInput.addEventListener('blur', () => {
@@ -1194,9 +1207,13 @@ function renderBatchRows(rows) {
     });
     useTaxInput.addEventListener('change', () => {
       row.dataset.taxEdited = '';
+      invalidateBatchMintedTotal();
       calculateBatch();
     });
-    shipInput.addEventListener('input', () => calculateBatch());
+    shipInput.addEventListener('input', () => {
+      invalidateBatchMintedTotal();
+      calculateBatch();
+    });
     shipInput.addEventListener('blur', () => {
       calculateBatch();
       const value = readAdjustmentField(shipInput);
@@ -1613,6 +1630,7 @@ form.addEventListener('submit', (event) => event.preventDefault());
 resetBtn.addEventListener('click', requestReset);
  [adjAmount, adjShipInput].forEach((el) => {
   el.addEventListener('input', () => {
+    clearSingleMintedTotalReference();
     computeAdjustment();
     if (el === adjShipInput) saveSettings();
   });
@@ -1659,6 +1677,7 @@ adjMintedTotal.addEventListener('blur', () => {
 });
 adjTax.addEventListener('input', () => {
   adjTax.dataset.taxEdited = '1';
+  clearSingleMintedTotalReference();
   computeAdjustment();
 });
 adjTax.addEventListener('blur', () => {
@@ -1673,6 +1692,7 @@ adjTax.addEventListener('blur', () => {
 });
 adjUseTaxInput.addEventListener('change', () => {
   adjTax.dataset.taxEdited = '';
+  clearSingleMintedTotalReference();
   computeAdjustment();
   saveSettings();
 });
