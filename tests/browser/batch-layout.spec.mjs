@@ -1189,6 +1189,7 @@ try {
     assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.47,
       'A recovered default rate should produce a $54.47 total');
   }
+  await rateInput.focus();
   await rateInput.evaluate((el) => { el.type = 'text'; el.value = 'abc'; el.dispatchEvent(new Event('input', { bubbles: true })); });
   assert.equal(await rateInput.getAttribute('aria-invalid'), 'true', 'Letter input should be rejected');
   assert.ok((await page.locator('#taxRateError').innerText()).includes('greater than 0%'), 'Letter input should explain the valid rate range');
