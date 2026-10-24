@@ -329,26 +329,45 @@ test('persists Batch draft rows locally across refreshes', () => {
 
 
 
-test('has no Minted bridge, onboarding popup, or Reset modal', () => {
-  assert.doesNotMatch(html, /bridge-install-popup|backer-fee-minted-bridge\.user\.js|Tampermonkey|Open Backer Fee on Minted/i);
+test('has no bridge popup and only adds Reset dialog semantics while open', () => {
+  assert.doesNotMatch(html, /bridge-install-popup|backer-fee-minted-bridge\\.user\\.js|Tampermonkey|Open Backer Fee on Minted/i);
   assert.doesNotMatch(script, /normalizeMintedBridgeMoney|applyMintedBridgeParams|minted_(?:amount|tax|shipping|subtotal|total)|data-bf-minted-import|bf-bridge-ready|backerfee-bridge-install-dismissed-v1/i);
   assert.doesNotMatch(html, /role="dialog"|aria-modal=/i,
     'Initial HTML must not contain dialog or aria-modal attributes');
-  assert.match(html, /id="resetConfirmation" hidden[^>]*aria-labelledby="resetConfirmTitle"/);
+  assert.match(html, /id="resetConfirmation" hidden>/);
+  assert.match(html, /<section class="reset-dialog" id="resetDialog" tabindex="-1">/);
+  assert.match(html, /id="resetConfirmTitle">Reset calculator\\?<\\/h2>/);
+  assert.match(html, /id="resetConfirmMessage">This will clear the current price, discount, results, and note\\.<\\/p>/);
   assert.match(html, /id="cancelResetBtn"/);
   assert.match(html, /id="confirmResetBtn"/);
-  assert.doesNotMatch(script, /confirmModal|confirmDialog|openConfirmModal|closeConfirmModal|aria-modal|role', 'dialog'/i);
-  assert.doesNotMatch(css, /\.modal-backdrop|\.confirm-modal|body\.modal-open|@keyframes modal-in/,
-    'Reset should not retain modal overlay styling');
-  assert.match(css, /\.reset-confirmation\[hidden\]\s*\{\s*display:\s*none;/);
-  assert.match(css, /grid-template-rows:\s*auto auto auto auto auto;/,
-    'Desktop Single layout should not allocate a flexible empty results row');
-  assert.match(css, /"results adjustment"\s*"taxrate adjustment"/,
-    'Tax rate should have an explicit row below the results');
-  assert.match(css, /\.calculator-card form > \.tax-rate-setting\s*\{\s*grid-area:\s*taxrate;[\s\S]*?margin:\s*16px 0 0;/,
-    'Tax-rate setting should have its own grid area and deliberate gap');
+  assert.match(script, /resetDialog\\.setAttribute\\('role', 'dialog'\\)/);
+  assert.match(script, /resetDialog\\.setAttribute\\('aria-modal', 'true'\\)/);
+  assert.match(script, /resetDialog\\.setAttribute\\('aria-labelledby', 'resetConfirmTitle'\\)/);
+  assert.match(script, /resetDialog\\.removeAttribute\\('role'\\)/);
+  assert.match(script, /resetDialog\\.removeAttribute\\('aria-modal'\\)/);
+  assert.match(script, /resetDialog\\.removeAttribute\\('aria-labelledby'\\)/);
+  assert.match(script, /event\\.key === 'Tab'[\\s\\S]*?last\\.focus\\(\\)[\\s\\S]*?first\\.focus\\(\\)/);
+  assert.match(script, /document\\.body\\.classList\\.add\\('reset-modal-open'\\)/);
+  assert.match(script, /document\\.body\\.classList\\.remove\\('reset-modal-open'\\)/);
+  assert.match(css, /\\.reset-confirmation\\s*\\{[\\s\\S]*position:\\s*fixed;[\\s\\S]*inset:\\s*0;/);
+  assert.match(css, /\\.reset-confirmation\\[hidden\\]\\s*\\{\\s*display:\\s*none;/);
+  assert.match(css, /@media \\(max-width: 380px\\)[\\s\\S]*?\\.reset-dialog/);
+  assert.match(css, /grid-template-rows:\\s*auto auto auto auto auto auto;/,
+    'Desktop Single layout should use explicit rows rather than a flexible empty results row');
+  assert.match(css, /"resetconfirm resetconfirm"[\\s\\S]*?"results adjustment"[\\s\\S]*?"taxrate adjustment"/,
+    'Reset confirmation and tax rate should occupy explicit grid areas');
+  assert.match(css, /\\.calculator-card form > \\.reset-confirmation\\s*\\{\\s*grid-area:\\s*resetconfirm;[\\s\\S]*?margin:\\s*0 0 12px;/);
   assert.ok(html.includes('id="adjTax" min="0" step="0.01" placeholder="Minted tax"'));
   assert.ok(html.includes('id="adjMintedTotal" min="0" step="0.01" placeholder="Minted total"'));
-  assert.ok(css.includes('"resetconfirm resetconfirm"'));
-  assert.ok(css.includes('grid-area: resetconfirm;'));
+});
+
+test('customer note copying requires Minted tax and a matching Minted total', () => {
+  assert.match(script, /function singleNoteCopyBlockReason\\(\\)/);
+  assert.match(script, /adjTax\\.dataset\\.taxEdited !== '1'/);
+  assert.match(script, /adjMintedTotalCheck\\.textContent\\.trim\\(\\) !== 'Matches Minted'/);
+  assert.match(script, /copyBtn\\.disabled = !hasNote \\|\\| Boolean\\(blockReason\\)/);
+  assert.match(script, /async function copyNote\\(\\)[\\s\\S]*singleNoteCopyBlockReason\\(\\)/);
+  assert.match(script, /function batchNoteCopyBlockReason\\(results = batchResults\\)/);
+  assert.match(script, /batchCopyGuard\\.hidden = !blockReason/);
+  assert.match(script, /copyAllNotesBtn\\.disabled = !batchNoteText\\.value\\.trim\\(\\) \\|\\| Boolean\\(blockReason\\)/);
 });
