@@ -176,11 +176,15 @@ try {
   assert.equal((await restoredDraftRows.nth(0).locator('.batch-adj-status').innerText()),
     'Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.',
     'The estimated state should explain the Minted verification step');
+  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(1).locator('.batch-adj-label > span').innerText(),
+    'Estimated tax', 'Batch tax field should be visibly marked as an estimate before Minted tax is entered');
   assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(4).locator('.batch-adj-label > span').innerText(),
     'Total Adjustment (estimate)', 'Batch total label should mark estimated tax as provisional');
   assert.ok((await restoredDraftRows.nth(0).locator('.batch-adj-total').getAttribute('class')).includes('is-unconfirmed'),
     'Batch Total Adjustment should be visibly flagged while tax is estimated');
   await restoredDraftRows.nth(0).locator('.batch-adj-tax').fill('3.92');
+  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(1).locator('.batch-adj-label > span').innerText(),
+    'Tax from Minted', 'Batch tax field should show the Minted label after user enters actual tax');
   assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(4).locator('.batch-adj-label > span').innerText(),
     'Total Adjustment', 'Batch total label should drop estimate label after tax entry');
   assert.ok(!(await restoredDraftRows.nth(0).locator('.batch-adj-total').getAttribute('class')).includes('is-unconfirmed'),
