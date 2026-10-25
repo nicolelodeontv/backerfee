@@ -41,8 +41,8 @@ test('uses an editable tax rate, read-only amount/tax outputs, and exact total c
   assert.match(script, /function updateMintedTotalComparison\(input, status, totalCents\)/);
   assert.match(script, /function estimateTaxCents\(amountCents\)/);
   assert.match(script, /function adjustmentCents\(amountValue, shipValue, includeTax = true\)/);
-  assert.match(script, /const taxCents = includeTax \? estimateTaxCents\(amountCents\) : 0/);
-  assert.match(script, /const taxCents = includeTax \? estimateTaxCents\(amountCents\) : 0/);
+  assert.ok(script.includes("Tax excluded. Enter Total from Minted and confirm an exact match before using this total."));
+  assert.ok(script.includes("Tax excluded. Enter Total from Minted and confirm an exact match before using this total."));
   assert.match(html, /<output id="adjAmount"[^>]*aria-label="Amount to enter in Minted"/);
   assert.match(html, /<output id="adjTax"[^>]*aria-label="Estimated tax"/);
   assert.doesNotMatch(html, /<input[^>]+id="adjAmount"/);
@@ -62,8 +62,8 @@ test('uses an editable tax rate, read-only amount/tax outputs, and exact total c
   assert.ok(script.includes("totalCopyBtn.disabled = !totalMatches"));
   assert.ok(script.includes("adjTotalCopyBtn.disabled = !totalMatches"));
   assert.match(script, /if \(!button \|\| button\.disabled\) return/);
-  assert.match(script, /const adj = adjustmentCents\\(amount\\.value, ship\\.value, useTaxInput\\.checked\\)/);
-  assert.match(script, /const current = adjustmentCents\\(amount\\.value, ship\\.value, includeTax\\)/);
+  assert.ok(script.includes('const adj = adjustmentCents(amount.value, ship.value, useTaxInput.checked);'));
+  assert.ok(script.includes('const current = adjustmentCents(amount.value, ship.value, includeTax);'));
   assert.doesNotMatch(script, /Using tax from Minted\./);
   assert.match(script, /const subtotalCents = amountCents \+ taxCents/);
   assert.match(script, /totalCents: subtotalCents \+ shipCents/);
@@ -137,9 +137,9 @@ test('persists shipping settings while computing Batch tax from the shared rate'
 
 test('uses the same rate-based cent-rounded adjustment calculation in Single and Batch', () => {
   assert.match(script, /function adjustmentCents\\(amountValue, shipValue, includeTax = true\\)/);
-  assert.match(script, /const current = adjustmentCents\\(amount\\.value, ship\\.value, includeTax\\)/);
+  assert.ok(script.includes('const current = adjustmentCents(amount.value, ship.value, includeTax);'));
   assert.match(script, /function applyBatchAdjustment\(row, data\)/);
-  assert.match(script, /const adj = adjustmentCents\\(amount\\.value, ship\\.value, useTaxInput\\.checked\\)/);
+  assert.ok(script.includes('const adj = adjustmentCents(amount.value, ship.value, useTaxInput.checked);'));
   assert.match(script, /class="batch-adj-amount batch-adj-output"/);
   assert.match(script, /class="batch-adj-tax batch-adj-output"/);
   assert.match(script, /class="batch-adj-subtotal"/);
