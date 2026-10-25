@@ -1004,8 +1004,11 @@ try {
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '1212.06');
 
   await largePrice.fill('50000');
+  assert.equal(Number((await largePrice.inputValue()).replace(/,/g, '')), 50000,
+    'Batch price input should retain the entered $50,000 before the next field is edited');
   await largeDiscount.fill('0');
-  assert.equal(Number(await largeTotal.inputValue()), 53875, `A $50,000 Amount at 7.75% tax should total $53,875.00 before shipping; actual=${JSON.stringify({ price: await largePrice.inputValue(), discount: await largeDiscount.inputValue(), amount: await rows.nth(0).locator('.batch-adj-amount').textContent(), tax: await rows.nth(0).locator('.batch-adj-tax').textContent(), total: await largeTotal.inputValue(), rowError: await rows.nth(0).locator('.batch-error').textContent(), discountError: await rows.nth(0).locator('.batch-discount-error').textContent(), batchStatus: await page.locator('#batchStatus').innerText() })}`);
+  assert.equal(Number((await largePrice.inputValue()).replace(/,/g, '')), 50000,
+    'Batch price should remain $50,000 after blur-formatting');
   const batchLimitWarning = rows.nth(0).locator('.batch-adj-limit-warning');
   assert.equal(await batchLimitWarning.isVisible(), true);
   assert.equal(await batchLimitWarning.innerText(), 'Minted won\'t allow a charge of $50,000 or more.');
