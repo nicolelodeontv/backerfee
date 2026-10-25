@@ -1156,7 +1156,10 @@ try {
     narrowTaxOutputBox.x + narrowTaxOutputBox.width <= narrowTaxFieldBox.x + narrowTaxFieldBox.width + 1,
   `320px Estimated tax display should remain inside its field (output=${JSON.stringify(narrowTaxOutputBox)})`);
   assert.ok(narrowTaxLabelBox && narrowTaxOutputBox &&
-    (narrowTaxLabelBox.bottom <= narrowTaxOutputBox.y + 2 || narrowTaxOutputBox.bottom <= narrowTaxLabelBox.y + 2),
+    (narrowTaxLabelBox.right <= narrowTaxOutputBox.x + 2 ||
+      narrowTaxOutputBox.x + narrowTaxOutputBox.width <= narrowTaxLabelBox.x + 2 ||
+      narrowTaxLabelBox.bottom <= narrowTaxOutputBox.y + 2 ||
+      narrowTaxOutputBox.y + narrowTaxOutputBox.height <= narrowTaxLabelBox.y + 2),
   '320px Batch Estimated tax label and display should not overlap');
   assert.ok(narrowTaxStatusBox && narrowTaxStatusBox.x >= narrowLayoutMetrics.adjustment.x - 1 &&
     narrowTaxStatusBox.x + narrowTaxStatusBox.width <= narrowLayoutMetrics.adjustment.x + narrowLayoutMetrics.adjustment.width + 1,
@@ -1186,7 +1189,9 @@ try {
   assert.ok(singleNarrow.taxLabel.x >= singleNarrow.taxRow.x - 1 &&
     singleNarrow.taxLabel.right <= singleNarrow.taxRow.right + 1,
   '320px Single Estimated tax label should stay inside its row');
-  assert.ok(singleNarrow.taxLabel.bottom <= singleNarrow.taxValue.y + 2 ||
+  assert.ok(singleNarrow.taxLabel.right <= singleNarrow.taxValue.x + 2 ||
+    singleNarrow.taxValue.right <= singleNarrow.taxLabel.x + 2 ||
+    singleNarrow.taxLabel.bottom <= singleNarrow.taxValue.y + 2 ||
     singleNarrow.taxValue.bottom <= singleNarrow.taxLabel.y + 2,
   '320px Single Estimated tax label and display should not overlap');
   assert.ok(singleNarrow.helper.x >= singleNarrow.card.x &&
