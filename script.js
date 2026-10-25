@@ -566,6 +566,7 @@ function applyBatchAdjustment(row, data) {
   const limitWarning = row.querySelector('.batch-adj-limit-warning');
 
   const clear = (message, warn = false) => {
+    if (!data || amount.empty) amountOutput.value = '';
     taxOutput.value = useTaxInput.checked ? '' : '0.00';
     subtotalOut.value = '';
     totalOut.value = '';
@@ -637,6 +638,8 @@ function clearAdjustmentResults() {
   adjTotal.value = '';
   adjTotal.classList.remove('is-unconfirmed', 't-number-field-pop');
   adjTotalCopyBtn.disabled = true;
+  if (adjTotalLabel) adjTotalLabel.textContent = adjUseTaxInput.checked ? 'Total Adjustment (estimate)' : 'Total Adjustment';
+  adjLimitWarning.hidden = true;
   clearPopInputMotion(adjTotal);
   updateMintedTotalComparison(adjMintedTotal, adjMintedTotalCheck, null);
 }
