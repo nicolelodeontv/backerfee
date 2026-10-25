@@ -40,7 +40,7 @@ test('uses an editable tax rate, read-only amount/tax outputs, and exact total c
   assert.match(script, /function parseTaxRate\(raw\)/);
   assert.match(script, /function updateMintedTotalComparison\(input, status, totalCents\)/);
   assert.match(script, /function estimateTaxCents\(amountCents\)/);
-  assert.match(script, /function adjustmentCents\(amountValue, shipValue, includeTax = true\)/);
+  assert.ok(script.includes('function adjustmentCents(amountValue, shipValue, includeTax = true)'));
   assert.ok(script.includes("Tax excluded. Enter Total from Minted and confirm an exact match before using this total."));
   assert.ok(script.includes("Tax excluded. Enter Total from Minted and confirm an exact match before using this total."));
   assert.match(html, /<output id="adjAmount"[^>]*aria-label="Amount to enter in Minted"/);
@@ -136,7 +136,7 @@ test('persists shipping settings while computing Batch tax from the shared rate'
 });
 
 test('uses the same rate-based cent-rounded adjustment calculation in Single and Batch', () => {
-  assert.match(script, /function adjustmentCents\\(amountValue, shipValue, includeTax = true\\)/);
+  assert.ok(script.includes('function adjustmentCents(amountValue, shipValue, includeTax = true)'));
   assert.ok(script.includes('const current = adjustmentCents(amount.value, ship.value, includeTax);'));
   assert.match(script, /function applyBatchAdjustment\(row, data\)/);
   assert.ok(script.includes('const adj = adjustmentCents(amount.value, ship.value, useTaxInput.checked);'));
