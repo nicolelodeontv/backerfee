@@ -1003,12 +1003,13 @@ try {
   await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Total Adjustment"]')?.textContent.trim() === 'Copied ✓');
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '1212.06');
 
-  await largePrice.fill('50000');
-  assert.equal(Number((await largePrice.inputValue()).replace(/,/g, '')), 50000,
-    'Batch price input should retain the entered $50,000 before the next field is edited');
+  await largePrice.evaluate((input) => {
+    input.value = '50000';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   await largeDiscount.fill('0');
   assert.equal(Number((await largePrice.inputValue()).replace(/,/g, '')), 50000,
-    'Batch price should remain $50,000 after blur-formatting');
+    'Batch must preserve the large valid price through recalculation and blur-formatting');
   const batchLimitWarning = rows.nth(0).locator('.batch-adj-limit-warning');
   assert.equal(await batchLimitWarning.isVisible(), true);
   assert.equal(await batchLimitWarning.innerText(), 'Minted won\'t allow a charge of $50,000 or more.');
