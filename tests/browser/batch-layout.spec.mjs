@@ -1109,8 +1109,8 @@ try {
     assertSameColumn(boxes[0], boxes[i], 'At phone width, Batch rows should use one column');
   }
   for (let i = 0; i < 5; i += 1) {
-    const inputBox = await adjustmentFields.nth(i).locator('.input-wrap input').first().boundingBox();
-    assert.ok(inputBox && inputBox.width >= 100, `Phone adjustment field ${i + 1} needs enough width to read currency values`);
+    const valueBox = await adjustmentFields.nth(i).locator('.input-wrap').boundingBox();
+    assert.ok(valueBox && valueBox.width >= 100, `Phone adjustment value ${i + 1} needs enough width to read currency values`);
   }
   const phoneAdjustmentBoxes = await positions(adjustmentFields);
   assertSameLine(phoneAdjustmentBoxes[0], phoneAdjustmentBoxes[1], 'Phone Amount and Tax should share the first adjustment line');
@@ -1119,7 +1119,7 @@ try {
   assert.ok(phoneAdjustmentBoxes[4].y > phoneAdjustmentBoxes[3].y + 10, 'Phone Total should use the final full-width line');
   await page.screenshot({ path: screenshotName('phone-375-three-rows'), fullPage: true });
 
-  // Verify the no-wrap tax label at the narrow 320px viewport too.
+  // Verify the read-only Estimated tax label and value fit at 320px too.
   await page.setViewportSize({ width: 320, height: 900 });
   await page.waitForTimeout(150);
   const narrowOverflow = await page.evaluate(() => ({
@@ -1145,7 +1145,42 @@ try {
     narrowTaxLabelBox.x >= narrowTaxFieldBox.x - 1 &&
     narrowTaxLabelBox.x + narrowTaxLabelBox.width <= narrowTaxFieldBox.x + narrowTaxFieldBox.width + 1,
   `320px tax label should fit within its column (field=${JSON.stringify(narrowTaxFieldBox)}, label=${JSON.stringify(narrowTaxLabelBox)})`);
-  // Switch back to Single and verify the redesigned desktop calculator and full-width note.
+  const narrowTaxOutputBox = await adjustmentFields.nth(1).locator('.batch-adj-tax').boundingBox();
+  const narrowTaxStatusBox = await rows.nth(0).locator('.batch-adj-status').boundingBox();
+  assert.ok(narrowTaxOutputBox && narrowTaxFieldBox &&
+    narrowTaxOutputBox.x >= narrowTaxFieldBox.x - 1 &&
+    narrowTaxOutputBox.x + narrowTaxOutputBox.width <= narrowTaxFieldBox.x + narrowTaxFieldBox.width + 1,
+  `320px Estimated tax display should remain inside its field (output=${JSON.stringify(narrowTaxOutputBox)})`);
+  assert.ok(narrowTaxStatusBox && narrowTaxStatusBox.x >= narrowLayoutMetrics.adjustment.x - 1 &&
+    narrowTaxStatusBox.x + narrowTaxStatusBox.width <= narrowLayoutMetrics.adjustment.x + narrowLayoutMetrics.adjustment.width + 1,
+  '320px Batch helper/status text should remain aligned inside the Financial Adjustment card');
+
+  // Check Single-mode tax and explanatory helper layout at 320px, then return to desktop.
+  await page.locator('#modeSingleBtn').click();
+  await page.waitForFunction(() => document.querySelector('#batchPanel').hidden);
+  const singleNarrow = await page.evaluate(() => {
+    const box = (selector) => {
+      const el = document.querySelector(selector);
+      const r = el.getBoundingClientRect();
+      return { x: r.x, y: r.y, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+    };
+    return {
+      card: box('#adjustmentCard'),
+      taxRow: box('.adjustment-row.tax'),
+      taxLabel: box('label[for="adjTax"]'),
+      taxValue: box('#adjTax'),
+      helper: box('.adjustment-note'),
+      mintedTotal: box('.minted-total-row')
+    };
+  });
+  assert.ok(singleNarrow.taxValue.x >= singleNarrow.taxRow.x - 1 &&
+    singleNarrow.taxValue.right <= singleNarrow.taxRow.right + 1,
+  `320px Single Estimated tax display should stay in its row (${JSON.stringify(singleNarrow)})`);
+  assert.ok(singleNarrow.helper.x >= singleNarrow.card.x &&
+    singleNarrow.helper.right <= singleNarrow.card.right + 1,
+  `320px Single helper text should stay aligned inside the card (${JSON.stringify(singleNarrow)})`);
+  assert.ok(singleNarrow.helper.y >= singleNarrow.mintedTotal.bottom - 1,
+  '320px Single helper text should remain below Total from Minted and its comparison');
   await page.setViewportSize({ width: 1440, height: 1300 });
   await page.waitForTimeout(150);
   await page.locator('#modeSingleBtn').click();
