@@ -1240,41 +1240,45 @@ try {
   assert.equal(await page.locator('.history-card .note-actions').evaluate((el) => getComputedStyle(el).flexDirection), 'row-reverse',
     'Single-mode Copy Note action should be at the bottom right, with status on the left');
 
-  // A customer note that says its fee includes local taxes cannot be copied from an estimate.
+  // Single Copy Note and Total Adjustment Copy stay blocked until the cent-exact total matches.
   await page.locator('#backer').fill('100');
   await page.locator('#discount').fill('20');
-  assert.ok((await page.locator('#noteText').inputValue()).includes('$86.20'),
-    'The generated note should reflect the current estimated adjustment');
-  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
-    'Copy Note must remain disabled while tax and total are only estimates');
-  assert.equal(await page.locator('#noteCopyGuard').isVisible(), true,
-    'The reason for blocking the note should be visible');
+  assert.equal(await page.locator('#adjAmount').evaluate((el) => el.tagName), 'OUTPUT');
+  assert.equal(await page.locator('#adjTax').evaluate((el) => el.tagName), 'OUTPUT');
+  assert.equal(await page.locator('#adjAmount').isEditable(), false);
+  assert.equal(await page.locator('#adjTax').isEditable(), false);
+  assert.ok((await page.locator('#adjAmount').evaluate((el) => el.tabIndex)) < 0);
+  assert.ok((await page.locator('#adjTax').evaluate((el) => el.tabIndex)) < 0);
+  assert.equal(await page.locator('.adj-copy-btn[data-copy-from="#adjAmount"]').count(), 0);
+  assert.equal(await page.locator('#adjAmount').textContent(), '80.00');
+  assert.equal(await page.locator('#adjTax').textContent(), '6.20');
+  assert.equal(await page.locator('#adjTotal').inputValue(), '86.20');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true);
+  assert.equal(await page.locator('#noteCopyGuard').isVisible(), true);
+  const singleTotalCopy = page.locator('.adj-copy-btn[data-copy-from="#adjTotal"]');
+  assert.equal(await singleTotalCopy.isDisabled(), true);
   await page.evaluate(() => navigator.clipboard.writeText('clipboard unchanged'));
   await page.locator('#noteText').focus();
   await page.keyboard.press('Control+Enter');
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'clipboard unchanged',
-    'The keyboard copy shortcut must not bypass the unconfirmed-total guard');
-  assert.equal(await page.locator('#noteCopyGuard').isVisible(), true,
-    'The warning should remain visible after the blocked keyboard shortcut');
-  await page.locator('#copyBtn').evaluate((el) => el.click());
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'clipboard unchanged',
-    'Clicking the disabled Copy Note button must not copy an estimated note');
-  assert.equal(await page.locator('#copyBtn').isDisabled(), true);
-  assert.equal(await page.locator('#noteCopyGuard').isVisible(), true,
-    'The warning should remain visible after attempting the blocked button');
-  await page.locator('#adjTax').fill('6.20');
-  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
-    'Typing Minted tax alone is insufficient without the final-total comparison');
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'clipboard unchanged');
+  await singleTotalCopy.evaluate((el) => el.click());
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'clipboard unchanged');
   await page.locator('#adjMintedTotal').fill('86.20');
   assert.equal(await page.locator('#adjMintedTotalCheck').innerText(), 'Matches Minted');
-  assert.equal(await page.locator('#copyBtn').isDisabled(), false,
-    'Copy Note should become available when Minted tax and total match');
-  assert.equal(await page.locator('#noteCopyGuard').isVisible(), false);
+  assert.equal(await page.locator('#copyBtn').isDisabled(), false);
+  assert.equal(await singleTotalCopy.isDisabled(), false);
   await page.locator('#adjMintedTotal').fill('86.21');
-  assert.equal(await page.locator('#copyBtn').isDisabled(), true,
-    'A one-cent mismatch should block Copy Note');
-  assert.equal(await page.locator('#noteCopyGuard').isVisible(), true);
+  assert.match(await page.locator('#adjMintedTotalCheck').innerText(), /difference \\$0\\.01/);
+  assert.match(await page.locator('#adjMintedTotalCheck').innerText(), /adjust Tax rate %/);
+  assert.equal(await page.locator('#copyBtn').isDisabled(), true);
+  assert.equal(await singleTotalCopy.isDisabled(), true);
+  await page.evaluate(() => navigator.clipboard.writeText('clipboard unchanged'));
+  await page.locator('#noteText').focus();
+  await page.keyboard.press('Control+Enter');
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'clipboard unchanged');
   await page.locator('#adjMintedTotal').fill('86.20');
+  assert.equal(await page.locator('#copyBtn').isDisabled(), false);
+  assert.equal(await singleTotalCopy.isDisabled(), false);
 
   // Check that Single uses Minted's typed tax, Include Tax, and the 7.75% estimate only as fallback.
   await page.locator('#backer').fill('100');
