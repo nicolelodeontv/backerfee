@@ -567,6 +567,7 @@ function applyBatchAdjustment(row, data) {
     status.textContent = message;
     status.classList.remove('is-success', 'is-warning');
     if (warn) status.classList.add('is-warning');
+    if (totalLabel) totalLabel.textContent = useTaxInput.checked ? 'Total Adjustment (estimate)' : 'Total Adjustment';
     updateMintedTotalComparison(mintedTotalInput, mintedTotalStatus, null);
     return null;
   };
@@ -622,7 +623,7 @@ function applyBatchAdjustment(row, data) {
 
 function clearAdjustmentResults() {
   currentAdjustment = null;
-  if (!adjUseTaxInput.checked) adjTax.value = '0.00';
+  adjTax.value = adjUseTaxInput.checked ? '' : '0.00';
   adjSubtotal.value = '';
   adjTotal.value = '';
   adjLimitWarning.hidden = true;
@@ -1137,11 +1138,6 @@ function renderBatchRows(rows) {
     useTaxInput.addEventListener('change', () => {
       calculateBatch();
     });
-
-
-    useTaxInput.addEventListener('change', () => {
-      calculateBatch();
-    });
     shipInput.addEventListener('input', () => calculateBatch());
     shipInput.addEventListener('blur', () => {
       calculateBatch();
@@ -1606,7 +1602,11 @@ taxRateInput.addEventListener('input', () => {
   taxRateError.textContent = parsed === null
     ? 'Enter a tax rate greater than 0% and no more than 100%.'
     : '';
-  if (parsed === null) return;
+  if (parsed === null) {
+    computeAdjustment();
+    calculateBatch();
+    return;
+  }
   taxRate = parsed;
   updateTaxRateLabels();
   computeAdjustment();
