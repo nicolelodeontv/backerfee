@@ -2216,7 +2216,7 @@ html[data-theme="dark"] .highlighted strong span {
 
 @media (max-width: 520px) {
   .update-check-label { display: none; }
-  .update-check-btn { width: 44px; padding: 0; justify-content: center; }
+  .secondary-btn.compact.update-check-btn { width: 44px; min-width: 44px; flex: 0 0 44px; padding: 0; justify-content: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {
