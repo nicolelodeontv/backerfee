@@ -1005,7 +1005,7 @@ try {
 
   await largePrice.fill('50000');
   await largeDiscount.fill('0');
-  await page.waitForFunction(() => Number(document.querySelector('#batchRows .batch-row .batch-adj-total')?.value) === 53875);
+  assert.equal(Number(await largeTotal.inputValue()), 53875, 'A $50,000 Amount at 7.75% tax should total $53,875.00 before shipping');
   const batchLimitWarning = rows.nth(0).locator('.batch-adj-limit-warning');
   assert.equal(await batchLimitWarning.isVisible(), true);
   assert.equal(await batchLimitWarning.innerText(), 'Minted won\'t allow a charge of $50,000 or more.');
