@@ -2188,15 +2188,30 @@ html[data-theme="dark"] .highlighted strong span {
   .update-banner { transition: none; }
 }
 
-.update-check-btn {
-  padding: 0;
-  color: var(--muted);
-  font: inherit;
-  text-decoration: underline;
-  background: none;
-  border: 0;
-  cursor: pointer;
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
 }
 
-.update-check-btn:hover { color: var(--accent-dark); }
-.update-check-btn:disabled { cursor: progress; opacity: .7; }
+.update-check-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+}
+
+.update-check-btn:disabled { cursor: progress; opacity: .75; }
+.update-check-btn:disabled .update-check-icon { animation: update-check-spin .9s linear infinite; }
+
+@keyframes update-check-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 520px) {
+  .update-check-label { display: none; }
+  .update-check-btn { width: 44px; padding: 0; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .update-check-btn:disabled .update-check-icon { animation: none; }
+}

@@ -92,9 +92,11 @@
       document.querySelector('.update-banner button')?.focus();
       return;
     }
-    const label = button.textContent;
+    const labelNode = button.querySelector('.update-check-label');
+    const label = labelNode ? labelNode.textContent : button.textContent;
+    const setLabel = (text) => { (labelNode || button).textContent = text; };
     button.disabled = true;
-    button.textContent = 'Checking…';
+    setLabel('Checking…');
     try {
       const current = await fingerprint();
       if (baseline === null) baseline = current;
@@ -107,7 +109,7 @@
       window.backerFeeShowToast?.('Could not check for updates. Try again later.', 'error');
     } finally {
       button.disabled = false;
-      button.textContent = label;
+      setLabel(label);
     }
   }
 

@@ -35,9 +35,15 @@
               <h1 id="pageTitle">Backer Fee</h1>
               <p>Enter the original backer price and discount. The fee and customer note update automatically.</p>
             </div>
-            <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to dark mode" title="Toggle theme">
-              <span id="themeIcon" class="theme-icon" aria-hidden="true">☾</span>
-            </button>
+            <div class="header-actions">
+              <button class="secondary-btn compact update-check-btn" id="checkUpdateBtn" type="button" title="Check whether a newer version is available">
+                <span class="update-check-icon" aria-hidden="true">↻</span>
+                <span class="update-check-label">Check for updates</span>
+              </button>
+              <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to dark mode" title="Toggle theme">
+                <span id="themeIcon" class="theme-icon" aria-hidden="true">☾</span>
+              </button>
+            </div>
           </div>
         </header>
 
@@ -275,7 +281,6 @@
     <footer>
       <span>Backer Fee Assistant</span>
       <span>Runs locally in your browser</span>
-      <button class="update-check-btn" id="checkUpdateBtn" type="button">Check for updates</button>
     </footer>
   </main>
 
