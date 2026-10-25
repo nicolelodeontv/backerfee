@@ -686,13 +686,18 @@ try {
   const rows = page.locator('#batchRows .batch-row');
   assert.equal(await rows.count(), 4, 'Batch should have four rows after adding two');
 
-  const emptyAmountCopy = rows.nth(0).locator('.adj-copy-btn[aria-label="Copy Amount"]');
-  await emptyAmountCopy.click();
-  await page.waitForFunction(() =>
-    document.querySelector('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Amount"] .t-text-swap')?.textContent.trim() === 'Empty'
-  );
-  assert.equal((await emptyAmountCopy.locator('.t-text-swap').textContent()).trim(), 'Empty',
-    'Copy Amount should show Empty when the field has no value');
+  assert.equal(await rows.locator('.adj-copy-btn[aria-label="Copy Amount"]').count(), 0,
+    'Batch must not render an Amount Copy button');
+  for (let i = 0; i < await rows.count(); i += 1) {
+    const amountOutput = rows.nth(i).locator('.batch-adj-amount');
+    const taxOutput = rows.nth(i).locator('.batch-adj-tax');
+    assert.equal(await amountOutput.evaluate((el) => el.tagName), 'OUTPUT', 'Batch Amount must be a plain display');
+    assert.equal(await amountOutput.isEditable(), false, 'Batch Amount must not accept typing');
+    assert.ok((await amountOutput.evaluate((el) => el.tabIndex)) < 0, 'Batch Amount must not be focusable');
+    assert.equal(await taxOutput.evaluate((el) => el.tagName), 'OUTPUT', 'Batch tax must be a plain display');
+    assert.equal(await taxOutput.isEditable(), false, 'Batch tax must not accept typing');
+    assert.ok((await taxOutput.evaluate((el) => el.tabIndex)) < 0, 'Batch tax must not be focusable');
+  }
 
   const prices = ['100', '200', '300', '400'];
   const discounts = ['10', '20', '30', '40'];
@@ -711,7 +716,7 @@ try {
       `Row ${i + 1} discount should retain focus while recalculating`);
     assert.equal(await row.locator('.batch-result-final').textContent(), `$${expectedFinalFees[i]}`,
       `Row ${i + 1} should calculate its own final fee`);
-    assert.equal(await row.locator('.batch-adj-amount').inputValue(), expectedFinalFees[i],
+    assert.equal(await row.locator('.batch-adj-amount').textContent(), expectedFinalFees[i],
       `Row ${i + 1} Amount should follow its own final fee`);
   }
 
@@ -751,9 +756,8 @@ try {
   assertSameLine(adjustmentBoxes[3], adjustmentBoxes[4], 'Shipping and Total should share the second adjustment line');
   assertSameLine(adjustmentBoxes[4], adjustmentBoxes[5], 'Total from Minted should share the second adjustment line');
   for (let i = 0; i < 6; i += 1) {
-    const input = adjustmentFields.nth(i).locator('.input-wrap input').first();
-    const inputBox = await input.boundingBox();
-    assert.ok(inputBox && inputBox.width >= 48, `Adjustment field ${i + 1} needs a usable input width`);
+    const valueBox = await adjustmentFields.nth(i).locator('.input-wrap').boundingBox();
+    assert.ok(valueBox && valueBox.width >= 48, `Adjustment field ${i + 1} needs a usable value area`);
   }
   for (const index of [0, 1, 2]) {
     const labelHeight = await adjustmentFields.nth(index).locator('.batch-adj-label').evaluate((el) => getComputedStyle(el).minHeight);
@@ -761,19 +765,19 @@ try {
       `Top-line Batch adjustment label ${index + 1} should share a 36px minimum height`);
   }
   const topLineInputBoxes = await Promise.all([0, 1, 2].map(async (index) =>
-    adjustmentFields.nth(index).locator('.input-wrap input').first().boundingBox()));
-  assert.ok(topLineInputBoxes.every(Boolean), 'All three top-line adjustment inputs should have layout boxes');
+    adjustmentFields.nth(index).locator('.input-wrap').boundingBox()));
+  assert.ok(topLineInputBoxes.every(Boolean), 'Amount, Estimated tax, and Subtotal displays should have layout boxes');
   const topLineInputY = topLineInputBoxes.map((box) => box.y);
   assert.ok(Math.max(...topLineInputY) - Math.min(...topLineInputY) <= 1,
-    `Amount, Tax Based on Shipping Zip, and Subtotal inputs should align on one line (y=${topLineInputY.join(', ')})`);
+    `Amount, Estimated tax, and Subtotal values should align on one line (y=${topLineInputY.join(', ')})`);
   for (const index of [3, 4, 5]) {
     const labelHeight = await adjustmentFields.nth(index).locator('.batch-adj-label').evaluate((el) => getComputedStyle(el).minHeight);
     assert.equal(labelHeight, '40px',
       `Batch second-line field ${index + 1} should reserve the shared 40px label height`);
   }
   const secondLineInputBoxes = await Promise.all([3, 4, 5].map(async (index) =>
-    adjustmentFields.nth(index).locator('.input-wrap input').first().boundingBox()));
-  assert.ok(secondLineInputBoxes.every(Boolean), 'Shipping, Total Adjustment, and Total from Minted inputs should have layout boxes');
+    adjustmentFields.nth(index).locator('.input-wrap').boundingBox()));
+  assert.ok(secondLineInputBoxes.every(Boolean), 'Shipping, Total Adjustment, and Total from Minted values should have layout boxes');
   assert.ok(Math.max(...secondLineInputBoxes.map((box) => box.y)) - Math.min(...secondLineInputBoxes.map((box) => box.y)) <= 1,
     `Batch second-line inputs should align at the same height (boxes=${JSON.stringify(secondLineInputBoxes)})`);
   const taxLabel = adjustmentFields.nth(1).locator('.batch-adj-label');
