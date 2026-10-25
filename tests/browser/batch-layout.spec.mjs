@@ -1387,7 +1387,8 @@ try {
   await page.screenshot({ path: screenshotName('single-mode-1440'), fullPage: true, animations: 'disabled' });
 
   // Invalid rates show a clear error and recover to the documented 7.75% default.
-  await page.locator('#adjAmount').fill('50.55');
+  await page.locator('#backer').fill('100');
+  await page.locator('#discount').fill('49.45');
   await page.locator('#adjShip').fill('0');
   const rateInput = page.locator('#taxRate');
   for (const invalidRate of ['0', '-1', '101', '']) {
@@ -1405,7 +1406,7 @@ try {
       'Rate validation state should clear after default is restored');
     assert.equal(await page.locator('#taxRateError').innerText(), '',
       'Rate validation message should clear after default is restored');
-    assert.equal(Number(await page.locator('#adjTax').inputValue()), 3.92,
+    assert.equal(Number(await page.locator('#adjTax').textContent()), 3.92,
       'A recovered default rate should produce $3.92 tax for Amount $50.55');
     assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.47,
       'A recovered default rate should produce a $54.47 total');
