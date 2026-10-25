@@ -8,6 +8,12 @@
  * so nobody loses what they are typing.
  */
 (() => {
+  // Bump these when you ship a change people should hear about.
+  const APP_VERSION = '1.2.0';
+  const APP_UPDATED = 'Oct 26, 2026';
+  const WHATS_NEW = 'Update banner and a Check for updates button were added.';
+  const SEEN_KEY = 'backerfee-seen-version';
+
   const FILES = [
     './',
     'script.js',
@@ -116,6 +122,27 @@
   document.getElementById('checkUpdateBtn')?.addEventListener('click', (event) => {
     manualCheck(event.currentTarget);
   });
+
+  function showVersion() {
+    const node = document.getElementById('appVersion');
+    if (node) node.textContent = `· v${APP_VERSION} · updated ${APP_UPDATED}`;
+  }
+
+  function announceWhatsNew() {
+    try {
+      const seen = localStorage.getItem(SEEN_KEY);
+      localStorage.setItem(SEEN_KEY, APP_VERSION);
+      // First visit only records the version; later visits announce changes.
+      if (seen && seen !== APP_VERSION) {
+        window.backerFeeShowToast?.(`Updated to v${APP_VERSION}: ${WHATS_NEW}`);
+      }
+    } catch {
+      /* Storage unavailable: skip the announcement. */
+    }
+  }
+
+  showVersion();
+  announceWhatsNew();
 
   async function start() {
     try {

@@ -2222,3 +2222,5 @@ html[data-theme="dark"] .highlighted strong span {
 @media (prefers-reduced-motion: reduce) {
   .update-check-btn:disabled .update-check-icon { animation: none; }
 }
+
+.app-version { margin-left: 4px; opacity: .8; }
