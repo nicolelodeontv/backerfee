@@ -1284,7 +1284,7 @@ function getBatchCustomerNoteBlockers(results) {
       blockers.push({
         name: 'Row ' + (rowIndex + 1) + (cardName ? ' (“' + cardName + '”)' : ''),
         reason: hasMismatch
-          ? 'a Total from Minted that matches exactly. Current check: ' + comparisonMessage
+          ? 'a Total from Minted that matches exactly. Current check: ' + comparisonMessage.replace(/\.$/, '')
           : (row.querySelector('.batch-adj-use-tax')?.checked
             ? 'a Total from Minted that matches exactly (adjust Tax rate % if needed)'
             : 'a Total from Minted that matches exactly')
