@@ -399,7 +399,7 @@ try {
   assert.deepEqual(await resetRows.locator('.batch-discount').evaluateAll((els) => els.map((el) => el.value)), ['', ''],
     'Reset should clear discounts in every Batch row');
   assert.deepEqual(await resetRows.locator('.batch-adj-tax').evaluateAll((els) => els.map((el) => el.value)), ['', ''],
-    'Reset should clear persisted typed tax in every Batch row');
+    'Reset should clear the Estimated tax output in every empty Batch row');
   assert.deepEqual(await resetRows.locator('.batch-adj-use-tax').evaluateAll((els) => els.map((el) => el.checked)), [true, true],
     'Reset should restore Include Tax checked in empty Batch rows');
   assert.equal(await page.locator('#batchNoteState').innerText(), 'Waiting for valid details',
@@ -1055,6 +1055,8 @@ try {
   assert.ok(realValueLines[0].includes('$1,212.06'));
 
   const rowOneTotalCopy = rows.nth(0).locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]');
+  await rows.nth(0).locator('.batch-adj-minted-total').fill('1212.06');
+  assert.equal(await rowOneTotalCopy.isDisabled(), false, 'Row 1 Total Adjustment Copy requires and accepts an exact Minted match');
   await rowOneTotalCopy.click();
   await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Total Adjustment"]')?.textContent.trim() === 'Copied ✓');
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '1212.06',
@@ -1448,7 +1450,7 @@ try {
       'Amount and Shipping isolate to their own row',
       'three-column Financial Adjustment at desktop width',
       'generated note has one line per row and copies completely',
-      'Single and row-scoped Batch Amount/Total Adjustment copy buttons copy plain numbers with feedback',
+      'Single and Batch Total Adjustment copies are enabled only after an exact Minted total match',
       'remove-row reflow leaves the third row in the left column',
       'single-column layout at 1100px',
       'no horizontal overflow at 375px and 320px',
@@ -1456,7 +1458,7 @@ try {
       'Single mode two-column layout, full-width note, and no mascot',
       'no bridge popup or Tampermonkey text on load or after delay/reload',
       'Reset uses one centered modal with focus trapping, scroll locking, safe close actions, and a 320px layout',
-      'Single and Batch customer notes stay blocked until Minted tax and total match',
+      'Single and Batch customer notes stay blocked until Total from Minted matches exactly',
       'desktop results and tax-rate setting have deliberate vertical spacing',
       'no uncaught browser runtime errors'
     ],
