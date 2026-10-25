@@ -1284,7 +1284,7 @@ try {
   assert.equal(await singleTotalCopy.isDisabled(), false);
   await page.locator('#adjMintedTotal').fill('86.21');
   assert.match(await page.locator('#adjMintedTotalCheck').innerText(), /difference \\$0\\.01/);
-  assert.match(await page.locator('#adjMintedTotalCheck').innerText(), /adjust Tax rate %/);
+  assert.match(await page.locator('#adjMintedTotalCheck').innerText(), /Adjust Tax rate %/);
   assert.equal(await page.locator('#copyBtn').isDisabled(), true);
   assert.equal(await singleTotalCopy.isDisabled(), true);
   await page.evaluate(() => navigator.clipboard.writeText('clipboard unchanged'));
