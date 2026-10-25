@@ -160,6 +160,7 @@ try {
     'Batch Estimated tax must be a plain output, not an input');
   assert.equal(await draftTax.evaluate((el) => el.tagName === 'INPUT'), false, 'Batch Estimated tax must not accept typing');
   assert.ok((await draftTax.evaluate((el) => el.tabIndex)) < 0, 'Batch Estimated tax must not be keyboard-focusable');
+  assert.equal(await draftTax.evaluate((el) => getComputedStyle(el).userSelect), 'text', 'Batch Estimated tax should be selectable as plain text');
   assert.equal(await page.locator('#batchRows .adj-copy-btn[aria-label="Copy Amount"]').count(), 0,
     'No Amount Copy button may appear in Batch');
   assert.equal(await draftAmount.textContent(), '50.55');
@@ -1252,6 +1253,8 @@ try {
   assert.equal(await page.locator('#adjTax').evaluate((el) => el.tagName === 'INPUT'), false);
   assert.ok((await page.locator('#adjAmount').evaluate((el) => el.tabIndex)) < 0);
   assert.ok((await page.locator('#adjTax').evaluate((el) => el.tabIndex)) < 0);
+  assert.equal(await page.locator('#adjAmount').evaluate((el) => getComputedStyle(el).userSelect), 'text');
+  assert.equal(await page.locator('#adjTax').evaluate((el) => getComputedStyle(el).userSelect), 'text');
   assert.equal(await page.locator('.adj-copy-btn[data-copy-from="#adjAmount"]').count(), 0);
   assert.equal(await page.locator('#adjAmount').textContent(), '80.00');
   assert.equal(await page.locator('#adjTax').textContent(), '6.20');
