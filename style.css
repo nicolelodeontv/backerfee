@@ -2224,3 +2224,14 @@ html[data-theme="dark"] .highlighted strong span {
 }
 
 .app-version { margin-left: 4px; opacity: .8; }
+
+.soft-hint {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.soft-hint::before { content: "ℹ "; color: var(--accent); }
+.soft-hint[hidden] { display: none; }

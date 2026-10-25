@@ -9,15 +9,16 @@
  */
 (() => {
   // Bump these when you ship a change people should hear about.
-  const APP_VERSION = '1.2.0';
+  const APP_VERSION = '1.3.0';
   const APP_UPDATED = 'Oct 26, 2026';
-  const WHATS_NEW = 'Update banner and a Check for updates button were added.';
+  const WHATS_NEW = 'Large discounts now show a gentle double-check hint.';
   const SEEN_KEY = 'backerfee-seen-version';
 
   const FILES = [
     './',
     'script.js',
     'ui-enhancements.js',
+    'value-hints.js',
     'calculator-utils.js',
     'style.css',
     'update-notifier.js',
