@@ -141,165 +141,131 @@ try {
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length >= 2, null, { timeout: 15000 });
 
-  // Batch row fields and manual Amount/Shipping edits survive a full page refresh.
+  // Batch Amount and Estimated tax are read-only displays; totals and copy require exact Minted confirmation.
   await page.locator('#modeBatchBtn').click();
   const draftRows = page.locator('#batchRows .batch-row');
   const invitationDraft = draftRows.nth(0);
   await invitationDraft.locator('.batch-name').fill('Invitation');
-  await invitationDraft.locator('.batch-price').fill('50');
-  await invitationDraft.locator('.batch-discount').fill('15');
-  await invitationDraft.locator('.batch-adj-amount').fill('50.55');
-  assert.equal(await invitationDraft.locator('.batch-adj-tax').isEditable(), true,
-    'Batch tax must be an editable input, not a fixed-rate-only output');
-  await invitationDraft.locator('.batch-adj-tax').fill('3.92');
-  await invitationDraft.locator('.batch-adj-minted-total').fill('54.47');
+  await invitationDraft.locator('.batch-price').fill('50.55');
+  await invitationDraft.locator('.batch-discount').fill('0');
   await invitationDraft.locator('.batch-adj-ship').fill('0');
+  const draftAmount = invitationDraft.locator('.batch-adj-amount');
+  const draftTax = invitationDraft.locator('.batch-adj-tax');
+  assert.equal(await draftAmount.evaluate((el) => el.tagName), 'OUTPUT',
+    'Batch Amount must be a plain output, not an input');
+  assert.equal(await draftAmount.isEditable(), false, 'Batch Amount must not accept typing');
+  assert.ok((await draftAmount.evaluate((el) => el.tabIndex)) < 0, 'Batch Amount must not be keyboard-focusable');
+  assert.equal(await draftTax.evaluate((el) => el.tagName), 'OUTPUT',
+    'Batch Estimated tax must be a plain output, not an input');
+  assert.equal(await draftTax.isEditable(), false, 'Batch Estimated tax must not accept typing');
+  assert.ok((await draftTax.evaluate((el) => el.tabIndex)) < 0, 'Batch Estimated tax must not be keyboard-focusable');
+  assert.equal(await page.locator('#batchRows .adj-copy-btn[aria-label="Copy Amount"]').count(), 0,
+    'No Amount Copy button may appear in Batch');
+  assert.equal(await draftAmount.textContent(), '50.55');
+  assert.equal(await draftTax.textContent(), '3.92');
+  assert.equal(await invitationDraft.locator('.batch-adj-total').inputValue(), '54.47');
+  assert.equal(await invitationDraft.locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]').isDisabled(), true,
+    'Unconfirmed Batch totals must not be copyable');
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), true,
+    'Batch Copy Note must remain disabled until each row matches Minted');
+
+  await invitationDraft.locator('.batch-adj-minted-total').fill('54.47');
+  assert.equal(await invitationDraft.locator('.batch-adj-total-check').innerText(), 'Matches Minted');
+  assert.equal(await invitationDraft.locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]').isDisabled(), false,
+    'A cent-exact Batch total must enable Total Adjustment Copy');
+  const confirmedBatchTotalCopy = invitationDraft.locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]');
+  await confirmedBatchTotalCopy.click();
+  await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Total Adjustment"]')?.textContent.trim() === 'Copied ✓');
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '54.47',
+    'Confirmed Batch Total Adjustment Copy should copy a plain number');
+
+  await invitationDraft.locator('.batch-adj-minted-total').fill('54.48');
+  assert.match(await invitationDraft.locator('.batch-adj-total-check').innerText(),
+    /Mismatch: app \$54\.47, Minted \$54\.48, difference \$0\.01/,
+    'Batch should report a one-cent mismatch and the difference');
+  assert.equal(await invitationDraft.locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]').isDisabled(), true,
+    'A one-cent Batch mismatch must disable Total Adjustment Copy');
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), true,
+    'A one-cent Batch mismatch must block Copy Note');
+  assert.match(await invitationDraft.locator('.batch-adj-total-check').innerText(), /adjust Tax rate %/,
+    'A Batch mismatch with tax included must explain that the rate can be adjusted');
+
+  // Include Tax off uses $0.00 tax and still requires an exact final-total match.
+  await invitationDraft.locator('.batch-adj-ship').fill('5.00');
+  await invitationDraft.locator('.batch-adj-use-tax').uncheck();
+  assert.equal(await draftTax.textContent(), '0.00', 'Include Tax off must display zero tax');
+  assert.equal(await invitationDraft.locator('.batch-adj-total').inputValue(), '55.55');
+  assert.doesNotMatch(await invitationDraft.locator('.batch-adj-status').innerText(), /estimate/i,
+    'Include Tax off must not show an estimate warning');
+  await invitationDraft.locator('.batch-adj-minted-total').fill('55.55');
+  assert.equal(await invitationDraft.locator('.batch-adj-total-check').innerText(), 'Matches Minted');
+  assert.equal(await invitationDraft.locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]').isDisabled(), false);
+  await invitationDraft.locator('.batch-adj-use-tax').check();
+  await invitationDraft.locator('.batch-adj-ship').fill('0');
+  await page.locator('#taxRate').fill('8');
+  assert.equal(await draftTax.textContent(), '4.04', 'Changing Tax rate % should update Batch Estimated tax');
+  assert.equal(await invitationDraft.locator('.batch-adj-total').inputValue(), '54.59');
+  assert.equal(await invitationDraft.locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]').isDisabled(), true,
+    'Changing the rate must invalidate an old total confirmation');
+  await invitationDraft.locator('.batch-adj-minted-total').fill('54.59');
+  assert.equal(await invitationDraft.locator('.batch-adj-total-check').innerText(), 'Matches Minted');
+  await page.locator('#taxRate').fill('7.75');
+  assert.equal(await draftTax.textContent(), '3.92');
+  assert.equal(await invitationDraft.locator('.batch-adj-total').inputValue(), '54.47');
+  assert.match(await invitationDraft.locator('.batch-adj-total-check').innerText(), /Mismatch: app \$54\.47, Minted \$54\.59/);
+
+  await page.locator('#taxRate').fill('0');
+  assert.equal(await page.locator('#taxRate').getAttribute('aria-invalid'), 'true',
+    'A zero rate should be rejected in Batch mode');
+  assert.equal(await invitationDraft.locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]').isDisabled(), true,
+    'Invalid tax rate must block Batch Total Adjustment Copy');
+  assert.match(await invitationDraft.locator('.batch-adj-total-check').innerText(), /valid Tax rate %/,
+    'Invalid rate feedback should explain why the total cannot be confirmed');
+  await page.locator('#taxRate').evaluate((el) => el.blur());
+  assert.equal(await page.locator('#taxRate').inputValue(), '7.75',
+    'Invalid Batch rate should recover to the documented 7.75% default');
+  await invitationDraft.locator('.batch-adj-minted-total').fill('54.47');
+  assert.equal(await invitationDraft.locator('.batch-adj-total-check').innerText(), 'Matches Minted');
+  assert.equal(await invitationDraft.locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]').isDisabled(), false);
+
   await draftRows.nth(1).locator('.batch-name').fill('Draft RSVP');
   await draftRows.nth(1).locator('.batch-price').fill('100');
+  await draftRows.nth(1).locator('.batch-discount').fill('20');
+  await draftRows.nth(1).locator('.batch-adj-ship').fill('5.00');
+  await draftRows.nth(1).locator('.batch-adj-use-tax').uncheck();
+  await draftRows.nth(1).locator('.batch-adj-minted-total').fill('85.00');
+  assert.equal(await draftRows.nth(1).locator('.batch-adj-total').inputValue(), '85.00');
+  assert.equal(await draftRows.nth(1).locator('.batch-adj-total-check').innerText(), 'Matches Minted');
 
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
   await page.locator('#modeBatchBtn').click();
-
   const restoredDraftRows = page.locator('#batchRows .batch-row');
   assert.equal(await restoredDraftRows.count(), 2, 'Refresh should preserve the number of Batch rows');
   assert.equal(await restoredDraftRows.nth(0).locator('.batch-name').inputValue(), 'Invitation',
     'Refresh should restore each card name');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-price').inputValue()), 50,
-    'Refresh should restore the original price');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-discount').inputValue()), 15,
-    'Refresh should restore the discount');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-amount').inputValue()), 50.55,
-    'Refresh should preserve a manually adjusted Amount');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-price').inputValue()), 50.55);
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-discount').inputValue()), 0);
+  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-amount').textContent(), '50.55',
+    'Refresh should recalculate the Amount display from the fee');
+  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-tax').textContent(), '3.92',
+    'Refresh should recalculate Estimated tax from Amount and Tax rate %');
   assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-ship').inputValue()), 0,
     'Refresh should preserve Shipping Adjustment');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.92,
-    'Refresh should preserve manually entered Minted tax');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-subtotal').inputValue()), 54.47,
-    'Refresh should recompute Subtotal from Amount and the restored Minted tax');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47,
-    'Refresh should recompute Total Adjustment from restored values');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-minted-total').inputValue()), 54.47,
-    'Refresh should restore the optional Total from Minted reference');
-  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-total-check').innerText(), 'Matches Minted',
-    'Batch should compare the calculated total to the saved Minted total');
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-subtotal').inputValue()), 54.47);
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47);
+  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-minted-total').inputValue()), 54.47);
+  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-total-check').innerText(), 'Matches Minted');
+  assert.equal(await restoredDraftRows.nth(0).locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]').isDisabled(), false);
   assert.ok((await page.locator('#batchNoteText').inputValue()).includes('"Invitation" cards: $54.47'),
-    'The restored customer note should use Minted tax and the resulting Total Adjustment');
-  const typedTaxTotalCopy = restoredDraftRows.nth(0).locator('.adj-copy-btn[aria-label="Copy Total Adjustment"]');
-  await typedTaxTotalCopy.click();
-  await page.waitForFunction(() => document.querySelector('#batchRows .batch-row .adj-copy-btn[aria-label="Copy Total Adjustment"]')?.textContent.trim() === 'Copied ✓');
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '54.47',
-    'The Total Adjustment Copy button should copy 54.47 for the entered Minted tax');
-
-  await restoredDraftRows.nth(0).locator('.batch-adj-minted-total').fill('54.48');
-  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-total-check').innerText(),
-    'Mismatch: app $54.47, Minted $54.48, difference $0.01',
-    'Batch should show the app total, Minted total, and cent difference when they mismatch');
-  await restoredDraftRows.nth(0).locator('.batch-adj-minted-total').fill('');
-
-  // Include Tax is functional in every Batch row; excluding it uses zero tax.
-  await restoredDraftRows.nth(0).locator('.batch-adj-ship').fill('5.00');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 59.47,
-    'Minted tax 3.92 plus $5 shipping should total $59.47');
-  const batchUseTax = restoredDraftRows.nth(0).locator('.batch-adj-use-tax');
-  await batchUseTax.uncheck();
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 0,
-    'Unchecking Include Tax should set tax to zero');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 55.55,
-    'Without tax, Total Adjustment should equal Amount plus Shipping');
-  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-tax').isDisabled(), true,
-    'Tax input should be disabled when Include Tax is unchecked');
-  await batchUseTax.check();
-  await restoredDraftRows.nth(0).locator('.batch-adj-ship').fill('0');
-  await page.locator('#taxRate').fill('8');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 4.04,
-    'Changing the shared rate should recalculate the Batch estimate at 8%');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.59,
-    'Changing the shared rate should recalculate the Batch total');
-  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(1).locator('.batch-adj-label > span').innerText(),
-    'Estimated tax', 'Batch should retain the estimate label after changing the rate');
-  assert.ok((await restoredDraftRows.nth(0).locator('.batch-adj-total').getAttribute('class')).includes('is-unconfirmed'),
-    'Batch total should stay unconfirmed after changing the rate');
-  await page.locator('#taxRate').fill('7.75');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.92,
-    'Restoring 7.75% should restore Batch estimated tax');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47,
-    'Restoring 7.75% should restore the Batch estimate total');
-  await page.locator('#taxRate').fill('0');
-  assert.equal(await page.locator('#taxRate').getAttribute('aria-invalid'), 'true',
-    'A zero rate should be rejected in Batch mode');
-  assert.equal(await page.locator('#taxRateError').isVisible(), true,
-    'An invalid shared rate should show its validation error in Batch mode');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47,
-    'An invalid shared rate must not corrupt the Batch total');
-  await page.locator('#taxRate').evaluate((el) => el.blur());
-  assert.equal(await page.locator('#taxRate').inputValue(), '7.75',
-    'Invalid Batch rate should recover to 7.75%');
-  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(1).locator('.batch-adj-label > span').innerText(),
-    'Estimated tax', 'An invalid rate must not change the Batch label to Minted tax');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.92,
-    'The Batch estimate should remain correct after invalid-rate recovery');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.92,
-    'Without a typed tax, Batch should show the 7.75% estimate');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47,
-    'The estimated tax should total $54.47 on Amount $50.55');
-  assert.equal((await restoredDraftRows.nth(0).locator('.batch-adj-status').innerText()),
-    'Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.',
-    'The estimated state should explain the Minted verification step');
-  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(1).locator('.batch-adj-label > span').innerText(),
-    'Estimated tax', 'Batch tax field should be visibly marked as an estimate before Minted tax is entered');
-  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(4).locator('.batch-adj-label > span').innerText(),
-    'Total Adjustment (estimate)', 'Batch total label should mark estimated tax as provisional');
-  assert.ok((await restoredDraftRows.nth(0).locator('.batch-adj-total').getAttribute('class')).includes('is-unconfirmed'),
-    'Batch Total Adjustment should be visibly flagged while tax is estimated');
-  await restoredDraftRows.nth(0).locator('.batch-adj-tax').fill('3.92');
-  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(1).locator('.batch-adj-label > span').innerText(),
-    'Tax from Minted', 'Batch tax field should show the Minted label after user enters actual tax');
-  assert.equal(await restoredDraftRows.nth(0).locator('.batch-adj-field').nth(4).locator('.batch-adj-label > span').innerText(),
-    'Total Adjustment', 'Batch total label should drop estimate label after tax entry');
-  assert.ok(!(await restoredDraftRows.nth(0).locator('.batch-adj-total').getAttribute('class')).includes('is-unconfirmed'),
-    'Batch unconfirmed style should clear after Minted tax is entered');
-  await restoredDraftRows.nth(0).locator('.batch-adj-ship').fill('5.00');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-total').inputValue()), 59.47,
-    'Typed tax and Shipping should be used in Batch');
-  await restoredDraftRows.nth(0).locator('.batch-price').fill('51');
-  assert.equal(Number(await restoredDraftRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.36,
-    'Changing original price should reset Batch tax to the 7.75% estimate');
-  assert.equal((await restoredDraftRows.nth(0).locator('.batch-adj-status').innerText()),
-    'Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.',
-    'Changing original price should return the row to estimated status');
-  assert.equal(await restoredDraftRows.nth(1).locator('.batch-name').inputValue(), 'Draft RSVP',
-    'Refresh should preserve the card name in a partially entered row');
-  assert.equal(Number(await restoredDraftRows.nth(1).locator('.batch-price').inputValue()), 100,
-    'Refresh should preserve a partially entered price');
-  assert.equal(await restoredDraftRows.nth(1).locator('.batch-discount').inputValue(), '',
-    'Refresh should keep an incomplete discount blank');
-
-  // Save a typed Minted tax in row 1 and unchecked Include Tax in row 2, then reload.
-  await restoredDraftRows.nth(0).locator('.batch-adj-amount').fill('50.55');
-  await restoredDraftRows.nth(0).locator('.batch-adj-tax').fill('3.92');
-  await restoredDraftRows.nth(0).locator('.batch-adj-ship').fill('0');
-  await restoredDraftRows.nth(1).locator('.batch-discount').fill('20');
-  await restoredDraftRows.nth(1).locator('.batch-adj-ship').fill('5.00');
-  await restoredDraftRows.nth(1).locator('.batch-adj-use-tax').uncheck();
-  assert.equal(Number(await restoredDraftRows.nth(1).locator('.batch-adj-total').inputValue()), 85,
-    'Second row with Include Tax off should total Amount plus $5 shipping');
-  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
-  await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
-  await page.locator('#modeBatchBtn').click();
-  const bothTaxRows = page.locator('#batchRows .batch-row');
-  assert.equal(Number(await bothTaxRows.nth(0).locator('.batch-adj-tax').inputValue()), 3.92,
-    'Refresh should restore typed Minted tax in row 1');
-  assert.equal(Number(await bothTaxRows.nth(0).locator('.batch-adj-total').inputValue()), 54.47,
-    'Refresh should preserve row 1 tax calculation');
-  assert.equal(await bothTaxRows.nth(1).locator('.batch-adj-use-tax').isChecked(), false,
-    'Refresh should restore Include Tax unchecked in row 2');
-  assert.equal(await bothTaxRows.nth(1).locator('.batch-adj-tax').isDisabled(), true,
-    'Restored unchecked Include Tax should keep tax disabled');
-  assert.equal(Number(await bothTaxRows.nth(1).locator('.batch-adj-tax').inputValue()), 0,
-    'Restored unchecked Include Tax should keep tax at zero');
-  assert.equal(Number(await bothTaxRows.nth(1).locator('.batch-adj-total').inputValue()), 85,
-    'Restored unchecked row should calculate Amount plus shipping');
+    'The restored customer note should use the confirmed estimated total');
+  assert.equal(await restoredDraftRows.nth(1).locator('.batch-adj-tax').textContent(), '0.00',
+    'Restored Include Tax off should keep the tax display at zero');
+  assert.equal(await restoredDraftRows.nth(1).locator('.batch-adj-use-tax').isChecked(), false);
+  assert.equal(await restoredDraftRows.nth(1).locator('.batch-adj-total').inputValue(), '85.00');
+  assert.equal(await restoredDraftRows.nth(1).locator('.batch-adj-total-check').innerText(), 'Matches Minted');
+  assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), false,
+    'Every row has a matching total after the draft reload');
 
   // Reset opens a centered modal; closing it without confirmation leaves the current Batch data untouched.
   const resetButton = page.locator('#resetBtn');
