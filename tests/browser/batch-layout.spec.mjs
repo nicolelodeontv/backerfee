@@ -1430,8 +1430,9 @@ try {
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
   assert.equal(await page.locator('#taxRate').inputValue(), '7.75',
     'An invalid localStorage tax rate should fall back to 7.75% on startup');
-  await page.locator('#adjAmount').fill('50.55');
-  assert.equal(Number(await page.locator('#adjTax').inputValue()), 3.92,
+  await page.locator('#backer').fill('100');
+  await page.locator('#discount').fill('49.45');
+  assert.equal(Number(await page.locator('#adjTax').textContent()), 3.92,
     'The stored-rate fallback should calculate tax without NaN');
   assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.47,
     'The stored-rate fallback should calculate the expected total');
