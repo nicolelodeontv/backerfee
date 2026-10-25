@@ -1292,7 +1292,7 @@ try {
   assert.equal(await page.locator('#copyBtn').isDisabled(), false);
   assert.equal(await singleTotalCopy.isDisabled(), false);
   await page.locator('#adjMintedTotal').fill('86.21');
-  assert.match(await page.locator('#adjMintedTotalCheck').innerText(), /difference \\$0\\.01/);
+  assert.match(await page.locator('#adjMintedTotalCheck').innerText(), /difference \$0\.01/);
   assert.match(await page.locator('#adjMintedTotalCheck').innerText(), /Adjust Tax rate %/);
   assert.equal(await page.locator('#copyBtn').isDisabled(), true);
   assert.equal(await singleTotalCopy.isDisabled(), true);
@@ -1381,7 +1381,7 @@ try {
   assert.equal(await page.locator('#adjTax').textContent(), '5.81');
   assert.equal(await page.locator('#adjTotal').inputValue(), '80.81');
   assert.equal(await singleTotalCopy.isDisabled(), true);
-  assert.match(await page.locator('#adjMintedTotalCheck').innerText(), /difference \\$0\\.19/);
+  assert.match(await page.locator('#adjMintedTotalCheck').innerText(), /difference \$0\.19/);
   await page.locator('#adjMintedTotal').fill('80.81');
   assert.equal(await page.locator('#adjMintedTotalCheck').innerText(), 'Matches Minted');
   assert.equal(await singleTotalCopy.isDisabled(), false);
