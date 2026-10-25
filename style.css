@@ -2235,3 +2235,30 @@ html[data-theme="dark"] .highlighted strong span {
 
 .soft-hint::before { content: "ℹ "; color: var(--accent); }
 .soft-hint[hidden] { display: none; }
+
+/* Even spacing: empty error placeholders no longer reserve blank space,
+   and the stacked tax card is no longer forced to a 150px-tall block. */
+.field-grid .error:empty { min-height: 0; margin-top: 0; }
+
+@media (max-width: 520px) {
+  .tax-rate-setting .adjustment-rate-field { flex: 0 0 auto; }
+}
+
+/* Desktop: match the 18px rhythm used between the other blocks. */
+@media (min-width: 901px) {
+  .dashboard-card > .history-card.single-only { margin-top: 18px; }
+}
+
+/* Phones: keep Minted entry amounts at a fixed, readable width instead of
+   letting the label and Copy button squeeze them. */
+@media (max-width: 520px) {
+  .adjustment-row > .adjustment-value-input,
+  .adjustment-row > .adjustment-row-valuegroup {
+    flex: 0 0 135px;
+    width: 135px;
+  }
+  .adjustment-row-valuegroup { align-items: stretch; }
+  .adjustment-row-valuegroup .adjustment-value-input { flex: 0 0 auto; width: 100%; }
+  .adjustment-row-valuegroup .adj-check { align-self: flex-end; }
+  .adjustment-row.total .adjustment-value-input input { font-size: 13px; padding-right: 8px; }
+}
