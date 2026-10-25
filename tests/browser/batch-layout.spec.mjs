@@ -917,7 +917,7 @@ try {
     'Batch guard should identify Row 2 specifically');
   assert.match(await page.locator('#batchNoteGuard').innerText(), /difference \$0\.01/,
     'Batch guard should include the mismatch difference');
-  assert.match(await page.locator('#batchNoteGuard').innerText(), /adjust Tax rate %/,
+  assert.match(await page.locator('#batchNoteGuard').innerText(), /Adjust Tax rate %/,
     'Batch guard should explain that Tax rate % may need adjustment');
   await unconfirmedRow.locator('.batch-adj-minted-total').fill(await unconfirmedRow.locator('.batch-adj-total').inputValue());
   assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), false,
