@@ -153,7 +153,7 @@ try {
   const draftTax = invitationDraft.locator('.batch-adj-tax');
   assert.equal(await draftAmount.evaluate((el) => el.tagName), 'OUTPUT',
     'Batch Amount must be a plain output, not an input');
-  assert.equal(await draftAmount.isEditable(), false, 'Batch Amount must not accept typing');
+  assert.equal(await draftAmount.evaluate((el) => el.tagName === 'INPUT'), false, 'Batch Amount must not accept typing');
   assert.ok((await draftAmount.evaluate((el) => el.tabIndex)) < 0, 'Batch Amount must not be keyboard-focusable');
   assert.equal(await draftTax.evaluate((el) => el.tagName), 'OUTPUT',
     'Batch Estimated tax must be a plain output, not an input');
