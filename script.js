@@ -491,12 +491,10 @@ function estimateTaxCents(amountCents) {
   return Math.round((amountCents * taxRate) / 100);
 }
 
-function adjustmentCents(amountValue, shipValue, taxOverrideCents = null, includeTax = true) {
+function adjustmentCents(amountValue, shipValue, includeTax = true) {
   const amountCents = Math.round(amountValue * 100);
   const shipCents = Math.round(shipValue * 100);
-  const taxCents = includeTax
-    ? (taxOverrideCents === null ? estimateTaxCents(amountCents) : Math.max(0, Math.round(taxOverrideCents)))
-    : 0;
+  const taxCents = includeTax ? estimateTaxCents(amountCents) : 0;
   const subtotalCents = amountCents + taxCents;
   return { amountCents, taxCents, subtotalCents, shipCents, totalCents: subtotalCents + shipCents };
 }
@@ -598,7 +596,7 @@ function applyBatchAdjustment(row, data) {
   }
 
   const amountCents = Math.round(amount.value * 100);
-  const adj = adjustmentCents(amount.value, ship.value, null, useTaxInput.checked);
+  const adj = adjustmentCents(amount.value, ship.value, useTaxInput.checked);
   taxOutput.value = (adj.taxCents / 100).toFixed(2);
   subtotalOut.value = (adj.subtotalCents / 100).toFixed(2);
   setPopInputValue(totalOut, (adj.totalCents / 100).toFixed(2));
@@ -668,7 +666,7 @@ function computeAdjustment() {
   }
 
   const amountCents = Math.round(amount.value * 100);
-  const current = adjustmentCents(amount.value, ship.value, null, includeTax);
+  const current = adjustmentCents(amount.value, ship.value, includeTax);
   currentAdjustment = current;
   adjTax.value = (current.taxCents / 100).toFixed(2);
   adjSubtotal.value = (current.subtotalCents / 100).toFixed(2);
