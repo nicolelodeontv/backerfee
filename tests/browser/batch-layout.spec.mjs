@@ -1160,9 +1160,9 @@ try {
     narrowTaxOutputBox.x + narrowTaxOutputBox.width <= narrowTaxFieldBox.x + narrowTaxFieldBox.width + 1,
   `320px Estimated tax display should remain inside its field (output=${JSON.stringify(narrowTaxOutputBox)})`);
   assert.ok(narrowTaxLabelBox && narrowTaxOutputBox &&
-    (narrowTaxLabelBox.right <= narrowTaxOutputBox.x + 2 ||
+    (narrowTaxLabelBox.x + narrowTaxLabelBox.width <= narrowTaxOutputBox.x + 2 ||
       narrowTaxOutputBox.x + narrowTaxOutputBox.width <= narrowTaxLabelBox.x + 2 ||
-      narrowTaxLabelBox.bottom <= narrowTaxOutputBox.y + 2 ||
+      narrowTaxLabelBox.y + narrowTaxLabelBox.height <= narrowTaxOutputBox.y + 2 ||
       narrowTaxOutputBox.y + narrowTaxOutputBox.height <= narrowTaxLabelBox.y + 2),
   `320px Batch Estimated tax label and display should not overlap: ${JSON.stringify({ label: narrowTaxLabelBox, output: narrowTaxOutputBox, field: narrowTaxFieldBox })}`);
   assert.ok(narrowTaxStatusBox && narrowTaxStatusBox.x >= narrowLayoutMetrics.adjustment.x - 1 &&
