@@ -189,7 +189,7 @@ try {
     'A one-cent Batch mismatch must disable Total Adjustment Copy');
   assert.equal(await page.locator('#copyAllNotesBtn').isDisabled(), true,
     'A one-cent Batch mismatch must block Copy Note');
-  assert.match(await invitationDraft.locator('.batch-adj-total-check').innerText(), /adjust Tax rate %/,
+  assert.match(await invitationDraft.locator('.batch-adj-total-check').innerText(), /Adjust Tax rate %/,
     'A Batch mismatch with tax included must explain that the rate can be adjusted');
 
   // Include Tax off uses $0.00 tax and still requires an exact final-total match.
