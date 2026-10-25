@@ -155,6 +155,7 @@ try {
     'Batch Amount must be a plain output, not an input');
   assert.equal(await draftAmount.evaluate((el) => el.tagName === 'INPUT'), false, 'Batch Amount must not accept typing');
   assert.ok((await draftAmount.evaluate((el) => el.tabIndex)) < 0, 'Batch Amount must not be keyboard-focusable');
+  assert.equal(await draftAmount.evaluate((el) => getComputedStyle(el).userSelect), 'text', 'Batch Amount should be selectable as plain text');
   assert.equal(await draftTax.evaluate((el) => el.tagName), 'OUTPUT',
     'Batch Estimated tax must be a plain output, not an input');
   assert.equal(await draftTax.evaluate((el) => el.tagName === 'INPUT'), false, 'Batch Estimated tax must not accept typing');
