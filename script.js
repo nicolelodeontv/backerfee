@@ -517,6 +517,15 @@ function updateMintedTotalComparison(input, status, totalCents) {
     status.classList.add('is-warning');
     return false;
   }
+  const includeTax = input.closest('.batch-row')?.querySelector('.batch-adj-use-tax')?.checked
+    ?? document.getElementById('adjUseTax')?.checked
+    ?? true;
+  const rateInput = document.getElementById('taxRate');
+  if (includeTax && rateInput && parseTaxRate(rateInput.value) === null) {
+    status.textContent = 'Enter a valid Tax rate % before confirming the total.';
+    status.classList.add('is-warning');
+    return false;
+  }
   if (!Number.isSafeInteger(totalCents)) {
     status.textContent = 'Enter valid adjustment values to compare with Minted.';
     status.classList.add('is-warning');
@@ -626,8 +635,8 @@ function clearAdjustmentResults() {
   adjTax.value = adjUseTaxInput.checked ? '' : '0.00';
   adjSubtotal.value = '';
   adjTotal.value = '';
-  adjLimitWarning.hidden = true;
-  adjTotal.classList.remove('t-number-field-pop');
+  adjTotal.classList.remove('is-unconfirmed', 't-number-field-pop');
+  adjTotalCopyBtn.disabled = true;
   clearPopInputMotion(adjTotal);
   updateMintedTotalComparison(adjMintedTotal, adjMintedTotalCheck, null);
 }
