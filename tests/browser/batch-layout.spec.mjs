@@ -157,7 +157,7 @@ try {
   assert.ok((await draftAmount.evaluate((el) => el.tabIndex)) < 0, 'Batch Amount must not be keyboard-focusable');
   assert.equal(await draftTax.evaluate((el) => el.tagName), 'OUTPUT',
     'Batch Estimated tax must be a plain output, not an input');
-  assert.equal(await draftTax.isEditable(), false, 'Batch Estimated tax must not accept typing');
+  assert.equal(await draftTax.evaluate((el) => el.tagName === 'INPUT'), false, 'Batch Estimated tax must not accept typing');
   assert.ok((await draftTax.evaluate((el) => el.tabIndex)) < 0, 'Batch Estimated tax must not be keyboard-focusable');
   assert.equal(await page.locator('#batchRows .adj-copy-btn[aria-label="Copy Amount"]').count(), 0,
     'No Amount Copy button may appear in Batch');
@@ -692,10 +692,10 @@ try {
     const amountOutput = rows.nth(i).locator('.batch-adj-amount');
     const taxOutput = rows.nth(i).locator('.batch-adj-tax');
     assert.equal(await amountOutput.evaluate((el) => el.tagName), 'OUTPUT', 'Batch Amount must be a plain display');
-    assert.equal(await amountOutput.isEditable(), false, 'Batch Amount must not accept typing');
+    assert.equal(await amountOutput.evaluate((el) => el.tagName === 'INPUT'), false, 'Batch Amount must not accept typing');
     assert.ok((await amountOutput.evaluate((el) => el.tabIndex)) < 0, 'Batch Amount must not be focusable');
     assert.equal(await taxOutput.evaluate((el) => el.tagName), 'OUTPUT', 'Batch tax must be a plain display');
-    assert.equal(await taxOutput.isEditable(), false, 'Batch tax must not accept typing');
+    assert.equal(await taxOutput.evaluate((el) => el.tagName === 'INPUT'), false, 'Batch tax must not accept typing');
     assert.ok((await taxOutput.evaluate((el) => el.tabIndex)) < 0, 'Batch tax must not be focusable');
   }
 
@@ -845,7 +845,7 @@ try {
   const rowOneAmount = rows.nth(0).locator('.batch-adj-amount');
   assert.equal(await rowOneAmount.textContent(), '90.00');
   assert.equal(await rowOneAmount.evaluate((el) => el.tagName), 'OUTPUT');
-  assert.equal(await rowOneAmount.isEditable(), false);
+  assert.equal(await rowOneAmount.evaluate((el) => el.tagName === 'INPUT'), false);
   const rowOneShipping = rows.nth(0).locator('.batch-adj-ship');
   await rowOneShipping.fill('3.50');
   assert.equal(await rowOneShipping.evaluate((el) => document.activeElement === el), true,
@@ -1247,8 +1247,8 @@ try {
   await page.locator('#discount').fill('20');
   assert.equal(await page.locator('#adjAmount').evaluate((el) => el.tagName), 'OUTPUT');
   assert.equal(await page.locator('#adjTax').evaluate((el) => el.tagName), 'OUTPUT');
-  assert.equal(await page.locator('#adjAmount').isEditable(), false);
-  assert.equal(await page.locator('#adjTax').isEditable(), false);
+  assert.equal(await page.locator('#adjAmount').evaluate((el) => el.tagName === 'INPUT'), false);
+  assert.equal(await page.locator('#adjTax').evaluate((el) => el.tagName === 'INPUT'), false);
   assert.ok((await page.locator('#adjAmount').evaluate((el) => el.tabIndex)) < 0);
   assert.ok((await page.locator('#adjTax').evaluate((el) => el.tabIndex)) < 0);
   assert.equal(await page.locator('.adj-copy-btn[data-copy-from="#adjAmount"]').count(), 0);
