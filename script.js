@@ -1279,11 +1279,15 @@ function getBatchCustomerNoteBlockers(results) {
       mintedTotalStatus.textContent.trim() === 'Matches Minted';
     if (!totalMatches) {
       const cardName = row.querySelector('.batch-name')?.value.trim();
+      const comparisonMessage = mintedTotalStatus.textContent.trim();
+      const hasMismatch = comparisonMessage.startsWith('Mismatch:');
       blockers.push({
         name: 'Row ' + (rowIndex + 1) + (cardName ? ' (“' + cardName + '”)' : ''),
-        reason: row.querySelector('.batch-adj-use-tax')?.checked
-          ? 'a Total from Minted that matches exactly (adjust Tax rate % if needed)'
-          : 'a Total from Minted that matches exactly'
+        reason: hasMismatch
+          ? 'a Total from Minted that matches exactly. Current check: ' + comparisonMessage
+          : (row.querySelector('.batch-adj-use-tax')?.checked
+            ? 'a Total from Minted that matches exactly (adjust Tax rate % if needed)'
+            : 'a Total from Minted that matches exactly')
       });
     }
   }
