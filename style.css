@@ -2159,11 +2159,12 @@ html[data-theme="dark"] .highlighted strong span {
   z-index: 60;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
-  gap: 10px 12px;
-  max-width: min(560px, calc(100vw - 32px));
-  padding: 12px 16px;
+  gap: 12px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 10px 14px;
   color: var(--ink);
   background: var(--paper);
   border: 1px solid var(--line);
@@ -2180,9 +2181,15 @@ html[data-theme="dark"] .highlighted strong span {
 }
 
 .update-banner-message {
+  min-width: 0;
+  overflow: hidden;
   font-size: .92rem;
   font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
+
+.update-banner button { flex: 0 0 auto; min-height: 36px; white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) {
   .update-banner { transition: none; }

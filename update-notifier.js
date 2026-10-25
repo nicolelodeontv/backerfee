@@ -52,7 +52,7 @@
 
     const message = document.createElement('span');
     message.className = 'update-banner-message';
-    message.textContent = 'A new version is available. Reload to get the latest update.';
+    message.textContent = 'A new version is available.';
 
     const reload = document.createElement('button');
     reload.type = 'button';
