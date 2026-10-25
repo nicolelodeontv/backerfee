@@ -87,6 +87,34 @@
     }
   }
 
+  async function manualCheck(button) {
+    if (shown) {
+      document.querySelector('.update-banner button')?.focus();
+      return;
+    }
+    const label = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Checking…';
+    try {
+      const current = await fingerprint();
+      if (baseline === null) baseline = current;
+      if (current !== baseline) {
+        showBanner();
+      } else {
+        window.backerFeeShowToast?.('You are on the latest version.');
+      }
+    } catch {
+      window.backerFeeShowToast?.('Could not check for updates. Try again later.', 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = label;
+    }
+  }
+
+  document.getElementById('checkUpdateBtn')?.addEventListener('click', (event) => {
+    manualCheck(event.currentTarget);
+  });
+
   async function start() {
     try {
       baseline = await fingerprint();

@@ -2187,3 +2187,16 @@ html[data-theme="dark"] .highlighted strong span {
 @media (prefers-reduced-motion: reduce) {
   .update-banner { transition: none; }
 }
+
+.update-check-btn {
+  padding: 0;
+  color: var(--muted);
+  font: inherit;
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.update-check-btn:hover { color: var(--accent-dark); }
+.update-check-btn:disabled { cursor: progress; opacity: .7; }
