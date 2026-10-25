@@ -35,6 +35,7 @@ const adjUseTaxInput = document.getElementById('adjUseTax');
 const adjLimitWarning = document.getElementById('adjLimitWarning');
 const adjSubtotal = document.getElementById('adjSubtotal');
 const adjTotal = document.getElementById('adjTotal');
+const adjTotalCopyBtn = document.querySelector('.adj-copy-btn[data-copy-from="#adjTotal"]');
 const adjStatus = document.getElementById('adjStatus');
 const adjShipInput = document.getElementById('adjShip');
 const noteText = document.getElementById('noteText');
@@ -506,7 +507,7 @@ function updateMintedTotalComparison(input, status, totalCents) {
   input.setAttribute('aria-invalid', 'false');
   if (!raw) {
     status.textContent = '';
-    return;
+    return false;
   }
 
   const mintedTotal = readAdjustmentField(input);
@@ -514,46 +515,54 @@ function updateMintedTotalComparison(input, status, totalCents) {
     input.setAttribute('aria-invalid', 'true');
     status.textContent = 'Enter a valid Minted total (up to 2 decimals).';
     status.classList.add('is-warning');
-    return;
+    return false;
   }
   if (!Number.isSafeInteger(totalCents)) {
     status.textContent = 'Enter valid adjustment values to compare with Minted.';
     status.classList.add('is-warning');
-    return;
+    return false;
   }
 
   const mintedCents = Math.round(mintedTotal.value * 100);
   if (totalCents === mintedCents) {
     status.textContent = 'Matches Minted';
     status.classList.add('is-success');
-    return;
+    return true;
   }
+  const useTax = input.closest('.batch-row')?.querySelector('.batch-adj-use-tax')?.checked
+    ?? document.getElementById('adjUseTax')?.checked
+    ?? true;
+  const nextStep = useTax
+    ? '. Adjust Tax rate % until the totals match.'
+    : '. Check the Amount and Shipping Adjustment, then compare again.';
   status.textContent = 'Mismatch: app ' + money(totalCents / 100) +
     ', Minted ' + money(mintedCents / 100) +
-    ', difference ' + money(Math.abs(totalCents - mintedCents) / 100);
+    ', difference ' + money(Math.abs(totalCents - mintedCents) / 100) + nextStep;
   status.classList.add('is-warning');
+  return false;
 }
 
 // Per-row version of computeAdjustment() for Batch.
 function applyBatchAdjustment(row, data) {
-  const amountInput = row.querySelector('.batch-adj-amount');
+  const amountOutput = row.querySelector('.batch-adj-amount');
   const shipInput = row.querySelector('.batch-adj-ship');
-  const taxOut = row.querySelector('.batch-adj-tax');
+  const taxOutput = row.querySelector('.batch-adj-tax');
   const useTaxInput = row.querySelector('.batch-adj-use-tax');
   const subtotalOut = row.querySelector('.batch-adj-subtotal');
   const totalOut = row.querySelector('.batch-adj-total');
+  const totalCopyBtn = row.querySelector('.adj-copy-btn[aria-label="Copy Total Adjustment"]');
   const mintedTotalInput = row.querySelector('.batch-adj-minted-total');
   const mintedTotalStatus = row.querySelector('.batch-adj-total-check');
   const status = row.querySelector('.batch-adj-status');
   const limitWarning = row.querySelector('.batch-adj-limit-warning');
 
   const clear = (message, warn = false) => {
-    taxOut.disabled = !useTaxInput.checked;
-    taxOut.value = useTaxInput.checked ? '' : '0.00';
+    taxOutput.value = useTaxInput.checked ? '' : '0.00';
     subtotalOut.value = '';
     totalOut.value = '';
-    totalOut.classList.remove('t-number-field-pop');
+    totalOut.classList.remove('t-number-field-pop', 'is-unconfirmed');
     clearPopInputMotion(totalOut);
+    totalCopyBtn.disabled = true;
     limitWarning.hidden = true;
     status.textContent = message;
     status.classList.remove('is-success', 'is-warning');
@@ -562,60 +571,49 @@ function applyBatchAdjustment(row, data) {
     return null;
   };
 
-  const amount = readAdjustmentField(amountInput);
+  const amount = readAdjustmentField(amountOutput);
   const ship = readAdjustmentField(shipInput);
-  const taxRaw = taxOut.value.trim();
-  const tax = readAdjustmentField(taxOut);
-  let taxEdited = row.dataset.taxEdited === '1';
-  if (taxEdited && !taxRaw && document.activeElement !== taxOut) {
-    row.dataset.taxEdited = '';
-    taxEdited = false;
-  }
-  const taxLabel = taxOut.closest('.batch-adj-field')?.querySelector('.batch-adj-label > span');
+  const taxLabel = taxOutput.closest('.batch-adj-field')?.querySelector('.batch-adj-label > span');
   const totalLabel = totalOut.closest('.batch-adj-field')?.querySelector('.batch-adj-label > span');
-  const taxUnconfirmed = useTaxInput.checked && !taxEdited;
-  taxLabel.textContent = !useTaxInput.checked ? 'Tax excluded'
-    : (taxEdited ? 'Tax from Minted' : 'Estimated tax');
-  if (totalLabel) totalLabel.textContent = taxUnconfirmed ? 'Total Adjustment (estimate)' : 'Total Adjustment';
-  totalOut.classList.toggle('is-unconfirmed', taxUnconfirmed);
-  totalOut.setAttribute('aria-label', taxUnconfirmed
-    ? 'Estimated total adjustment, not final until tax is replaced with Minted tax'
-    : 'Calculated total adjustment');
-  taxOut.disabled = !useTaxInput.checked;
-  amountInput.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
-  shipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
-  taxOut.setAttribute('aria-invalid', !useTaxInput.checked || !taxEdited || tax.ok ? 'false' : 'true');
-  setInputMotionError(amountInput, !amount.ok);
+  taxLabel.textContent = useTaxInput.checked ? 'Estimated tax' : 'Tax excluded';
+  taxOutput.value = useTaxInput.checked ? taxOutput.value : '0.00';
+  amountOutput.removeAttribute('aria-invalid');
+  taxOutput.removeAttribute('aria-invalid');
   setInputMotionError(shipInput, !ship.ok);
-  setInputMotionError(taxOut, useTaxInput.checked && taxEdited && !tax.ok);
 
   if (!data || amount.empty) return clear('Enter a price and discount to see the Minted adjustment.');
-  if (!amount.ok || !ship.ok || (useTaxInput.checked && taxEdited && taxRaw && !tax.ok)) {
+  if (!amount.ok || !ship.ok) {
     return clear('Fix the highlighted values (up to 2 decimals).', true);
   }
 
   const amountCents = Math.round(amount.value * 100);
-  const taxCents = !useTaxInput.checked
-    ? 0
-    : (taxEdited ? (taxRaw ? Math.round(tax.value * 100) : 0) : estimateTaxCents(amountCents));
-  const adj = adjustmentCents(amount.value, ship.value, taxCents, useTaxInput.checked);
-  if (!useTaxInput.checked) taxOut.value = '0.00';
-  else if (!taxEdited) taxOut.value = (adj.taxCents / 100).toFixed(2);
-  else if (taxRaw && document.activeElement !== taxOut) taxOut.value = (adj.taxCents / 100).toFixed(2);
+  const adj = adjustmentCents(amount.value, ship.value, null, useTaxInput.checked);
+  taxOutput.value = (adj.taxCents / 100).toFixed(2);
   subtotalOut.value = (adj.subtotalCents / 100).toFixed(2);
   setPopInputValue(totalOut, (adj.totalCents / 100).toFixed(2));
-  updateMintedTotalComparison(mintedTotalInput, mintedTotalStatus, adj.totalCents);
+  const totalMatches = updateMintedTotalComparison(mintedTotalInput, mintedTotalStatus, adj.totalCents);
+  totalCopyBtn.disabled = !totalMatches;
+  totalOut.classList.toggle('is-unconfirmed', !totalMatches);
+  if (totalLabel) totalLabel.textContent = useTaxInput.checked && !totalMatches
+    ? 'Total Adjustment (estimate)'
+    : 'Total Adjustment';
+  totalOut.setAttribute('aria-label', useTaxInput.checked && !totalMatches
+    ? 'Estimated total adjustment; confirm with Total from Minted'
+    : 'Calculated total adjustment');
   limitWarning.hidden = adj.totalCents < 5000000;
+
   if (!useTaxInput.checked) {
-    status.textContent = 'Tax excluded. Subtotal equals Amount.';
-    status.classList.remove('is-warning');
-    status.classList.add('is-success');
-  } else if (taxEdited) {
-    status.textContent = 'Using tax from Minted.';
+    status.textContent = totalMatches
+      ? 'Tax excluded. Total confirmed against Minted.'
+      : 'Tax excluded. Enter Total from Minted and confirm an exact match before using this total.';
+    status.classList.toggle('is-warning', !totalMatches);
+    status.classList.toggle('is-success', totalMatches);
+  } else if (totalMatches) {
+    status.textContent = 'Matches Minted. Total confirmed.';
     status.classList.remove('is-warning');
     status.classList.add('is-success');
   } else {
-    status.textContent = 'Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.';
+    status.textContent = 'Unconfirmed total: tax is an estimate. Enter Total from Minted; adjust Tax rate % until the totals match before using this total.';
     status.classList.remove('is-success');
     status.classList.add('is-warning');
   }
@@ -637,30 +635,11 @@ function clearAdjustmentResults() {
 function computeAdjustment() {
   const amount = readAdjustmentField(adjAmount);
   const ship = readAdjustmentField(adjShipInput);
-  const taxRaw = adjTax.value.trim();
-  const tax = readAdjustmentField(adjTax);
-  let taxEdited = adjTax.dataset.taxEdited === '1';
-  if (taxEdited && !taxRaw && document.activeElement !== adjTax) {
-    adjTax.dataset.taxEdited = '';
-    taxEdited = false;
-  }
   const includeTax = adjUseTaxInput.checked;
-  adjTax.disabled = !includeTax;
-  const taxUnconfirmed = includeTax && !taxEdited;
-  if (adjTaxLabel) adjTaxLabel.textContent = !includeTax ? 'Tax excluded'
-    : (taxEdited ? 'Tax from Minted' : 'Estimated tax');
-  if (adjTotalLabel) adjTotalLabel.textContent = taxUnconfirmed ? 'Total Adjustment (estimate)' : 'Total Adjustment';
-  adjTotal.classList.toggle('is-unconfirmed', taxUnconfirmed);
-  adjTotal.setAttribute('aria-label', taxUnconfirmed
-    ? 'Estimated total adjustment, not final until tax is replaced with Minted tax'
-    : 'Calculated total adjustment');
+  if (adjTaxLabel) adjTaxLabel.textContent = includeTax ? 'Estimated tax' : 'Tax excluded';
 
-  adjAmount.setAttribute('aria-invalid', amount.ok ? 'false' : 'true');
   adjShipInput.setAttribute('aria-invalid', ship.ok ? 'false' : 'true');
-  adjTax.setAttribute('aria-invalid', !includeTax || !taxEdited || tax.ok ? 'false' : 'true');
-  setInputMotionError(adjAmount, !amount.ok);
   setInputMotionError(adjShipInput, !ship.ok);
-  setInputMotionError(adjTax, includeTax && taxEdited && !tax.ok);
   adjStatus.classList.remove('is-success', 'is-warning');
 
   const stop = (message, warn = false) => {
@@ -671,43 +650,46 @@ function computeAdjustment() {
   };
 
   if (amount.empty) return stop('Enter a price and discount to see the Minted adjustment.');
-  if (!amount.ok || !ship.ok || (includeTax && taxEdited && taxRaw && !tax.ok)) {
+  if (!amount.ok || !ship.ok) {
     return stop('Fix the highlighted values (up to 2 decimals).', true);
   }
 
   const amountCents = Math.round(amount.value * 100);
-  const taxCents = !includeTax ? 0
-    : (taxEdited ? (taxRaw ? Math.round(tax.value * 100) : 0) : estimateTaxCents(amountCents));
-  currentAdjustment = adjustmentCents(amount.value, ship.value, taxCents, includeTax);
-  const { amountCents: adjustedAmountCents, taxCents: appliedTaxCents, subtotalCents, totalCents } = currentAdjustment;
+  const current = adjustmentCents(amount.value, ship.value, null, includeTax);
+  currentAdjustment = current;
+  adjTax.value = (current.taxCents / 100).toFixed(2);
+  adjSubtotal.value = (current.subtotalCents / 100).toFixed(2);
+  setPopInputValue(adjTotal, (current.totalCents / 100).toFixed(2));
+  const totalMatches = updateMintedTotalComparison(adjMintedTotal, adjMintedTotalCheck, current.totalCents);
+  adjTotalCopyBtn.disabled = !totalMatches;
+  adjTotal.classList.toggle('is-unconfirmed', !totalMatches);
+  if (adjTotalLabel) adjTotalLabel.textContent = includeTax && !totalMatches
+    ? 'Total Adjustment (estimate)'
+    : 'Total Adjustment';
+  adjTotal.setAttribute('aria-label', includeTax && !totalMatches
+    ? 'Estimated total adjustment; confirm with Total from Minted'
+    : 'Calculated total adjustment');
+  adjLimitWarning.hidden = current.totalCents < 5000000;
 
-  if (!includeTax) adjTax.value = '0.00';
-  else if (!taxEdited) adjTax.value = (appliedTaxCents / 100).toFixed(2);
-  else if (taxRaw && document.activeElement !== adjTax) adjTax.value = (appliedTaxCents / 100).toFixed(2);
-  adjSubtotal.value = (subtotalCents / 100).toFixed(2);
-  setPopInputValue(adjTotal, (totalCents / 100).toFixed(2));
-  updateMintedTotalComparison(adjMintedTotal, adjMintedTotalCheck, totalCents);
-  adjLimitWarning.hidden = totalCents < 5000000;
   if (!includeTax) {
-    adjStatus.textContent = 'Tax excluded. Subtotal equals Amount.';
-    adjStatus.classList.add('is-success');
-  } else if (taxEdited) {
-    adjStatus.textContent = 'Using tax from Minted.';
+    adjStatus.textContent = totalMatches
+      ? 'Tax excluded. Total confirmed against Minted.'
+      : 'Tax excluded. Enter Total from Minted and confirm an exact match before using this total.';
+    adjStatus.classList.toggle('is-warning', !totalMatches);
+    adjStatus.classList.toggle('is-success', totalMatches);
+  } else if (totalMatches) {
+    adjStatus.textContent = 'Matches Minted. Total confirmed.';
     adjStatus.classList.add('is-success');
   } else {
-    adjStatus.textContent = 'Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.';
+    adjStatus.textContent = 'Unconfirmed total: tax is an estimate. Enter Total from Minted; adjust Tax rate % until the totals match before using this total.';
     adjStatus.classList.add('is-warning');
   }
   updateNote(calculated);
 }
 
 // Called whenever the Final Backer Fee changes: Amount follows the fee, tax follows the Amount.
-function updateAdjustment(finalFee, { resetTax = true } = {}) {
+function updateAdjustment(finalFee) {
   adjAmount.value = calculated ? (Math.round(Number(finalFee) * 100) / 100).toFixed(2) : '';
-  if (resetTax) {
-    adjTax.dataset.taxEdited = '';
-    if (!calculated) adjTax.value = '';
-  }
   computeAdjustment();
 }
 
@@ -729,17 +711,10 @@ function refreshAdjustment() {
 
 function isSingleCustomerNoteReady() {
   if (!calculated || !currentAdjustment) return false;
-
   const mintedTotal = readAdjustmentField(adjMintedTotal);
-  const totalMatches = !mintedTotal.empty && mintedTotal.ok &&
+  return !mintedTotal.empty && mintedTotal.ok &&
     Number.isSafeInteger(currentAdjustment.totalCents) &&
     adjMintedTotalCheck.textContent.trim() === 'Matches Minted';
-  if (!totalMatches) return false;
-
-  if (!adjUseTaxInput.checked) return true;
-
-  const tax = readAdjustmentField(adjTax);
-  return adjTax.dataset.taxEdited === '1' && !tax.empty && tax.ok;
 }
 
 function updateSingleNoteCopyState() {
@@ -748,13 +723,13 @@ function updateSingleNoteCopyState() {
   copyBtn.disabled = !ready;
   noteCopyGuard.hidden = !hasDetails || ready;
   noteCopyGuard.textContent = ready ? '' : (adjUseTaxInput.checked
-    ? "Enter Minted's tax and total, then confirm “Matches Minted” before copying this note."
-    : "With Include Tax off, enter a Total from Minted that matches the calculated total before copying this note.");
+    ? 'Enter Total from Minted and adjust Tax rate % until it matches before copying this note.'
+    : 'With Include Tax off, enter a Total from Minted that matches the calculated total before copying this note.');
 
   if (!calculated) {
     noteState.textContent = 'Waiting for valid details';
   } else if (!ready) {
-    noteState.textContent = noteWasEdited ? 'Edited — tax and total not confirmed' : 'Tax and total not confirmed';
+    noteState.textContent = noteWasEdited ? 'Edited — total not confirmed' : 'Total not confirmed';
   } else {
     noteState.textContent = noteWasEdited ? 'Edited — ready to copy' : 'Updated automatically';
   }
@@ -1081,18 +1056,17 @@ function renderBatchRows(rows) {
         '<div class="batch-adjust-head"><div><span class="section-kicker">FINANCIAL ADJUSTMENT</span><h3>Minted entry</h3></div>' +
         '<span class="adjustment-target-label">Estimate: ' + taxRate + '%</span></div>' +
         '<div class="batch-adjust-grid">' +
-          adjField('Amount (enter in Minted)', '<input class="batch-adj-amount" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Amount to enter in Minted">',
-            '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-amount" aria-label="Copy Amount"><span class="t-text-swap">Copy</span></button>') +
-          adjField('Estimated tax', '<input class="batch-adj-tax" type="number" min="0" step="0.01" placeholder="Enter Minted tax" inputmode="decimal" autocomplete="off" aria-label="Enter Minted tax to replace the estimate">',
+          adjField('Amount (enter in Minted)', '<output class="batch-adj-amount batch-adj-output" aria-label="Amount to enter in Minted"></output>') +
+          adjField('Estimated tax', '<output class="batch-adj-tax batch-adj-output" aria-label="Estimated tax"></output>',
             '<label class="adj-check">Include Tax: <input class="batch-adj-use-tax" type="checkbox" checked aria-label="Include tax"></label>') +
           adjField('Subtotal', '<input class="batch-adj-subtotal" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Calculated subtotal">') +
           adjField('Shipping Adjustment', '<input class="batch-adj-ship" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" autocomplete="off" aria-label="Shipping adjustment">') +
-          adjField('Total Adjustment (estimate)', '<input class="batch-adj-total" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Estimated total adjustment, not final until tax is replaced with Minted tax">',
-            '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-total" aria-label="Copy Total Adjustment"><span class="t-text-swap">Copy</span></button>') +
-          adjField('Total from Minted (optional)', '<input class="batch-adj-minted-total" type="number" min="0" step="0.01" placeholder="Enter Minted total" inputmode="decimal" autocomplete="off" aria-label="Total from Minted, optional">') +
+          adjField('Total Adjustment (estimate)', '<input class="batch-adj-total" type="number" min="0" step="0.01" placeholder="0.00" readonly aria-label="Estimated total adjustment; confirm with Total from Minted">',
+            '<button type="button" class="adj-copy-btn" data-copy-from=".batch-adj-total" aria-label="Copy Total Adjustment" disabled><span class="t-text-swap">Copy</span></button>') +
+          adjField('Total from Minted', '<input class="batch-adj-minted-total" type="number" min="0" step="0.01" placeholder="Enter Minted total" inputmode="decimal" autocomplete="off" aria-label="Total from Minted">') +
         '</div>' +
         '<p class="adjustment-status batch-adj-total-check" role="status" aria-live="polite"></p>' +
-        '<p class="adjustment-status batch-adj-status" role="status" aria-live="polite">Unconfirmed total: tax is an estimate. Replace it with Minted\'s tax before using this total.</p>' +
+        '<p class="adjustment-status batch-adj-status" role="status" aria-live="polite">Unconfirmed total: tax is an estimate. Enter Total from Minted; adjust Tax rate % until the totals match before using this total.</p>' +
         '<p class="adjustment-limit-warning batch-adj-limit-warning" role="alert" hidden>Minted won\'t allow a charge of $50,000 or more.</p>' +
       '</div>';
 
@@ -1107,11 +1081,10 @@ function renderBatchRows(rows) {
     const useTaxInput = row.querySelector('.batch-adj-use-tax');
     priceInput.value = rowData.backer ?? '';
     discountInputForRow.value = rowData.discount ?? '';
-    amountInput.value = rowData.amount ?? '';
+    amountInput.value = '';
     shipInput.value = rowData.ship ?? '';
-    taxInput.value = rowData.tax ?? '';
+    taxInput.value = '';
     mintedTotalInput.value = rowData.mintedTotal ?? '';
-    row.dataset.taxEdited = rowData.taxEdited ? '1' : '';
     useTaxInput.checked = rowData.useTax !== false;
     const nameInput = row.querySelector('.batch-name');
     nameInput.value = rowData.name ?? '';
@@ -1123,7 +1096,6 @@ function renderBatchRows(rows) {
 
     priceInput.addEventListener('input', () => {
       row.dataset.amountEdited = '';
-      row.dataset.taxEdited = '';
       calculateBatch();
     });
 
@@ -1141,7 +1113,7 @@ function renderBatchRows(rows) {
 
     discountInputForRow.addEventListener('input', () => {
       row.dataset.amountEdited = '';
-      row.dataset.taxEdited = '';
+
       const boundMessage = clampBatchDiscount(discountInputForRow);
       calculateBatch();
       if (boundMessage) {
@@ -1162,31 +1134,12 @@ function renderBatchRows(rows) {
       }
     });
 
-    amountInput.addEventListener('input', () => {
-      row.dataset.amountEdited = '1';
-      calculateBatch();
-    });
-    amountInput.addEventListener('blur', () => {
-      calculateBatch();
-      const value = readAdjustmentField(amountInput);
-      setInputMotionError(amountInput, !value.ok, { shake: true });
-    });
-    taxInput.addEventListener('input', () => {
-      row.dataset.taxEdited = '1';
-      calculateBatch();
-    });
-    taxInput.addEventListener('blur', () => {
-      if (!taxInput.value.trim()) row.dataset.taxEdited = '';
-      else {
-        const value = readAdjustmentField(taxInput);
-        if (value.ok) taxInput.value = (Math.round(value.value * 100) / 100).toFixed(2);
-      }
-      calculateBatch();
-      const value = readAdjustmentField(taxInput);
-      setInputMotionError(taxInput, useTaxInput.checked && row.dataset.taxEdited === '1' && !value.ok, { shake: true });
-    });
     useTaxInput.addEventListener('change', () => {
-      row.dataset.taxEdited = '';
+      calculateBatch();
+    });
+
+
+    useTaxInput.addEventListener('change', () => {
       calculateBatch();
     });
     shipInput.addEventListener('input', () => calculateBatch());
@@ -1223,7 +1176,6 @@ function calculateBatch() {
       cancelDigitDisplay(discountBox, '$0.00');
       cancelDigitDisplay(finalBox, '$0.00');
       amountInput.value = '';
-      row.dataset.amountEdited = '';
       applyBatchAdjustment(row, null);
     };
 
@@ -1245,7 +1197,7 @@ function calculateBatch() {
       const resultData = calculateFee(values.backer, values.discount);
       setDigitDisplay(discountBox, money(resultData.discountAmount));
       setDigitDisplay(finalBox, money(resultData.discountedPrice));
-      if (row.dataset.amountEdited !== '1') amountInput.value = resultData.discountedPrice.toFixed(2);
+      amountInput.value = resultData.discountedPrice.toFixed(2);
       const adjustment = applyBatchAdjustment(row, resultData);
       const typedName = row.querySelector('.batch-name').value.trim();
       results.push({
@@ -1307,26 +1259,26 @@ function getBatchCustomerNoteBlockers(results) {
   const blockers = [];
 
   for (const item of results) {
-    const row = rows.find((candidate) => Number(candidate.dataset.id) === item.rowId);
+    const rowIndex = rows.findIndex((candidate) => Number(candidate.dataset.id) === item.rowId);
+    const row = rowIndex >= 0 ? rows[rowIndex] : null;
     if (!item.adjustment || !row) {
-      blockers.push({ name: item.name || 'Unnamed row', reason: 'valid adjustment values' });
+      blockers.push({ name: 'Row ' + (rowIndex >= 0 ? rowIndex + 1 : '?'), reason: 'valid adjustment values' });
       continue;
     }
 
-    const taxInput = row.querySelector('.batch-adj-tax');
     const mintedTotalInput = row.querySelector('.batch-adj-minted-total');
-    const useTaxInput = row.querySelector('.batch-adj-use-tax');
     const mintedTotalStatus = row.querySelector('.batch-adj-total-check');
-    const tax = readAdjustmentField(taxInput);
     const mintedTotal = readAdjustmentField(mintedTotalInput);
     const totalMatches = !mintedTotal.empty && mintedTotal.ok &&
       mintedTotalStatus.textContent.trim() === 'Matches Minted';
-
-    if (useTaxInput.checked &&
-        (row.dataset.taxEdited !== '1' || tax.empty || !tax.ok)) {
-      blockers.push({ name: item.name, reason: "Minted's tax and a matching Total from Minted" });
-    } else if (!totalMatches) {
-      blockers.push({ name: item.name, reason: 'a matching Total from Minted' });
+    if (!totalMatches) {
+      const cardName = row.querySelector('.batch-name')?.value.trim();
+      blockers.push({
+        name: 'Row ' + (rowIndex + 1) + (cardName ? ' (“' + cardName + '”)' : ''),
+        reason: row.querySelector('.batch-adj-use-tax')?.checked
+          ? 'a Total from Minted that matches exactly (adjust Tax rate % if needed)'
+          : 'a Total from Minted that matches exactly'
+      });
     }
   }
 
@@ -1643,12 +1595,11 @@ function updatePresetState() {
 form.addEventListener('submit', (event) => event.preventDefault());
 
 resetBtn.addEventListener('click', requestReset);
- [adjAmount, adjShipInput].forEach((el) => {
-  el.addEventListener('input', () => {
-    computeAdjustment();
-    if (el === adjShipInput) saveSettings();
-  });
+adjShipInput.addEventListener('input', () => {
+  computeAdjustment();
+  saveSettings();
 });
+
 taxRateInput.addEventListener('input', () => {
   const parsed = parseTaxRate(taxRateInput.value);
   taxRateInput.setAttribute('aria-invalid', parsed === null ? 'true' : 'false');
@@ -1679,50 +1630,19 @@ taxRateInput.addEventListener('blur', () => {
   calculateBatch();
 });
 adjMintedTotal.addEventListener('input', () => {
-  updateMintedTotalComparison(adjMintedTotal, adjMintedTotalCheck, currentAdjustment?.totalCents ?? null);
-  updateSingleNoteCopyState();
+  computeAdjustment();
 });
 adjMintedTotal.addEventListener('blur', () => {
   const value = readAdjustmentField(adjMintedTotal);
   if (!value.empty && value.ok) adjMintedTotal.value = (Math.round(value.value * 100) / 100).toFixed(2);
-  updateMintedTotalComparison(adjMintedTotal, adjMintedTotalCheck, currentAdjustment?.totalCents ?? null);
-  updateSingleNoteCopyState();
+  computeAdjustment();
   setInputMotionError(adjMintedTotal, !value.ok, { shake: true });
 });
-adjTax.addEventListener('input', () => {
-  adjTax.dataset.taxEdited = '1';
-  computeAdjustment();
-});
-adjTax.addEventListener('blur', () => {
-  if (!adjTax.value.trim()) adjTax.dataset.taxEdited = '';
-  else {
-    const value = readAdjustmentField(adjTax);
-    if (value.ok) adjTax.value = (Math.round(value.value * 100) / 100).toFixed(2);
-  }
-  computeAdjustment();
-  const value = readAdjustmentField(adjTax);
-  setInputMotionError(adjTax, adjUseTaxInput.checked && adjTax.dataset.taxEdited === '1' && !value.ok, { shake: true });
-});
 adjUseTaxInput.addEventListener('change', () => {
-  adjTax.dataset.taxEdited = '';
   computeAdjustment();
   saveSettings();
 });
-[adjAmount, adjShipInput].forEach((el) => {
-  el.addEventListener('blur', () => {
-    computeAdjustment();
-    const value = readAdjustmentField(el);
-    setInputMotionError(el, !value.ok, { shake: true });
-  });
-});
-[adjAmount, adjShipInput].forEach((el) => {
-  el.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      computeAdjustment();
-    }
-  });
-});
+
 themeBtn.addEventListener('click', () => {
   const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   applyTheme(next, { animate: true });
@@ -1880,7 +1800,7 @@ function flashCopyButton(button, text, ok = true) {
 
 document.addEventListener('click', async (event) => {
   const button = event.target.closest('.adj-copy-btn');
-  if (!button) return;
+  if (!button || button.disabled) return;
 
   // In Batch, look inside this row only; in Single, look in the whole page.
   const scope = button.closest('.batch-adjust') || document;
