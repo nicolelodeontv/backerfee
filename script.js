@@ -1340,7 +1340,7 @@ async function copyAllNotes() {
   if (!notes.trim()) return;
   if (!areBatchCustomerNotesReady(batchResults)) {
     updateBatchNoteCopyState(batchResults);
-    batchStatus.textContent = "Enter Minted's tax and total in every calculated row, then confirm Matches Minted before copying notes.";
+    batchStatus.textContent = "Enter Total from Minted for every calculated row and adjust Tax rate % where needed until each total matches.";
     return;
   }
 
@@ -1511,7 +1511,7 @@ async function copyNote() {
   }
   if (!isSingleCustomerNoteReady()) {
     updateSingleNoteCopyState();
-    copyStatus.textContent = "Enter Minted's tax and total, then confirm Matches Minted before copying.";
+    copyStatus.textContent = "Enter Total from Minted and adjust Tax rate % until the calculated total matches before copying.";
     return;
   }
 
