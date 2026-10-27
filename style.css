@@ -2262,3 +2262,96 @@ html[data-theme="dark"] .highlighted strong span {
   .adjustment-row-valuegroup .adj-check { align-self: flex-end; }
   .adjustment-row.total .adjustment-value-input input { font-size: 13px; padding-right: 8px; }
 }
+
+/* ===== Neutral black-gradient dark theme override ===== */
+html[data-theme="dark"] {
+  --ink: #f2f2f4;
+  --muted: #aaaab2;
+  --paper: rgba(12, 12, 14, .98);
+  --paper-2: #0d0d0f;
+  --soft: #121214;
+  --line: rgba(255, 255, 255, .08);
+  --shadow: 0 24px 70px rgba(0, 0, 0, .58);
+  --page-bg:
+    radial-gradient(1200px 600px at 50% -10%, #17171a 0%, transparent 60%),
+    linear-gradient(180deg, #050505 0%, #000 55%, #000 100%);
+  --accent: #b99ad1;
+  --accent-dark: #e0ccef;
+  --grad-accent: linear-gradient(135deg, #8b5cf6 0%, #c084fc 55%, #f0abfc 100%);
+  --glow: 0 8px 24px rgba(139, 92, 246, .22);
+}
+
+html[data-theme="dark"] body {
+  background: var(--page-bg) fixed;
+}
+
+html[data-theme="dark"] body::before {
+  background: none;
+}
+
+html[data-theme="dark"] .dashboard-card {
+  background: linear-gradient(160deg, #101012 0%, #070708 100%);
+  border-color: rgba(255, 255, 255, .08);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .58);
+}
+
+html[data-theme="dark"] .calculator-card,
+html[data-theme="dark"] .history-card {
+  background: linear-gradient(160deg, #101012 0%, #070708 100%);
+  border-color: rgba(255, 255, 255, .08);
+}
+
+html[data-theme="dark"] h1 {
+  background: none !important;
+  color: #f2f2f4 !important;
+  -webkit-text-fill-color: #f2f2f4 !important;
+}
+
+html[data-theme="dark"] .result-box,
+html[data-theme="dark"] .adjustment-card,
+html[data-theme="dark"] .batch-panel,
+html[data-theme="dark"] .batch-row,
+html[data-theme="dark"] .batch-adjust {
+  background: linear-gradient(160deg, #101012 0%, #080809 100%);
+  border-color: rgba(255, 255, 255, .08);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, .24);
+}
+
+/* Keep the primary fee result as the main purple accent. */
+html[data-theme="dark"] .highlighted {
+  background: linear-gradient(160deg, #1a1226 0%, #09070d 100%);
+  border-color: rgba(168, 120, 255, .48);
+  box-shadow: 0 10px 30px rgba(139, 92, 246, .16);
+}
+
+html[data-theme="dark"] .note-panel {
+  background: linear-gradient(160deg, #101012 0%, #080809 100%);
+  border-color: rgba(255, 255, 255, .10);
+}
+
+html[data-theme="dark"] .input-wrap input,
+html[data-theme="dark"] .batch-field input,
+html[data-theme="dark"] .batch-field select,
+html[data-theme="dark"] .batch-field textarea,
+html[data-theme="dark"] .note-panel textarea,
+html[data-theme="dark"] .custom-preset-input-wrap input {
+  background: #0b0b0d;
+  border-color: rgba(255, 255, 255, .10);
+}
+
+html[data-theme="dark"] .input-wrap input:focus,
+html[data-theme="dark"] .batch-field input:focus,
+html[data-theme="dark"] .note-panel textarea:focus {
+  border-color: rgba(185, 154, 209, .72);
+  box-shadow: 0 0 0 4px rgba(185, 154, 209, .12);
+}
+
+/* Keep Batch adjustment totals neutral, except while tax is unconfirmed. */
+html[data-theme="dark"] .batch-adj-total {
+  color: var(--ink) !important;
+}
+
+html[data-theme="dark"] .batch-adj-total.is-unconfirmed {
+  color: var(--danger) !important;
+}
+
