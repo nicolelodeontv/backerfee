@@ -1586,7 +1586,10 @@ try {
       'Reset uses one centered modal with focus trapping, scroll locking, safe close actions, and a 320px layout',
       'Single and Batch customer notes stay blocked until Minted tax and total match',
       'desktop results and tax-rate setting have deliberate vertical spacing',
-      'dark Batch estimated total is red and confirmed total is neutral white',\n      'dark Batch approval warning and Tax rate surface retain expected colors',\n      'light Batch and Single surfaces remain unchanged after theme toggling',\n      'no uncaught browser runtime errors'
+      'dark Batch estimated total is red and confirmed total is neutral white',
+      'dark Batch approval warning and Tax rate surface retain expected colors',
+      'light Batch and Single surfaces remain unchanged after theme toggling',
+      'no uncaught browser runtime errors'
     ],
     screenshots: [
       'desktop-1440-four-rows.png',
@@ -1596,7 +1599,10 @@ try {
       'phone-320-three-rows.png',
       'single-mode-1440.png',
       'batch-real-values-1440.png',
-      'batch-real-values-first-row.png',\n      'batch-dark-unconfirmed-total.png',\n      'batch-dark-confirmed-total.png',\n      'single-light-after-dark-batch.png'
+      'batch-real-values-first-row.png',
+      'batch-dark-unconfirmed-total.png',
+      'batch-dark-confirmed-total.png',
+      'single-light-after-dark-batch.png'
     ]
   }, null, 2));
   await context.close();
