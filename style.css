@@ -2373,6 +2373,7 @@ html[data-theme="dark"] .dashboard-card {
 }
 
 /* Inner cards: slightly lighter than the shell so the layers read */
+html[data-theme="dark"] .tax-rate-setting,
 html[data-theme="dark"] .calculator-card,
 html[data-theme="dark"] .history-card,
 html[data-theme="dark"] .result-box,
