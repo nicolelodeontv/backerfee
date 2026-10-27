@@ -2346,3 +2346,12 @@ html[data-theme="dark"] .note-panel textarea:focus {
   box-shadow: 0 0 0 4px rgba(185, 154, 209, .12);
 }
 
+/* Keep Batch adjustment totals neutral, except while tax is unconfirmed. */
+html[data-theme="dark"] .batch-adj-total {
+  color: var(--ink) !important;
+}
+
+html[data-theme="dark"] .batch-adj-total.is-unconfirmed {
+  color: var(--danger) !important;
+}
+
