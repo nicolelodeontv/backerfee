@@ -2355,3 +2355,50 @@ html[data-theme="dark"] .batch-adj-total.is-unconfirmed {
   color: var(--danger) !important;
 }
 
+/* ===== Visible black gradient (dark mode) ===== */
+html[data-theme="dark"] {
+  --page-bg:
+    radial-gradient(900px 500px at 15% -5%, rgba(255, 255, 255, .10) 0%, transparent 60%),
+    radial-gradient(800px 500px at 100% 100%, rgba(255, 255, 255, .05) 0%, transparent 55%),
+    linear-gradient(160deg, #1b1b1f 0%, #0a0a0c 45%, #000 100%);
+}
+
+/* Main shell: diagonal sheen, light top-left fading to black bottom-right */
+html[data-theme="dark"] .dashboard-card {
+  background: linear-gradient(145deg, #1a1a1e 0%, #0c0c0e 40%, #040405 100%);
+  border-color: rgba(255, 255, 255, .10);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .06),
+    0 24px 70px rgba(0, 0, 0, .7);
+}
+
+/* Inner cards: slightly lighter than the shell so the layers read */
+html[data-theme="dark"] .tax-rate-setting,
+html[data-theme="dark"] .calculator-card,
+html[data-theme="dark"] .history-card,
+html[data-theme="dark"] .result-box,
+html[data-theme="dark"] .adjustment-card,
+html[data-theme="dark"] .batch-panel,
+html[data-theme="dark"] .batch-row,
+html[data-theme="dark"] .batch-adjust,
+html[data-theme="dark"] .note-panel {
+  background: linear-gradient(160deg, #18181c 0%, #0b0b0d 55%, #060607 100%);
+  border-color: rgba(255, 255, 255, .09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+
+/* Inputs: darker than their cards so they look recessed */
+html[data-theme="dark"] .input-wrap input,
+html[data-theme="dark"] .batch-field input,
+html[data-theme="dark"] .batch-field select,
+html[data-theme="dark"] .batch-field textarea,
+html[data-theme="dark"] .note-panel textarea,
+html[data-theme="dark"] .custom-preset-input-wrap input {
+  background: linear-gradient(180deg, #060607 0%, #0e0e11 100%);
+}
+
+/* Keep the purple accent card, with a visible gradient too */
+html[data-theme="dark"] .highlighted {
+  background: linear-gradient(150deg, #2a1c40 0%, #120c1d 50%, #060409 100%);
+}
+
