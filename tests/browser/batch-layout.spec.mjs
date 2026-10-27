@@ -1513,7 +1513,7 @@ try {
     return {
       totalColor: getComputedStyle(total).color,
       unconfirmed: total.classList.contains('is-unconfirmed'),
-      taxCardBackground: getComputedStyle(taxCard).backgroundColor,
+      taxCardBackgroundImage: getComputedStyle(taxCard).backgroundImage,
       calloutText: getComputedStyle(callout).color,
       calloutBorder: getComputedStyle(callout).borderTopColor,
       calloutBackgroundImage: getComputedStyle(callout).backgroundImage
@@ -1521,7 +1521,7 @@ try {
   });
   assert.equal(darkUnconfirmedStyles.unconfirmed, true, 'Estimated-tax total should carry the unconfirmed state');
   assert.equal(darkUnconfirmedStyles.totalColor, 'rgb(241, 154, 170)', 'Unconfirmed dark Batch total should be red, not pink accent');
-  assert.equal(darkUnconfirmedStyles.taxCardBackground, 'rgb(13, 13, 15)', 'Dark Tax rate card should use the same near-black token as other surfaces');
+  assert.ok(darkUnconfirmedStyles.taxCardBackgroundImage.includes('linear-gradient'), 'Dark Tax rate card should share the visible inner-card gradient');
   assert.equal(darkUnconfirmedStyles.calloutText, 'rgb(255, 243, 214)', 'Dark Batch approval warning text should remain readable warm white');
   assert.equal(darkUnconfirmedStyles.calloutBorder, 'rgb(251, 191, 36)', 'Dark Batch approval warning should keep its amber border');
   assert.ok(darkUnconfirmedStyles.calloutBackgroundImage.includes('linear-gradient'), 'Dark Batch approval warning should retain its amber-red gradient');
