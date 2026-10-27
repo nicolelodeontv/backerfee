@@ -1485,6 +1485,86 @@ try {
   assert.equal(Number(await page.locator('#adjTotal').inputValue()), 54.47,
     'The stored-rate fallback should calculate the expected total');
 
+  // Dark Batch theme regression check: confirm both Total Adjustment color states in Chromium.
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length >= 2, null, { timeout: 15000 });
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
+  await page.locator('#themeBtn').click();
+  await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+  await page.locator('#modeBatchBtn').click();
+
+  const visualRow = page.locator('#batchRows .batch-row').first();
+  await visualRow.locator('.batch-name').fill('Dark Theme QA');
+  await visualRow.locator('.batch-price').fill('100');
+  await visualRow.locator('.batch-discount').fill('10');
+  await visualRow.locator('.batch-adj-tax').fill('');
+  await visualRow.locator('.batch-adj-minted-total').fill('');
+  const visualTotal = visualRow.locator('.batch-adj-total');
+  await page.waitForFunction(() => {
+    const total = document.querySelector('#batchRows .batch-row .batch-adj-total');
+    return total && total.value !== '' && total.classList.contains('is-unconfirmed');
+  }, null, { timeout: 10000 });
+
+  const darkUnconfirmedStyles = await page.evaluate(() => {
+    const total = document.querySelector('#batchRows .batch-row .batch-adj-total');
+    const taxCard = document.querySelector('.tax-rate-setting');
+    const callout = document.querySelector('#batchPanel .adjustment-callout');
+    return {
+      totalColor: getComputedStyle(total).color,
+      unconfirmed: total.classList.contains('is-unconfirmed'),
+      taxCardBackground: getComputedStyle(taxCard).backgroundColor,
+      calloutText: getComputedStyle(callout).color,
+      calloutBorder: getComputedStyle(callout).borderTopColor,
+      calloutBackgroundImage: getComputedStyle(callout).backgroundImage
+    };
+  });
+  assert.equal(darkUnconfirmedStyles.unconfirmed, true, 'Estimated-tax total should carry the unconfirmed state');
+  assert.equal(darkUnconfirmedStyles.totalColor, 'rgb(241, 154, 170)', 'Unconfirmed dark Batch total should be red, not pink accent');
+  assert.equal(darkUnconfirmedStyles.taxCardBackground, 'rgb(13, 13, 15)', 'Dark Tax rate card should use the same near-black token as other surfaces');
+  assert.equal(darkUnconfirmedStyles.calloutText, 'rgb(255, 243, 214)', 'Dark Batch approval warning text should remain readable warm white');
+  assert.equal(darkUnconfirmedStyles.calloutBorder, 'rgb(251, 191, 36)', 'Dark Batch approval warning should keep its amber border');
+  assert.ok(darkUnconfirmedStyles.calloutBackgroundImage.includes('linear-gradient'), 'Dark Batch approval warning should retain its amber-red gradient');
+  await page.screenshot({ path: screenshotName('batch-dark-unconfirmed-total'), fullPage: true, animations: 'disabled' });
+
+  // Enter the estimated tax as Minted tax and the matching total; confirmed total must be neutral white.
+  await visualRow.locator('.batch-adj-tax').fill('6.98');
+  await visualRow.locator('.batch-adj-minted-total').fill(await visualTotal.inputValue());
+  await page.waitForFunction(() => {
+    const row = document.querySelector('#batchRows .batch-row');
+    return row?.querySelector('.batch-adj-total-check')?.textContent.trim() === 'Matches Minted' &&
+      !row.querySelector('.batch-adj-total')?.classList.contains('is-unconfirmed');
+  }, null, { timeout: 10000 });
+  const darkConfirmedStyles = await page.evaluate(() => {
+    const total = document.querySelector('#batchRows .batch-row .batch-adj-total');
+    return { totalColor: getComputedStyle(total).color, unconfirmed: total.classList.contains('is-unconfirmed') };
+  });
+  assert.equal(darkConfirmedStyles.unconfirmed, false, 'Confirmed dark Batch total should clear the unconfirmed state');
+  assert.equal(darkConfirmedStyles.totalColor, 'rgb(242, 242, 244)', 'Confirmed dark Batch total should be neutral white, not pink');
+  await page.screenshot({ path: screenshotName('batch-dark-confirmed-total'), fullPage: true, animations: 'disabled' });
+
+  // Toggle back to light mode and verify the existing light palette remains intact in both tabs.
+  await page.locator('#themeBtn').click();
+  await page.waitForFunction(() => document.documentElement.dataset.theme === 'light');
+  assert.equal(
+    await visualTotal.evaluate((el) => getComputedStyle(el).color),
+    'rgb(96, 64, 120)',
+    'Light Batch total should retain the original light-theme accent'
+  );
+  assert.equal(
+    await page.locator('.tax-rate-setting').evaluate((el) => getComputedStyle(el).backgroundColor),
+    'rgb(252, 251, 253)',
+    'Light Tax rate card should retain the original light surface'
+  );
+  await page.locator('#modeSingleBtn').click();
+  assert.equal(await page.locator('#adjustmentCard').isVisible(), true, 'Single mode should remain usable after the theme toggle');
+  assert.equal(
+    await page.locator('#adjustmentCard').evaluate((el) => getComputedStyle(el).backgroundColor),
+    'rgb(252, 251, 253)',
+    'Single-mode Financial Adjustment card should retain the original light surface'
+  );
+  await page.screenshot({ path: screenshotName('single-light-after-dark-batch'), fullPage: true, animations: 'disabled' });
+
   assert.deepEqual(errors, [], `Browser should not emit runtime errors: ${errors.join('; ')}`);
   console.log(JSON.stringify({
     result: 'PASS',
@@ -1506,7 +1586,7 @@ try {
       'Reset uses one centered modal with focus trapping, scroll locking, safe close actions, and a 320px layout',
       'Single and Batch customer notes stay blocked until Minted tax and total match',
       'desktop results and tax-rate setting have deliberate vertical spacing',
-      'no uncaught browser runtime errors'
+      'dark Batch estimated total is red and confirmed total is neutral white',\n      'dark Batch approval warning and Tax rate surface retain expected colors',\n      'light Batch and Single surfaces remain unchanged after theme toggling',\n      'no uncaught browser runtime errors'
     ],
     screenshots: [
       'desktop-1440-four-rows.png',
@@ -1516,7 +1596,7 @@ try {
       'phone-320-three-rows.png',
       'single-mode-1440.png',
       'batch-real-values-1440.png',
-      'batch-real-values-first-row.png'
+      'batch-real-values-first-row.png',\n      'batch-dark-unconfirmed-total.png',\n      'batch-dark-confirmed-total.png',\n      'single-light-after-dark-batch.png'
     ]
   }, null, 2));
   await context.close();
