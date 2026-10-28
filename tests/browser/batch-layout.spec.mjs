@@ -1510,18 +1510,35 @@ try {
     const total = document.querySelector('#batchRows .batch-row .batch-adj-total');
     const taxCard = document.querySelector('.tax-rate-setting');
     const callout = document.querySelector('#batchPanel .adjustment-callout');
+    const calculatorCard = document.querySelector('.calculator-card');
+    const historyCard = document.querySelector('.history-card');
+    const notePanel = document.querySelector('.note-panel');
     return {
       totalColor: getComputedStyle(total).color,
       unconfirmed: total.classList.contains('is-unconfirmed'),
       taxCardBackgroundImage: getComputedStyle(taxCard).backgroundImage,
       calloutText: getComputedStyle(callout).color,
       calloutBorder: getComputedStyle(callout).borderTopColor,
-      calloutBackgroundImage: getComputedStyle(callout).backgroundImage
+      calloutBackgroundImage: getComputedStyle(callout).backgroundImage,
+      calculatorShadow: getComputedStyle(calculatorCard).boxShadow,
+      historyShadow: getComputedStyle(historyCard).boxShadow,
+      notePanelShadow: getComputedStyle(notePanel).boxShadow,
+      htmlBackgroundColor: getComputedStyle(document.documentElement).backgroundColor,
+      bodyBackgroundRepeat: getComputedStyle(document.body).backgroundRepeat,
+      bodyBackgroundSize: getComputedStyle(document.body).backgroundSize,
+      bodyMinHeight: getComputedStyle(document.body).minHeight
     };
   });
   assert.equal(darkUnconfirmedStyles.unconfirmed, true, 'Estimated-tax total should carry the unconfirmed state');
   assert.equal(darkUnconfirmedStyles.totalColor, 'rgb(241, 154, 170)', 'Unconfirmed dark Batch total should be red, not pink accent');
   assert.ok(darkUnconfirmedStyles.taxCardBackgroundImage.includes('linear-gradient'), 'Dark Tax rate card should share the visible inner-card gradient');
+  assert.equal(darkUnconfirmedStyles.calculatorShadow, 'none', 'Dark calculator wrapper should not draw a full-width inset highlight line');
+  assert.equal(darkUnconfirmedStyles.historyShadow, 'none', 'Dark history wrapper should not draw a full-width inset highlight line');
+  assert.equal(darkUnconfirmedStyles.notePanelShadow, 'none', 'Dark Customer Note panel should not draw a full-width inset highlight line');
+  assert.equal(darkUnconfirmedStyles.htmlBackgroundColor, 'rgb(0, 0, 0)', 'Dark HTML background should be black behind the page gradient');
+  assert.ok(darkUnconfirmedStyles.bodyBackgroundRepeat.includes('no-repeat'), 'Dark page gradient should not repeat and create edge seams');
+  assert.ok(darkUnconfirmedStyles.bodyBackgroundSize.includes('100% 100%'), 'Dark page gradient should cover the full viewport area');
+  assert.ok(parseFloat(darkUnconfirmedStyles.bodyMinHeight) >= 0, 'Dark body should retain an explicit minimum height');
   assert.equal(darkUnconfirmedStyles.calloutText, 'rgb(255, 243, 214)', 'Dark Batch approval warning text should remain readable warm white');
   assert.equal(darkUnconfirmedStyles.calloutBorder, 'rgb(251, 191, 36)', 'Dark Batch approval warning should keep its amber border');
   assert.ok(darkUnconfirmedStyles.calloutBackgroundImage.includes('linear-gradient'), 'Dark Batch approval warning should retain its amber-red gradient');
