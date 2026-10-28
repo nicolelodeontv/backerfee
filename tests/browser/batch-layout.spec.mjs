@@ -1696,6 +1696,17 @@ try {
   assert.equal(Number(await page.locator('#taxRate').inputValue()), 8.25, 'Tax rate should restore after refresh');
   assert.equal(Number(await page.locator('#adjTotal').inputValue()), 88.7, 'Calculated Total Adjustment should be recomputed after refresh');
 
+  // Simulate a hard refresh by disabling the browser cache for the next navigation.
+  const hardRefreshSession = await context.newCDPSession(page);
+  await hardRefreshSession.send('Network.setCacheDisabled', { cacheDisabled: true });
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await hardRefreshSession.send('Network.setCacheDisabled', { cacheDisabled: false });
+  await hardRefreshSession.detach();
+  await page.waitForFunction(() => Math.abs(Number(document.querySelector('#adjTotal').value) - 88.7) < 0.001);
+  assert.equal(Number(await page.locator('#backer').inputValue()), 100, 'Price should restore after a cache-disabled hard refresh');
+  assert.equal(Number(await page.locator('#adjTax').inputValue()), 6.2, 'Minted tax should restore after a cache-disabled hard refresh');
+  assert.equal(Number(await page.locator('#adjMintedTotal').inputValue()), 88.7, 'Total from Minted should restore after a cache-disabled hard refresh');
+
   // Checkbox state is part of the draft too, including the unchecked state.
   await page.locator('#adjUseTax').uncheck();
   await page.waitForFunction(() => Math.abs(Number(document.querySelector('#adjTotal').value) - 82.5) < 0.001);
@@ -1786,7 +1797,7 @@ try {
       'dark Batch background remains seamless during top/middle/bottom scrolling and viewport resizing',
       'light Batch and Single surfaces remain unchanged after theme toggling',
       'number-input spinner arrows are hidden in light and dark themes',
-      'Single-mode input values and calculated totals restore from localStorage after reload',
+      'Single-mode input values and calculated totals restore after normal and cache-disabled hard refreshes',
       'Include Tax checkbox state restores in both checked and unchecked states',
       'Reset clears the draft, Undo restores the full draft, and both survive reload correctly',
       'Escape-triggered confirmed Reset also clears the draft and keeps fields empty after reload',
