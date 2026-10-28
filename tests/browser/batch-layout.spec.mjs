@@ -532,6 +532,7 @@ try {
   await page.evaluate(() => {
     localStorage.removeItem('backerfee-batch-draft-v1');
     localStorage.removeItem('backerfee-settings-v3');
+    localStorage.removeItem('backerfee:draft');
   });
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
@@ -1469,6 +1470,9 @@ try {
   await rateInput.evaluate((el) => { el.type = 'number'; });
   assert.equal(await rateInput.inputValue(), '7.75', 'Letter input should recover to 7.75% on blur');
 
+  // Isolate the legacy settings-fallback test from the newly persisted input draft.
+  await page.evaluate(() => localStorage.removeItem('backerfee:draft'));
+
   // Invalid stored rate data must also load safely with the default rate.
   await page.evaluate(() => {
     const key = 'backerfee-settings-v3';
@@ -1637,6 +1641,136 @@ try {
   );
   await page.screenshot({ path: screenshotName('single-light-after-dark-batch'), fullPage: true, animations: 'disabled' });
 
+  // Number inputs should not show spinner arrows in either theme.
+  const readNumberInputStyles = () => page.locator('input[type="number"]').evaluateAll((elements) =>
+    elements.map((element) => ({
+      id: element.id,
+      appearance: getComputedStyle(element).appearance
+    }))
+  );
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
+  let numberInputStyles = await readNumberInputStyles();
+  assert.ok(numberInputStyles.length > 0, 'App should expose numeric inputs for the spinner check');
+  assert.ok(numberInputStyles.every((style) => style.appearance === 'textfield'),
+    `Light-mode number inputs should use textfield appearance: ${JSON.stringify(numberInputStyles)}`);
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+  numberInputStyles = await readNumberInputStyles();
+  assert.ok(numberInputStyles.every((style) => style.appearance === 'textfield'),
+    `Dark-mode number inputs should use textfield appearance: ${JSON.stringify(numberInputStyles)}`);
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
+
+  // Single-mode draft: persist input fields only, then restore those values and derived results on reload.
+  await page.evaluate(() => localStorage.removeItem('backerfee:draft'));
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.locator('#backer').fill('100');
+  await page.locator('#discount').fill('20');
+  await page.locator('#taxRate').fill('8.25');
+  await page.locator('#adjAmount').fill('80');
+  await page.locator('#adjTax').fill('6.20');
+  await page.locator('#adjShip').fill('2.50');
+  await page.locator('#adjMintedTotal').fill('88.70');
+  await page.locator('#adjUseTax').check();
+  await page.waitForFunction(() => Math.abs(Number(document.querySelector('#adjTotal').value) - 88.7) < 0.001);
+  const savedDraft = await page.evaluate(() => JSON.parse(localStorage.getItem('backerfee:draft') || 'null'));
+  assert.ok(savedDraft, 'Editing Single-mode fields should create a saved draft');
+  assert.equal(Number(String(savedDraft.backer).replace(/,/g, '')), 100);
+  assert.equal(Number(savedDraft.discount), 20);
+  assert.equal(Number(savedDraft.adjAmount), 80);
+  assert.equal(Number(savedDraft.adjTax), 6.2);
+  assert.equal(Number(savedDraft.adjMintedTotal), 88.7);
+  assert.equal(Number(savedDraft.adjShip), 2.5);
+  assert.equal(savedDraft.adjUseTax, true);
+  assert.equal(Number(savedDraft.taxRate), 8.25);
+  assert.equal(savedDraft.adjTaxEdited, true);
+  assert.ok(!('noteText' in savedDraft) && !('customDiscount' in savedDraft) && !('theme' in savedDraft),
+    'Draft should exclude the generated note, custom preset, and theme');
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => Math.abs(Number(document.querySelector('#adjTotal').value) - 88.7) < 0.001);
+  assert.equal(Number((await page.locator('#backer').inputValue()).replace(/,/g, '')), 100, 'Price should restore after refresh');
+  assert.equal(Number(await page.locator('#discount').inputValue()), 20, 'Discount should restore after refresh');
+  assert.equal(Number(await page.locator('#adjAmount').inputValue()), 80, 'Minted Amount should restore after refresh');
+  assert.equal(Number(await page.locator('#adjTax').inputValue()), 6.2, 'Minted tax should restore after refresh');
+  assert.equal(Number(await page.locator('#adjMintedTotal').inputValue()), 88.7, 'Total from Minted should restore after refresh');
+  assert.equal(Number(await page.locator('#adjShip').inputValue()), 2.5, 'Shipping adjustment should restore after refresh');
+  assert.equal(await page.locator('#adjUseTax').isChecked(), true, 'Include Tax should restore after refresh');
+  assert.equal(Number(await page.locator('#taxRate').inputValue()), 8.25, 'Tax rate should restore after refresh');
+  assert.equal(Number(await page.locator('#adjTotal').inputValue()), 88.7, 'Calculated Total Adjustment should be recomputed after refresh');
+
+  // Simulate a hard refresh by disabling the browser cache for the next navigation.
+  const hardRefreshSession = await context.newCDPSession(page);
+  await hardRefreshSession.send('Network.setCacheDisabled', { cacheDisabled: true });
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await hardRefreshSession.send('Network.setCacheDisabled', { cacheDisabled: false });
+  await hardRefreshSession.detach();
+  await page.waitForFunction(() => Math.abs(Number(document.querySelector('#adjTotal').value) - 88.7) < 0.001);
+  assert.equal(Number(await page.locator('#backer').inputValue()), 100, 'Price should restore after a cache-disabled hard refresh');
+  assert.equal(Number(await page.locator('#adjTax').inputValue()), 6.2, 'Minted tax should restore after a cache-disabled hard refresh');
+  assert.equal(Number(await page.locator('#adjMintedTotal').inputValue()), 88.7, 'Total from Minted should restore after a cache-disabled hard refresh');
+
+  // Checkbox state is part of the draft too, including the unchecked state.
+  await page.locator('#adjUseTax').uncheck();
+  await page.waitForFunction(() => Math.abs(Number(document.querySelector('#adjTotal').value) - 82.5) < 0.001);
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => Math.abs(Number(document.querySelector('#adjTotal').value) - 82.5) < 0.001);
+  assert.equal(await page.locator('#adjUseTax').isChecked(), false, 'Unchecked Include Tax state should restore after refresh');
+  assert.equal(Number(await page.locator('#adjTotal').inputValue()), 82.5, 'Excluding tax should recompute Total Adjustment after refresh');
+
+  // Reset should clear the draft, while Undo restores the complete Single draft and saves it again.
+  await page.locator('#adjUseTax').check();
+  await page.locator('#adjTax').fill('6.20');
+  await page.locator('#adjMintedTotal').fill('88.70');
+  await page.waitForFunction(() => Math.abs(Number(document.querySelector('#adjTotal').value) - 88.7) < 0.001);
+  await page.locator('#resetBtn').click();
+  await page.waitForFunction(() => !document.querySelector('#resetConfirmation').hidden);
+  await page.locator('#confirmResetBtn').click();
+  await page.waitForFunction(() => document.querySelector('#resetConfirmation').hidden);
+  assert.equal(await page.evaluate(() => localStorage.getItem('backerfee:draft')), null,
+    'Confirmed Reset should call clearBackerFeeDraft and remove the saved Single draft');
+  assert.equal(await page.locator('#backer').inputValue(), '', 'Reset should clear price');
+  assert.equal(await page.locator('#discount').inputValue(), '', 'Reset should clear discount');
+  assert.equal(await page.locator('#adjAmount').inputValue(), '', 'Reset should clear Minted Amount');
+  assert.equal(await page.locator('#adjTax').inputValue(), '', 'Reset should clear Minted tax');
+  assert.equal(await page.locator('#adjMintedTotal').inputValue(), '', 'Reset should clear Total from Minted');
+  assert.equal(await page.locator('#adjShip').inputValue(), '', 'Reset should clear shipping adjustment');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await page.waitForFunction(() => Number(document.querySelector('#backer').value.replace(/,/g, '')) === 100 &&
+    Math.abs(Number(document.querySelector('#adjTotal').value) - 88.7) < 0.001);
+  assert.equal(await page.locator('#adjTax').inputValue(), '6.20', 'Undo should restore the entered Minted tax');
+  assert.ok(await page.evaluate(() => Boolean(localStorage.getItem('backerfee:draft'))),
+    'Undo should restore and save the Single draft again');
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.waitForFunction(() => Number(document.querySelector('#backer').value.replace(/,/g, '')) === 100 &&
+    Math.abs(Number(document.querySelector('#adjTotal').value) - 88.7) < 0.001);
+  assert.equal(await page.locator('#adjMintedTotal').inputValue(), '88.70', 'Undo-restored draft should survive refresh');
+
+  // Confirm Reset leaves the fields empty on a subsequent reload.
+  await page.locator('#resetBtn').click();
+  await page.waitForFunction(() => !document.querySelector('#resetConfirmation').hidden);
+  await page.locator('#confirmResetBtn').click();
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  assert.equal(await page.locator('#backer').inputValue(), '', 'Price should stay empty after Reset and refresh');
+  assert.equal(await page.locator('#discount').inputValue(), '', 'Discount should stay empty after Reset and refresh');
+  assert.equal(await page.locator('#adjAmount').inputValue(), '', 'Minted Amount should stay empty after Reset and refresh');
+  assert.equal(await page.locator('#adjTax').inputValue(), '', 'Minted tax should stay empty after Reset and refresh');
+  assert.equal(await page.locator('#adjMintedTotal').inputValue(), '', 'Total from Minted should stay empty after Reset and refresh');
+  assert.equal(await page.locator('#adjShip').inputValue(), '', 'Shipping adjustment should stay empty after Reset and refresh');
+  assert.equal(await page.evaluate(() => localStorage.getItem('backerfee:draft')), null,
+    'Reset should leave no Single draft for the next page load');
+
+  // Escape uses the same confirmed-reset handler and must clear the draft as well.
+  await page.locator('#backer').fill('75');
+  await page.locator('#discount').fill('10');
+  assert.ok(await page.evaluate(() => Boolean(localStorage.getItem('backerfee:draft'))),
+    'Draft should be present before the Escape reset test');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('#resetConfirmation').hidden);
+  await page.locator('#confirmResetBtn').click();
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+  assert.equal(await page.locator('#backer').inputValue(), '', 'Escape-triggered confirmed Reset should leave price empty after refresh');
+  assert.equal(await page.locator('#discount').inputValue(), '', 'Escape-triggered confirmed Reset should leave discount empty after refresh');
+  assert.equal(await page.evaluate(() => localStorage.getItem('backerfee:draft')), null,
+    'Escape-triggered confirmed Reset should clear the Single draft');
+
   assert.deepEqual(errors, [], `Browser should not emit runtime errors: ${errors.join('; ')}`);
   console.log(JSON.stringify({
     result: 'PASS',
@@ -1662,6 +1796,11 @@ try {
       'dark Batch approval warning and Tax rate surface retain expected colors',
       'dark Batch background remains seamless during top/middle/bottom scrolling and viewport resizing',
       'light Batch and Single surfaces remain unchanged after theme toggling',
+      'number-input spinner arrows are hidden in light and dark themes',
+      'Single-mode input values and calculated totals restore after normal and cache-disabled hard refreshes',
+      'Include Tax checkbox state restores in both checked and unchecked states',
+      'Reset clears the draft, Undo restores the full draft, and both survive reload correctly',
+      'Escape-triggered confirmed Reset also clears the draft and keeps fields empty after reload',
       'no uncaught browser runtime errors'
     ],
     screenshots: [
