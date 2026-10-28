@@ -32,7 +32,7 @@ jobs:
 
       - name: Run full Chromium suite against the deployed PR preview
         env:
-          BASE_URL: https://backerfee-g4nvs4qc9-meow-7e9e.vercel.app/
+          BASE_URL: https://backerfee-g4nvs4qc9-meow-7e9e.vercel.app/?_vercel_share=cyZDSHXEewOYGnNa3hZRQKysYMTyuugH
           SCREENSHOT_DIR: artifacts/hosted-preview
         run: node tests/browser/batch-layout.spec.mjs
 
