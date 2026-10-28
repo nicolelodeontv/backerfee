@@ -1526,7 +1526,8 @@ try {
       htmlBackgroundColor: getComputedStyle(document.documentElement).backgroundColor,
       bodyBackgroundRepeat: getComputedStyle(document.body).backgroundRepeat,
       bodyBackgroundSize: getComputedStyle(document.body).backgroundSize,
-      bodyMinHeight: getComputedStyle(document.body).minHeight
+      bodyMinHeight: getComputedStyle(document.body).minHeight,
+      viewportHeight: window.innerHeight
     };
   });
   assert.equal(darkUnconfirmedStyles.unconfirmed, true, 'Estimated-tax total should carry the unconfirmed state');
@@ -1538,7 +1539,7 @@ try {
   assert.equal(darkUnconfirmedStyles.htmlBackgroundColor, 'rgb(0, 0, 0)', 'Dark HTML background should be black behind the page gradient');
   assert.ok(darkUnconfirmedStyles.bodyBackgroundRepeat.includes('no-repeat'), 'Dark page gradient should not repeat and create edge seams');
   assert.ok(darkUnconfirmedStyles.bodyBackgroundSize.includes('100% 100%'), 'Dark page gradient should cover the full viewport area');
-  assert.ok(parseFloat(darkUnconfirmedStyles.bodyMinHeight) >= 0, 'Dark body should retain an explicit minimum height');
+  assert.ok(parseFloat(darkUnconfirmedStyles.bodyMinHeight) >= darkUnconfirmedStyles.viewportHeight, 'Dark body minimum height should cover at least one viewport');
   assert.equal(darkUnconfirmedStyles.calloutText, 'rgb(255, 243, 214)', 'Dark Batch approval warning text should remain readable warm white');
   assert.equal(darkUnconfirmedStyles.calloutBorder, 'rgb(251, 191, 36)', 'Dark Batch approval warning should keep its amber border');
   assert.ok(darkUnconfirmedStyles.calloutBackgroundImage.includes('linear-gradient'), 'Dark Batch approval warning should retain its amber-red gradient');
