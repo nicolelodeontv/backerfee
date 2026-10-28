@@ -2402,3 +2402,43 @@ html[data-theme="dark"] .highlighted {
   background: linear-gradient(150deg, #2a1c40 0%, #120c1d 50%, #060409 100%);
 }
 
+
+/* Follow-up polish: remove stray inset highlight lines on large wrappers. */
+html[data-theme="dark"] .calculator-card,
+html[data-theme="dark"] .history-card,
+html[data-theme="dark"] .note-panel {
+  box-shadow: none;
+}
+
+/* Keep the dark page gradient covering the full viewport without edge seams. */
+html[data-theme="dark"] {
+  background: #000;
+}
+html[data-theme="dark"] body {
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  min-height: 100vh;
+}
+
+
+/* Keep the outer shell shadow, but remove the straight inset highlight at its top edge. */
+html[data-theme="dark"] .dashboard-card {
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .7);
+}
+
+/* These wrappers are transparent within the desktop shell; their child cards provide the surface gradients. */
+@media (min-width: 901px) {
+  html[data-theme="dark"] .dashboard-card > .calculator-card,
+  html[data-theme="dark"] .dashboard-card > .history-card {
+    background: transparent;
+  }
+}
+
+/* On smaller screens the calculator and history are standalone cards, so keep a soft outer shadow without an inset line. */
+@media (max-width: 900px) {
+  html[data-theme="dark"] .calculator-card,
+  html[data-theme="dark"] .history-card {
+    box-shadow: 0 14px 36px rgba(0, 0, 0, .34);
+  }
+}

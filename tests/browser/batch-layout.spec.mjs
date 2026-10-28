@@ -1510,21 +1510,93 @@ try {
     const total = document.querySelector('#batchRows .batch-row .batch-adj-total');
     const taxCard = document.querySelector('.tax-rate-setting');
     const callout = document.querySelector('#batchPanel .adjustment-callout');
+    const calculatorCard = document.querySelector('.calculator-card');
+    const historyCard = document.querySelector('.history-card');
+    const notePanel = document.querySelector('.note-panel');
     return {
       totalColor: getComputedStyle(total).color,
       unconfirmed: total.classList.contains('is-unconfirmed'),
       taxCardBackgroundImage: getComputedStyle(taxCard).backgroundImage,
       calloutText: getComputedStyle(callout).color,
       calloutBorder: getComputedStyle(callout).borderTopColor,
-      calloutBackgroundImage: getComputedStyle(callout).backgroundImage
+      calloutBackgroundImage: getComputedStyle(callout).backgroundImage,
+      dashboardShadow: getComputedStyle(document.querySelector('.dashboard-card')).boxShadow,
+      calculatorShadow: getComputedStyle(calculatorCard).boxShadow,
+      historyShadow: getComputedStyle(historyCard).boxShadow,
+      notePanelShadow: getComputedStyle(notePanel).boxShadow,
+      calculatorBackgroundImage: getComputedStyle(calculatorCard).backgroundImage,
+      historyBackgroundImage: getComputedStyle(historyCard).backgroundImage,
+      htmlBackgroundColor: getComputedStyle(document.documentElement).backgroundColor,
+      bodyBackgroundRepeat: getComputedStyle(document.body).backgroundRepeat,
+      bodyBackgroundSize: getComputedStyle(document.body).backgroundSize,
+      bodyBackgroundAttachment: getComputedStyle(document.body).backgroundAttachment,
+      bodyMinHeight: getComputedStyle(document.body).minHeight,
+      viewportHeight: window.innerHeight
     };
   });
   assert.equal(darkUnconfirmedStyles.unconfirmed, true, 'Estimated-tax total should carry the unconfirmed state');
   assert.equal(darkUnconfirmedStyles.totalColor, 'rgb(241, 154, 170)', 'Unconfirmed dark Batch total should be red, not pink accent');
   assert.ok(darkUnconfirmedStyles.taxCardBackgroundImage.includes('linear-gradient'), 'Dark Tax rate card should share the visible inner-card gradient');
+  assert.ok(!darkUnconfirmedStyles.dashboardShadow.includes('inset'), 'Dark dashboard shell should remove the straight inset highlight but keep its outer shadow');
+  assert.ok(darkUnconfirmedStyles.dashboardShadow.includes('70px'), 'Dark dashboard shell should retain its outer drop shadow');
+  assert.equal(darkUnconfirmedStyles.calculatorShadow, 'none', 'Desktop calculator wrapper should not draw a full-width inset highlight line');
+  assert.equal(darkUnconfirmedStyles.historyShadow, 'none', 'Desktop history wrapper should not draw a full-width inset highlight line');
+  assert.equal(darkUnconfirmedStyles.notePanelShadow, 'none', 'Dark Customer Note panel should not draw a full-width inset highlight line');
+  assert.equal(darkUnconfirmedStyles.calculatorBackgroundImage, 'none', 'Desktop calculator wrapper should stay transparent inside the main shell');
+  assert.equal(darkUnconfirmedStyles.historyBackgroundImage, 'none', 'Desktop history wrapper should stay transparent beside the main shell');
+  assert.equal(darkUnconfirmedStyles.htmlBackgroundColor, 'rgb(0, 0, 0)', 'Dark HTML background should be black behind the page gradient');
+  assert.ok(darkUnconfirmedStyles.bodyBackgroundRepeat.includes('no-repeat'), 'Dark page gradient should not repeat and create edge seams');
+  assert.ok(darkUnconfirmedStyles.bodyBackgroundSize.includes('100% 100%'), 'Dark page gradient should cover the full viewport area');
+  assert.ok(parseFloat(darkUnconfirmedStyles.bodyMinHeight) >= darkUnconfirmedStyles.viewportHeight, 'Dark body minimum height should cover at least one viewport');
   assert.equal(darkUnconfirmedStyles.calloutText, 'rgb(255, 243, 214)', 'Dark Batch approval warning text should remain readable warm white');
   assert.equal(darkUnconfirmedStyles.calloutBorder, 'rgb(251, 191, 36)', 'Dark Batch approval warning should keep its amber border');
   assert.ok(darkUnconfirmedStyles.calloutBackgroundImage.includes('linear-gradient'), 'Dark Batch approval warning should retain its amber-red gradient');
+
+  // Capture the background in a real-sized viewport while scrolling the tall Batch page.
+  // These are viewport screenshots (not fullPage captures), so the fixed background is
+  // evaluated at the top, middle, and bottom just as it is during ordinary browsing.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(120);
+  await page.screenshot({ path: screenshotName('batch-dark-viewport-top'), animations: 'disabled' });
+  const viewportStartHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+  await page.evaluate(() => window.scrollTo(0, Math.floor((document.documentElement.scrollHeight - window.innerHeight) / 2)));
+  await page.waitForTimeout(120);
+  await page.screenshot({ path: screenshotName('batch-dark-viewport-middle'), animations: 'disabled' });
+  const middleScroll = await page.evaluate(() => window.scrollY);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForTimeout(120);
+  await page.screenshot({ path: screenshotName('batch-dark-viewport-bottom'), animations: 'disabled' });
+  const bottomScroll = await page.evaluate(() => window.scrollY);
+  assert.ok(viewportStartHeight > 900, 'Batch mode should be tall enough to require real viewport scrolling');
+  assert.ok(middleScroll > 0 && bottomScroll > middleScroll, 'Batch viewport screenshots should cover top, middle, and bottom scroll positions');
+
+  // Resize the tall dark Batch page and retain the full viewport background with no overflow.
+  for (const viewport of [{ width: 1100, height: 850 }, { width: 375, height: 812 }, { width: 320, height: 640 }]) {
+    await page.setViewportSize(viewport);
+    await page.waitForTimeout(120);
+    const resized = await page.evaluate(() => ({
+      width: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      backgroundRepeat: getComputedStyle(document.body).backgroundRepeat,
+      backgroundSize: getComputedStyle(document.body).backgroundSize,
+      backgroundAttachment: getComputedStyle(document.body).backgroundAttachment,
+      calculatorBackgroundImage: getComputedStyle(document.querySelector('.calculator-card')).backgroundImage,
+      calculatorShadow: getComputedStyle(document.querySelector('.calculator-card')).boxShadow
+    }));
+    assert.equal(resized.documentWidth, resized.width, `Dark Batch page should not overflow horizontally at ${viewport.width}px`);
+    assert.ok(resized.backgroundRepeat.split(',').every(value => value.trim() === 'no-repeat'), 'Every dark page gradient layer should avoid repeating after resizing');
+    assert.ok(resized.backgroundSize.split(',').every(value => value.trim() === '100% 100%'), 'Every dark page gradient layer should cover the resized viewport');
+    assert.ok(resized.backgroundAttachment.split(',').every(value => value.trim() === 'fixed'), 'Every dark page gradient layer should remain fixed while scrolling');
+    if (viewport.width <= 900) {
+      assert.ok(resized.calculatorBackgroundImage.includes('linear-gradient'), 'Mobile calculator card should keep its layered surface gradient');
+      assert.ok(resized.calculatorShadow.includes('36px') && !resized.calculatorShadow.includes('inset'), 'Mobile calculator should retain only an outer shadow, not an inset highlight');
+    }
+    await page.screenshot({ path: screenshotName(`batch-dark-resize-${viewport.width}`), animations: 'disabled' });
+  }
+  await page.setViewportSize({ width: 1440, height: 1300 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(120);
   await page.screenshot({ path: screenshotName('batch-dark-unconfirmed-total'), fullPage: true, animations: 'disabled' });
 
   // Enter the estimated tax as Minted tax and the matching total; confirmed total must be neutral white.
@@ -1588,6 +1660,7 @@ try {
       'desktop results and tax-rate setting have deliberate vertical spacing',
       'dark Batch estimated total is red and confirmed total is neutral white',
       'dark Batch approval warning and Tax rate surface retain expected colors',
+      'dark Batch background remains seamless during top/middle/bottom scrolling and viewport resizing',
       'light Batch and Single surfaces remain unchanged after theme toggling',
       'no uncaught browser runtime errors'
     ],
@@ -1601,6 +1674,12 @@ try {
       'batch-real-values-1440.png',
       'batch-real-values-first-row.png',
       'batch-dark-unconfirmed-total.png',
+      'batch-dark-viewport-top.png',
+      'batch-dark-viewport-middle.png',
+      'batch-dark-viewport-bottom.png',
+      'batch-dark-resize-1100.png',
+      'batch-dark-resize-375.png',
+      'batch-dark-resize-320.png',
       'batch-dark-confirmed-total.png',
       'single-light-after-dark-batch.png'
     ]
