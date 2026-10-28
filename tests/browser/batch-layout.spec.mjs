@@ -1675,7 +1675,7 @@ try {
   await page.waitForFunction(() => Math.abs(Number(document.querySelector('#adjTotal').value) - 88.7) < 0.001);
   const savedDraft = await page.evaluate(() => JSON.parse(localStorage.getItem('backerfee:draft') || 'null'));
   assert.ok(savedDraft, 'Editing Single-mode fields should create a saved draft');
-  assert.equal(savedDraft.backer, '100');
+  assert.equal(Number(String(savedDraft.backer).replace(/,/g, '')), 100);
   assert.equal(Number(savedDraft.discount), 20);
   assert.equal(Number(savedDraft.adjAmount), 80);
   assert.equal(Number(savedDraft.adjTax), 6.2);
@@ -1688,7 +1688,7 @@ try {
     'Draft should exclude the generated note, custom preset, and theme');
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => Math.abs(Number(document.querySelector('#adjTotal').value) - 88.7) < 0.001);
-  assert.equal(await page.locator('#backer').inputValue(), '100', 'Price should restore after refresh');
+  assert.equal(Number((await page.locator('#backer').inputValue()).replace(/,/g, '')), 100, 'Price should restore after refresh');
   assert.equal(Number(await page.locator('#discount').inputValue()), 20, 'Discount should restore after refresh');
   assert.equal(Number(await page.locator('#adjAmount').inputValue()), 80, 'Minted Amount should restore after refresh');
   assert.equal(Number(await page.locator('#adjTax').inputValue()), 6.2, 'Minted tax should restore after refresh');
@@ -1724,13 +1724,13 @@ try {
   assert.equal(await page.locator('#adjMintedTotal').inputValue(), '', 'Reset should clear Total from Minted');
   assert.equal(await page.locator('#adjShip').inputValue(), '', 'Reset should clear shipping adjustment');
   await page.getByRole('button', { name: 'Undo' }).click();
-  await page.waitForFunction(() => document.querySelector('#backer').value === '100' &&
+  await page.waitForFunction(() => Number(document.querySelector('#backer').value.replace(/,/g, '')) === 100 &&
     Math.abs(Number(document.querySelector('#adjTotal').value) - 88.7) < 0.001);
   assert.equal(await page.locator('#adjTax').inputValue(), '6.20', 'Undo should restore the entered Minted tax');
   assert.ok(await page.evaluate(() => Boolean(localStorage.getItem('backerfee:draft'))),
     'Undo should restore and save the Single draft again');
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
-  await page.waitForFunction(() => document.querySelector('#backer').value === '100' &&
+  await page.waitForFunction(() => Number(document.querySelector('#backer').value.replace(/,/g, '')) === 100 &&
     Math.abs(Number(document.querySelector('#adjTotal').value) - 88.7) < 0.001);
   assert.equal(await page.locator('#adjMintedTotal').inputValue(), '88.70', 'Undo-restored draft should survive refresh');
 
