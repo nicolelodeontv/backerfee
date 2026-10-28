@@ -3,6 +3,7 @@ import { buildCustomerNote, calculateAdjustment, calculateFee, formatMoney } fro
 const STORAGE_KEYS = {
   settings: 'backerfee-settings-v3',
   batchDraft: 'backerfee-batch-draft-v1',
+  singleDraft: 'backerfee:draft',
 };
 
 const DEFAULT_TAX_RATE = 7.75;
@@ -811,6 +812,114 @@ function calculateLive() {
 }
 
 
+function readSingleDraftValues() {
+  return {
+    backer: backerInput.value,
+    discount: discountInput.value,
+    adjAmount: adjAmount.value,
+    adjTax: adjTax.value,
+    adjMintedTotal: adjMintedTotal.value,
+    adjShip: adjShipInput.value,
+    adjUseTax: adjUseTaxInput.checked,
+    taxRate: taxRateInput.value,
+    // Preserve whether tax was manually entered; an estimate must stay provisional.
+    adjTaxEdited: adjTax.dataset.taxEdited === '1'
+  };
+}
+
+function saveSingleDraft() {
+  try {
+    localStorage.setItem(STORAGE_KEYS.singleDraft, JSON.stringify(readSingleDraftValues()));
+  } catch (_) {
+    // Storage may be unavailable in private browsing or when the browser blocks it.
+  }
+}
+
+function clearBackerFeeDraft() {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.singleDraft);
+  } catch (_) {
+    // Storage may be unavailable in private browsing or when the browser blocks it.
+  }
+}
+window.clearBackerFeeDraft = clearBackerFeeDraft;
+
+function restoreSingleDraft(draft = null, { persist = false } = {}) {
+  let data = draft;
+  if (data === null) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.singleDraft);
+      if (!raw) return false;
+      data = JSON.parse(raw);
+    } catch (_) {
+      return false;
+    }
+  }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+
+  const assignString = (element, key, maxLength = 64) => {
+    if (typeof data[key] === 'string' && data[key].length <= maxLength) {
+      element.value = data[key];
+    }
+  };
+
+  // Restore source fields first, then calculate the fee before restoring the
+  // independently editable Minted adjustment fields that calculateLive() can update.
+  assignString(backerInput, 'backer');
+  assignString(discountInput, 'discount');
+
+  const savedRate = typeof data.taxRate === 'string' ? parseTaxRate(data.taxRate) : null;
+  if (savedRate !== null) {
+    taxRate = savedRate;
+    taxRateInput.value = String(savedRate);
+    taxRateInput.setAttribute('aria-invalid', 'false');
+    taxRateError.textContent = '';
+    updateTaxRateLabels();
+  }
+
+  noteWasEdited = false;
+  updatePresetState();
+  calculateLive();
+
+  assignString(adjAmount, 'adjAmount');
+  assignString(adjTax, 'adjTax');
+  assignString(adjMintedTotal, 'adjMintedTotal');
+  assignString(adjShipInput, 'adjShip');
+  if (typeof data.adjUseTax === 'boolean') adjUseTaxInput.checked = data.adjUseTax;
+  adjTax.dataset.taxEdited = data.adjTaxEdited === true ? '1' : '';
+
+  // Recompute derived totals, comparison/status text, and the generated note.
+  computeAdjustment();
+  noteEmpty?.setAttribute('aria-hidden', noteText.value.trim() ? 'true' : 'false');
+  updateSingleNoteCopyState();
+  fitNote(noteText);
+  saveSettings();
+  if (persist) saveSingleDraft();
+  return true;
+}
+
+function initializeSingleDraftPersistence() {
+  // Whitelist only Single-mode calculation inputs. This deliberately excludes
+  // the generated customer note, custom preset editor, Batch row inputs, theme,
+  // and history, all of which have their own behavior/storage.
+  [
+    backerInput,
+    discountInput,
+    adjAmount,
+    adjTax,
+    adjMintedTotal,
+    adjShipInput,
+    adjUseTaxInput,
+    taxRateInput
+  ].forEach((element) => {
+    element.addEventListener('input', saveSingleDraft);
+    element.addEventListener('change', saveSingleDraft);
+  });
+
+  // Run after the app's listeners and startup calculation have been installed.
+  restoreSingleDraft();
+}
+
 function clearCalculatorStorage() {
   try {
     const theme = document.documentElement.dataset.theme || 'light';
@@ -831,6 +940,7 @@ function clearCalculatorStorage() {
 function resetCalculator({ returnFocusToReset = false } = {}) {
   if (currentMode === 'batch') {
     lastResetSnapshot = { mode: 'batch', rows: batchRowsData() };
+    window.clearBackerFeeDraft();
     renderBatchRows([createEmptyBatchRow(), createEmptyBatchRow()]);
     batchResults = [];
     batchStatus.textContent = '';
@@ -843,9 +953,9 @@ function resetCalculator({ returnFocusToReset = false } = {}) {
 
   lastResetSnapshot = {
     mode: 'single',
-    backer: backerInput.value,
-    discount: discountInput.value
+    draft: readSingleDraftValues()
   };
+  window.clearBackerFeeDraft();
 
   const retainedTaxRate = taxRate;
   form.reset();
@@ -1467,11 +1577,7 @@ function showResetUndoToast() {
       return;
     }
 
-    backerInput.value = snapshot.backer;
-    discountInput.value = snapshot.discount;
-    noteWasEdited = false;
-    updatePresetState();
-    calculateLive();
+    restoreSingleDraft(snapshot.draft, { persist: true });
     backerInput.focus();
   });
 }
@@ -1915,3 +2021,6 @@ if (backerInput.value && discountInput.value) {
   calculateLive();
 }
 
+
+// Install draft autosave only after the app's own listeners and startup calculation exist.
+initializeSingleDraftPersistence();
