@@ -2442,3 +2442,15 @@ html[data-theme="dark"] .dashboard-card {
     box-shadow: 0 14px 36px rgba(0, 0, 0, .34);
   }
 }
+
+
+/* Hide number-input spinner arrows (all inputs, both themes) */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
