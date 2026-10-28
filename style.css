@@ -2402,3 +2402,21 @@ html[data-theme="dark"] .highlighted {
   background: linear-gradient(150deg, #2a1c40 0%, #120c1d 50%, #060409 100%);
 }
 
+
+/* Follow-up polish: remove stray inset highlight lines on large wrappers. */
+html[data-theme="dark"] .calculator-card,
+html[data-theme="dark"] .history-card,
+html[data-theme="dark"] .note-panel {
+  box-shadow: none;
+}
+
+/* Keep the dark page gradient covering the full viewport without edge seams. */
+html[data-theme="dark"] {
+  background: #000;
+}
+html[data-theme="dark"] body {
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  min-height: 100vh;
+}
