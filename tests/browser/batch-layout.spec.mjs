@@ -1520,12 +1520,16 @@ try {
       calloutText: getComputedStyle(callout).color,
       calloutBorder: getComputedStyle(callout).borderTopColor,
       calloutBackgroundImage: getComputedStyle(callout).backgroundImage,
+      dashboardShadow: getComputedStyle(document.querySelector('.dashboard-card')).boxShadow,
       calculatorShadow: getComputedStyle(calculatorCard).boxShadow,
       historyShadow: getComputedStyle(historyCard).boxShadow,
       notePanelShadow: getComputedStyle(notePanel).boxShadow,
+      calculatorBackgroundImage: getComputedStyle(calculatorCard).backgroundImage,
+      historyBackgroundImage: getComputedStyle(historyCard).backgroundImage,
       htmlBackgroundColor: getComputedStyle(document.documentElement).backgroundColor,
       bodyBackgroundRepeat: getComputedStyle(document.body).backgroundRepeat,
       bodyBackgroundSize: getComputedStyle(document.body).backgroundSize,
+      bodyBackgroundAttachment: getComputedStyle(document.body).backgroundAttachment,
       bodyMinHeight: getComputedStyle(document.body).minHeight,
       viewportHeight: window.innerHeight
     };
@@ -1533,9 +1537,13 @@ try {
   assert.equal(darkUnconfirmedStyles.unconfirmed, true, 'Estimated-tax total should carry the unconfirmed state');
   assert.equal(darkUnconfirmedStyles.totalColor, 'rgb(241, 154, 170)', 'Unconfirmed dark Batch total should be red, not pink accent');
   assert.ok(darkUnconfirmedStyles.taxCardBackgroundImage.includes('linear-gradient'), 'Dark Tax rate card should share the visible inner-card gradient');
-  assert.equal(darkUnconfirmedStyles.calculatorShadow, 'none', 'Dark calculator wrapper should not draw a full-width inset highlight line');
-  assert.equal(darkUnconfirmedStyles.historyShadow, 'none', 'Dark history wrapper should not draw a full-width inset highlight line');
+  assert.ok(!darkUnconfirmedStyles.dashboardShadow.includes('inset'), 'Dark dashboard shell should remove the straight inset highlight but keep its outer shadow');
+  assert.ok(darkUnconfirmedStyles.dashboardShadow.includes('70px'), 'Dark dashboard shell should retain its outer drop shadow');
+  assert.equal(darkUnconfirmedStyles.calculatorShadow, 'none', 'Desktop calculator wrapper should not draw a full-width inset highlight line');
+  assert.equal(darkUnconfirmedStyles.historyShadow, 'none', 'Desktop history wrapper should not draw a full-width inset highlight line');
   assert.equal(darkUnconfirmedStyles.notePanelShadow, 'none', 'Dark Customer Note panel should not draw a full-width inset highlight line');
+  assert.equal(darkUnconfirmedStyles.calculatorBackgroundImage, 'none', 'Desktop calculator wrapper should stay transparent inside the main shell');
+  assert.equal(darkUnconfirmedStyles.historyBackgroundImage, 'none', 'Desktop history wrapper should stay transparent beside the main shell');
   assert.equal(darkUnconfirmedStyles.htmlBackgroundColor, 'rgb(0, 0, 0)', 'Dark HTML background should be black behind the page gradient');
   assert.ok(darkUnconfirmedStyles.bodyBackgroundRepeat.includes('no-repeat'), 'Dark page gradient should not repeat and create edge seams');
   assert.ok(darkUnconfirmedStyles.bodyBackgroundSize.includes('100% 100%'), 'Dark page gradient should cover the full viewport area');
@@ -1572,12 +1580,18 @@ try {
       documentWidth: document.documentElement.scrollWidth,
       backgroundRepeat: getComputedStyle(document.body).backgroundRepeat,
       backgroundSize: getComputedStyle(document.body).backgroundSize,
-      backgroundAttachment: getComputedStyle(document.body).backgroundAttachment
+      backgroundAttachment: getComputedStyle(document.body).backgroundAttachment,
+      calculatorBackgroundImage: getComputedStyle(document.querySelector('.calculator-card')).backgroundImage,
+      calculatorShadow: getComputedStyle(document.querySelector('.calculator-card')).boxShadow
     }));
     assert.equal(resized.documentWidth, resized.width, `Dark Batch page should not overflow horizontally at ${viewport.width}px`);
-    assert.ok(resized.backgroundRepeat.includes('no-repeat'), 'Dark page gradient should not repeat after resizing');
-    assert.ok(resized.backgroundSize.includes('100% 100%'), 'Dark page gradient should cover the resized viewport');
-    assert.equal(resized.backgroundAttachment, 'fixed', 'Dark page gradient should remain fixed while scrolling');
+    assert.ok(resized.backgroundRepeat.split(',').every(value => value.trim() === 'no-repeat'), 'Every dark page gradient layer should avoid repeating after resizing');
+    assert.ok(resized.backgroundSize.split(',').every(value => value.trim() === '100% 100%'), 'Every dark page gradient layer should cover the resized viewport');
+    assert.ok(resized.backgroundAttachment.split(',').every(value => value.trim() === 'fixed'), 'Every dark page gradient layer should remain fixed while scrolling');
+    if (viewport.width <= 900) {
+      assert.ok(resized.calculatorBackgroundImage.includes('linear-gradient'), 'Mobile calculator card should keep its layered surface gradient');
+      assert.ok(resized.calculatorShadow.includes('36px') && !resized.calculatorShadow.includes('inset'), 'Mobile calculator should retain only an outer shadow, not an inset highlight');
+    }
     await page.screenshot({ path: screenshotName(`batch-dark-resize-${viewport.width}`), animations: 'disabled' });
   }
   await page.setViewportSize({ width: 1440, height: 1300 });
