@@ -1543,6 +1543,46 @@ try {
   assert.equal(darkUnconfirmedStyles.calloutText, 'rgb(255, 243, 214)', 'Dark Batch approval warning text should remain readable warm white');
   assert.equal(darkUnconfirmedStyles.calloutBorder, 'rgb(251, 191, 36)', 'Dark Batch approval warning should keep its amber border');
   assert.ok(darkUnconfirmedStyles.calloutBackgroundImage.includes('linear-gradient'), 'Dark Batch approval warning should retain its amber-red gradient');
+
+  // Capture the background in a real-sized viewport while scrolling the tall Batch page.
+  // These are viewport screenshots (not fullPage captures), so the fixed background is
+  // evaluated at the top, middle, and bottom just as it is during ordinary browsing.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(120);
+  await page.screenshot({ path: screenshotName('batch-dark-viewport-top'), animations: 'disabled' });
+  const viewportStartHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+  await page.evaluate(() => window.scrollTo(0, Math.floor((document.documentElement.scrollHeight - window.innerHeight) / 2)));
+  await page.waitForTimeout(120);
+  await page.screenshot({ path: screenshotName('batch-dark-viewport-middle'), animations: 'disabled' });
+  const middleScroll = await page.evaluate(() => window.scrollY);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForTimeout(120);
+  await page.screenshot({ path: screenshotName('batch-dark-viewport-bottom'), animations: 'disabled' });
+  const bottomScroll = await page.evaluate(() => window.scrollY);
+  assert.ok(viewportStartHeight > 900, 'Batch mode should be tall enough to require real viewport scrolling');
+  assert.ok(middleScroll > 0 && bottomScroll > middleScroll, 'Batch viewport screenshots should cover top, middle, and bottom scroll positions');
+
+  // Resize the tall dark Batch page and retain the full viewport background with no overflow.
+  for (const viewport of [{ width: 1100, height: 850 }, { width: 375, height: 812 }, { width: 320, height: 640 }]) {
+    await page.setViewportSize(viewport);
+    await page.waitForTimeout(120);
+    const resized = await page.evaluate(() => ({
+      width: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      backgroundRepeat: getComputedStyle(document.body).backgroundRepeat,
+      backgroundSize: getComputedStyle(document.body).backgroundSize,
+      backgroundAttachment: getComputedStyle(document.body).backgroundAttachment
+    }));
+    assert.equal(resized.documentWidth, resized.width, `Dark Batch page should not overflow horizontally at ${viewport.width}px`);
+    assert.ok(resized.backgroundRepeat.includes('no-repeat'), 'Dark page gradient should not repeat after resizing');
+    assert.ok(resized.backgroundSize.includes('100% 100%'), 'Dark page gradient should cover the resized viewport');
+    assert.equal(resized.backgroundAttachment, 'fixed', 'Dark page gradient should remain fixed while scrolling');
+    await page.screenshot({ path: screenshotName(`batch-dark-resize-${viewport.width}`), animations: 'disabled' });
+  }
+  await page.setViewportSize({ width: 1440, height: 1300 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(120);
   await page.screenshot({ path: screenshotName('batch-dark-unconfirmed-total'), fullPage: true, animations: 'disabled' });
 
   // Enter the estimated tax as Minted tax and the matching total; confirmed total must be neutral white.
@@ -1606,6 +1646,7 @@ try {
       'desktop results and tax-rate setting have deliberate vertical spacing',
       'dark Batch estimated total is red and confirmed total is neutral white',
       'dark Batch approval warning and Tax rate surface retain expected colors',
+      'dark Batch background remains seamless during top/middle/bottom scrolling and viewport resizing',
       'light Batch and Single surfaces remain unchanged after theme toggling',
       'no uncaught browser runtime errors'
     ],
@@ -1619,6 +1660,12 @@ try {
       'batch-real-values-1440.png',
       'batch-real-values-first-row.png',
       'batch-dark-unconfirmed-total.png',
+      'batch-dark-viewport-top.png',
+      'batch-dark-viewport-middle.png',
+      'batch-dark-viewport-bottom.png',
+      'batch-dark-resize-1100.png',
+      'batch-dark-resize-375.png',
+      'batch-dark-resize-320.png',
       'batch-dark-confirmed-total.png',
       'single-light-after-dark-batch.png'
     ]
