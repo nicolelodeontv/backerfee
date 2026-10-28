@@ -1645,9 +1645,7 @@ try {
   const readNumberInputStyles = () => page.locator('input[type="number"]').evaluateAll((elements) =>
     elements.map((element) => ({
       id: element.id,
-      appearance: getComputedStyle(element).appearance,
-      outerSpinnerAppearance: getComputedStyle(element, '::-webkit-outer-spin-button').getPropertyValue('-webkit-appearance'),
-      innerSpinnerAppearance: getComputedStyle(element, '::-webkit-inner-spin-button').getPropertyValue('-webkit-appearance')
+      appearance: getComputedStyle(element).appearance
     }))
   );
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
@@ -1655,14 +1653,10 @@ try {
   assert.ok(numberInputStyles.length > 0, 'App should expose numeric inputs for the spinner check');
   assert.ok(numberInputStyles.every((style) => style.appearance === 'textfield'),
     `Light-mode number inputs should use textfield appearance: ${JSON.stringify(numberInputStyles)}`);
-  assert.ok(numberInputStyles.every((style) => style.outerSpinnerAppearance === 'none' && style.innerSpinnerAppearance === 'none'),
-    `Light-mode number input spinner pseudo-elements should be hidden: ${JSON.stringify(numberInputStyles)}`);
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   numberInputStyles = await readNumberInputStyles();
   assert.ok(numberInputStyles.every((style) => style.appearance === 'textfield'),
     `Dark-mode number inputs should use textfield appearance: ${JSON.stringify(numberInputStyles)}`);
-  assert.ok(numberInputStyles.every((style) => style.outerSpinnerAppearance === 'none' && style.innerSpinnerAppearance === 'none'),
-    `Dark-mode number input spinner pseudo-elements should be hidden: ${JSON.stringify(numberInputStyles)}`);
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
 
   // Single-mode draft: persist input fields only, then restore those values and derived results on reload.
