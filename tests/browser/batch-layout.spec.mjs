@@ -532,6 +532,7 @@ try {
   await page.evaluate(() => {
     localStorage.removeItem('backerfee-batch-draft-v1');
     localStorage.removeItem('backerfee-settings-v3');
+    localStorage.removeItem('backerfee:draft');
   });
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => document.querySelectorAll('#batchRows .batch-row').length === 2, null, { timeout: 15000 });
@@ -1468,6 +1469,9 @@ try {
   await rateInput.evaluate((el) => el.blur());
   await rateInput.evaluate((el) => { el.type = 'number'; });
   assert.equal(await rateInput.inputValue(), '7.75', 'Letter input should recover to 7.75% on blur');
+
+  // Isolate the legacy settings-fallback test from the newly persisted input draft.
+  await page.evaluate(() => localStorage.removeItem('backerfee:draft'));
 
   // Invalid stored rate data must also load safely with the default rate.
   await page.evaluate(() => {
