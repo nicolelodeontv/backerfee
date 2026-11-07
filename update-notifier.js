@@ -9,9 +9,9 @@
  */
 (() => {
   // Bump these when you ship a change people should hear about.
-  const APP_VERSION = '1.3.1';
-  const APP_UPDATED = 'Oct 26, 2026';
-  const WHATS_NEW = 'Spacing is more even, and Minted entry amounts fit on phones.';
+  const APP_VERSION = '1.4.0';
+  const APP_UPDATED = 'Nov 8, 2026';
+  const WHATS_NEW = 'Works offline and can be installed; fonts load faster.';
   const SEEN_KEY = 'backerfee-seen-version';
 
   const FILES = [
