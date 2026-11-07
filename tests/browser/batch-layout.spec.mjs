@@ -44,7 +44,7 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('response', (response) => {
     const url = new URL(response.url());
-    if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+    if (url.pathname.startsWith('/fonts/')) {
       fontResponses.push({ url: response.url(), status: response.status() });
     }
   });
@@ -551,10 +551,10 @@ try {
         .filter((face) => /Poppins/i.test(face.family))
         .map((face) => ({ family: face.family, status: face.status }))
     );
-    assert.ok(fontResponses.some((item) => item.url.includes('fonts.googleapis.com') && item.status === 200),
-      'Production Google Fonts stylesheet should load successfully');
-    assert.ok(fontResponses.some((item) => item.url.includes('fonts.gstatic.com') && item.status === 200),
-      'Production Poppins font file should load successfully');
+    assert.ok(fontResponses.some((item) => item.url.endsWith('/fonts/fonts.css') && item.status === 200),
+      'Self-hosted font stylesheet should load successfully');
+    assert.ok(fontResponses.some((item) => item.url.endsWith('.woff') && item.status === 200),
+      'Self-hosted Poppins font file should load successfully');
     assert.ok(loadedPoppins.some((face) => face.status === 'loaded'),
       `Production Poppins font face should finish loading: ${JSON.stringify(loadedPoppins)}`);
   }
