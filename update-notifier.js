@@ -22,6 +22,8 @@
     'calculator-utils.js',
     'style.css',
     'update-notifier.js',
+    'pwa.js',
+    'fonts/fonts.css',
   ];
   const CHECK_EVERY_MS = 5 * 60 * 1000;
   const MIN_GAP_MS = 30 * 1000;

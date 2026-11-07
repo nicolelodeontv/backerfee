@@ -1,0 +1,5 @@
+/* Self-hosted Latin subsets of Poppins. SIL Open Font License; see OFL-Poppins.txt */
+@font-face{font-family:Poppins;font-style:normal;font-weight:400;font-display:swap;src:url(poppins-400.woff) format("woff")}
+@font-face{font-family:Poppins;font-style:normal;font-weight:500;font-display:swap;src:url(poppins-500.woff) format("woff")}
+@font-face{font-family:Poppins;font-style:normal;font-weight:600;font-display:swap;src:url(poppins-600.woff) format("woff")}
+@font-face{font-family:Poppins;font-style:normal;font-weight:700;font-display:swap;src:url(poppins-700.woff) format("woff")}

@@ -15,7 +15,7 @@ A responsive, browser-only calculator for discounted backer fees and customer-re
 - Reset with an Undo snackbar
 - Reset and Escape-key support
 - Exact-format clipboard copying
-- Minted Financial Adjustment card with an editable Amount, fixed 9.75% tax rounded to cents, Subtotal, and Total Adjustment
+- Minted Financial Adjustment card with an editable Amount, editable tax rate (default 7.75% estimate) rounded to cents, Subtotal, and Total Adjustment
 - Include Tax locked on; tax, subtotal, and total recalculate live as Amount or Shipping Adjustment changes
 - Locally persisted Shipping Adjustment and copyable Minted Amount and Total Adjustment
 - Animated result count-up with reduced-motion fallback
@@ -34,7 +34,7 @@ A responsive, browser-only calculator for discounted backer fees and customer-re
 - Discount Amount = Original Price × (Discount ÷ 100)
 - Final Backer Fee = Original Price − Discount Amount
 - Amount normally follows the Final Backer Fee, but can be edited directly
-- Tax = Amount × 9.75%, rounded to the nearest cent
+- Tax = Amount × Tax rate (editable, default 7.75% estimate), rounded to the nearest cent
 - Subtotal = Amount + Tax
 - Total Adjustment = Subtotal + Shipping Adjustment
 
@@ -46,6 +46,8 @@ npm test
 
 ## Deploy
 
-This is a static website and can be deployed directly to Netlify, Vercel, GitHub Pages, or another static host. No server or database is required.
+This is a static site deployed on Vercel from the repository root. No build step, server, or database is required. `vercel.json` sets the security headers (including a Content Security Policy) and long-lived caching for the self-hosted fonts.
 
-The project supports both Netlify and Vercel deployments using their respective config files: `netlify.toml` for Netlify and `vercel.json` for Vercel. Neither deployment requires a build step; the site is served directly from the repository root.
+## Offline and install
+
+The app is an installable web app. A small service worker (`sw.js`) caches the app files so the calculator opens offline. It loads from the network first, so a new deploy is picked up right away; bump `CACHE` in `sw.js` when you add or rename files in its `SHELL` list. Poppins is self-hosted in `fonts/` (Latin subset, SIL Open Font License).
