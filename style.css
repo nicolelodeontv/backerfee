@@ -1184,6 +1184,38 @@ html[data-theme="dark"] .adjustment-limit-warning {
 .adjustment-value-input input[aria-invalid="true"] {
   border-color: var(--danger);
 }
+
+/* Amount and estimated tax are selectable display text, never editable controls. */
+.adjustment-value-display {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 11px 0 33px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper-2);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.adjustment-value-display output {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.adjustment-row.total .adjustment-value-input input.is-unconfirmed {
+  border-color: var(--danger) !important;
+  background-color: rgba(181, 79, 95, .08) !important;
+}
+.adj-copy-btn:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none;
+}
 .adjustment-value-input .prefix {
   left: 12px;
   font-size: 11px;
@@ -1336,6 +1368,34 @@ html[data-theme="dark"] .batch-adj-total.is-unconfirmed {
 .batch-adj-field .input-wrap:has(.prefix) input[aria-invalid="true"] {
   border-color: var(--danger);
 }
+
+.batch-adj-field .input-wrap:has(.prefix) .batch-adj-output {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 12px 10px 0 30px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper-2);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.batch-adj-field .batch-adj-output {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.batch-adj-field:nth-child(5) .batch-adj-output {
+  color: var(--accent-dark);
+  font-size: 15px;
+  font-weight: 800;
+}
+
 
 .batch-adj-field .prefix { left: 12px; font-size: 11px; }
 
