@@ -1,4 +1,8 @@
+import { inject } from '@vercel/analytics';
 import { buildCustomerNote, calculateAdjustment, calculateFee, formatMoney } from './calculator-utils.js';
+
+// Initialize Vercel Web Analytics
+inject();
 
 const STORAGE_KEYS = {
   settings: 'backerfee-settings-v3',
